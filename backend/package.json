@@ -1,0 +1,32 @@
+{
+    "name": "ele-visualize-backend",
+    "version": "1.0.0",
+    "description": "Backend API for Ele-Visualize - Periodic Table Visualization",
+    "main": "dist/server.js",
+    "scripts": {
+        "dev": "tsx watch src/server.ts",
+        "build": "tsc",
+        "start": "node dist/server.js"
+    },
+    "keywords": [
+        "periodic-table",
+        "chemistry",
+        "api",
+        "websocket"
+    ],
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "cors": "^2.8.5",
+        "express": "^4.22.1",
+        "ws": "^8.19.0"
+    },
+    "devDependencies": {
+        "@types/cors": "^2.8.19",
+        "@types/express": "^4.17.25",
+        "@types/node": "^20.19.27",
+        "@types/ws": "^8.18.1",
+        "tsx": "^4.21.0",
+        "typescript": "^5.9.3"
+    }
+}
