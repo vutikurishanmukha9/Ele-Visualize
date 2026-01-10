@@ -63,3 +63,27 @@ Our specific end goal is the seamless integration of **MediaPipe Hand Tracking**
 
 ### Data Management
 -   **TanStack Query (React Query)**: For powerful asynchronous state management and data fetching.
+
+## Getting Started
+
+The project is organized into two main folders:
+-   **`frontend/`**: The React/Three.js application.
+-   **`backend/`**: The Node.js/Express server and WebSocket handler.
+
+### Running the Application
+
+1.  **Start the Backend**:
+    ```bash
+    cd backend
+    npm install
+    npm run dev
+    ```
+    *Server will start on `http://localhost:3001`*
+
+2.  **Start the Frontend**:
+    ```bash
+    cd frontend
+    npm install
+    npm run dev
+    ```
+    *App will run on `http://localhost:8080` (or similar)*

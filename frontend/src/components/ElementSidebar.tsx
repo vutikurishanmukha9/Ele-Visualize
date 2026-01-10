@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Atom, Filter, Search } from 'lucide-react';
-import { ChemicalElement, categoryLabels, ElementCategory } from '@/data/elements';
+import { elements, ChemicalElement, categoryLabels, ElementCategory } from '@/data/elements';
 import { ElementCard } from './ElementCard';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-
-import { useElements } from '@/hooks/useElements';
 
 interface ElementSidebarProps {
   selectedElement: ChemicalElement | null;
@@ -19,8 +17,6 @@ export function ElementSidebar({ selectedElement, onSelectElement }: ElementSide
   const [activeFilter, setActiveFilter] = useState<ElementCategory | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const { data: elements = [], isLoading, error } = useElements();
-
   const filteredElements = elements.filter((element) => {
     const matchesFilter = activeFilter === 'all' || element.category === activeFilter;
     const matchesSearch =
@@ -28,24 +24,6 @@ export function ElementSidebar({ selectedElement, onSelectElement }: ElementSide
       element.symbol.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesFilter && matchesSearch;
   });
-
-  if (isLoading) {
-    return (
-      <aside className="glass-panel w-80 flex flex-col h-full border-r border-border/30 p-4 items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
-        <p className="mt-2 text-sm text-muted-foreground">Loading elements...</p>
-      </aside>
-    );
-  }
-
-  if (error) {
-    return (
-      <aside className="glass-panel w-80 flex flex-col h-full border-r border-border/30 p-4 items-center justify-center">
-        <p className="text-sm text-destructive">Failed to load elements</p>
-        <p className="text-xs text-muted-foreground mt-1">Check if backend is running</p>
-      </aside>
-    );
-  }
 
   return (
     <aside className="glass-panel w-80 flex flex-col h-full border-r border-border/30">
