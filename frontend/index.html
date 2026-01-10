@@ -23,6 +23,14 @@
 <body>
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
+
+  <!-- Load MediaPipe as ES module -->
+  <script type="module">
+    import { HandLandmarker, FilesetResolver } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.8';
+    window.HandLandmarker = HandLandmarker;
+    window.FilesetResolver = FilesetResolver;
+    console.log('[MediaPipe] Loaded successfully');
+  </script>
 </body>
 
 </html>
