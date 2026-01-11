@@ -6,6 +6,8 @@ import { cn } from '@/lib/utils';
 interface HandTrackerProps {
     onZoomChange?: (zoomLevel: number) => void;
     onGestureDetected?: (gesture: string) => void;
+    onSwipe?: (direction: 'left' | 'right') => void;
+    onHandPosition?: (x: number, y: number) => void;
 }
 
 declare global {
@@ -15,33 +17,175 @@ declare global {
     }
 }
 
+// ============== ADVANCED SMOOTHING CLASSES ==============
+
+// Kalman-like 1D filter for ultra-smooth prediction
+class KalmanFilter {
+    private x: number = 0;      // state
+    private p: number = 1;      // error covariance
+    private q: number;          // process noise
+    private r: number;          // measurement noise
+    private k: number = 0;      // kalman gain
+
+    constructor(processNoise = 0.01, measurementNoise = 0.1) {
+        this.q = processNoise;
+        this.r = measurementNoise;
+    }
+
+    filter(measurement: number): number {
+        // Prediction
+        this.p = this.p + this.q;
+
+        // Update
+        this.k = this.p / (this.p + this.r);
+        this.x = this.x + this.k * (measurement - this.x);
+        this.p = (1 - this.k) * this.p;
+
+        return this.x;
+    }
+
+    reset(value: number = 0) {
+        this.x = value;
+        this.p = 1;
+    }
+}
+
+// Velocity tracker for gesture detection
+class VelocityTracker {
+    private history: { value: number; time: number }[] = [];
+    private maxHistory = 5;
+
+    add(value: number) {
+        this.history.push({ value, time: performance.now() });
+        if (this.history.length > this.maxHistory) {
+            this.history.shift();
+        }
+    }
+
+    getVelocity(): number {
+        if (this.history.length < 2) return 0;
+        const first = this.history[0];
+        const last = this.history[this.history.length - 1];
+        const dt = (last.time - first.time) / 1000; // seconds
+        if (dt < 0.01) return 0;
+        return (last.value - first.value) / dt;
+    }
+
+    reset() {
+        this.history = [];
+    }
+}
+
+// Gesture state machine for stable detection
+class GestureStateMachine {
+    private currentGesture: string = 'none';
+    private candidateGesture: string = 'none';
+    private candidateFrames: number = 0;
+    private requiredFrames: number;
+    private exitFrames: number = 0;
+    private requiredExitFrames: number;
+
+    constructor(requiredFrames = 3, requiredExitFrames = 2) {
+        this.requiredFrames = requiredFrames;
+        this.requiredExitFrames = requiredExitFrames;
+    }
+
+    update(detected: string): string {
+        if (detected === this.currentGesture) {
+            // Staying in current gesture
+            this.candidateGesture = detected;
+            this.candidateFrames = this.requiredFrames;
+            this.exitFrames = 0;
+            return this.currentGesture;
+        }
+
+        if (detected !== this.candidateGesture) {
+            // New candidate
+            this.candidateGesture = detected;
+            this.candidateFrames = 1;
+            this.exitFrames++;
+        } else {
+            // Same candidate, count up
+            this.candidateFrames++;
+        }
+
+        // Check if candidate should become current
+        if (this.candidateFrames >= this.requiredFrames) {
+            this.currentGesture = this.candidateGesture;
+            this.exitFrames = 0;
+            return this.currentGesture;
+        }
+
+        // Check if we should exit current gesture
+        if (this.exitFrames >= this.requiredExitFrames && this.currentGesture !== 'none') {
+            // Don't immediately go to none, wait for new gesture
+            if (detected === 'none') {
+                this.currentGesture = 'none';
+            }
+        }
+
+        return this.currentGesture;
+    }
+
+    get(): string {
+        return this.currentGesture;
+    }
+
+    reset() {
+        this.currentGesture = 'none';
+        this.candidateGesture = 'none';
+        this.candidateFrames = 0;
+        this.exitFrames = 0;
+    }
+}
+
+// Landmark smoothing with per-point Kalman filters
+class LandmarkKalmanSmoother {
+    private filters: { x: KalmanFilter; y: KalmanFilter; z: KalmanFilter }[] = [];
+
+    update(landmarks: { x: number; y: number; z: number }[]): { x: number; y: number; z: number }[] {
+        // Initialize filters if needed
+        if (this.filters.length !== landmarks.length) {
+            this.filters = landmarks.map(() => ({
+                x: new KalmanFilter(0.001, 0.05),
+                y: new KalmanFilter(0.001, 0.05),
+                z: new KalmanFilter(0.001, 0.1)
+            }));
+        }
+
+        return landmarks.map((lm, i) => ({
+            x: this.filters[i].x.filter(lm.x),
+            y: this.filters[i].y.filter(lm.y),
+            z: this.filters[i].z.filter(lm.z || 0)
+        }));
+    }
+
+    reset() {
+        this.filters = [];
+    }
+}
+
+// ============== HELPER FUNCTIONS ==============
+
 const getDistance = (p1: { x: number; y: number }, p2: { x: number; y: number }) => {
     return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
 };
 
-// Smoothing for stable readings
-class SmoothValue {
-    private values: number[] = [];
-    private maxSamples: number;
+const get3DDistance = (p1: { x: number; y: number; z: number }, p2: { x: number; y: number; z: number }) => {
+    return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2) + Math.pow((p2.z || 0) - (p1.z || 0), 2));
+};
 
-    constructor(samples = 5) {
-        this.maxSamples = samples;
-    }
+// Angle between three points (in radians)
+const getAngle = (a: { x: number; y: number }, b: { x: number; y: number }, c: { x: number; y: number }) => {
+    const ab = Math.sqrt(Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2));
+    const bc = Math.sqrt(Math.pow(c.x - b.x, 2) + Math.pow(c.y - b.y, 2));
+    const ac = Math.sqrt(Math.pow(c.x - a.x, 2) + Math.pow(c.y - a.y, 2));
+    return Math.acos((ab * ab + bc * bc - ac * ac) / (2 * ab * bc));
+};
 
-    add(value: number): number {
-        this.values.push(value);
-        if (this.values.length > this.maxSamples) {
-            this.values.shift();
-        }
-        return this.values.reduce((a, b) => a + b, 0) / this.values.length;
-    }
+// ============== MAIN COMPONENT ==============
 
-    reset() {
-        this.values = [];
-    }
-}
-
-export function HandTracker({ onZoomChange, onGestureDetected }: HandTrackerProps) {
+export function HandTracker({ onZoomChange, onGestureDetected, onSwipe, onHandPosition }: HandTrackerProps) {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isTracking, setIsTracking] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -50,80 +194,148 @@ export function HandTracker({ onZoomChange, onGestureDetected }: HandTrackerProp
     const [confidence, setConfidence] = useState(0);
     const [error, setError] = useState<string | null>(null);
     const [handedness, setHandedness] = useState<string>('');
+    const [fps, setFps] = useState(0);
 
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const handLandmarkerRef = useRef<any>(null);
     const streamRef = useRef<MediaStream | null>(null);
     const animationFrameRef = useRef<number>(0);
+    const isTrackingRef = useRef<boolean>(false); // Use ref for closure stability
 
-    // Smoothing for gesture detection
-    const pinchSmoother = useRef(new SmoothValue(8));
-    const zoomSmoother = useRef(new SmoothValue(5));
+    // Advanced smoothing instances
+    const landmarkSmootherRef = useRef(new LandmarkKalmanSmoother());
+    const gestureStateMachineRef = useRef(new GestureStateMachine(4, 3)); // 4 frames to enter, 3 to exit
+
+    // Per-value Kalman filters
+    const pinchFilterRef = useRef(new KalmanFilter(0.005, 0.02));
+    const zoomFilterRef = useRef(new KalmanFilter(0.001, 0.01));
+    const handXFilterRef = useRef(new KalmanFilter(0.002, 0.03));
+    const handYFilterRef = useRef(new KalmanFilter(0.002, 0.03));
+
+    // Velocity trackers
+    const wristVelocityRef = useRef(new VelocityTracker());
+
+    // State refs
     const lastPinchRef = useRef<number>(0);
-    const gestureHoldRef = useRef<{ gesture: string; count: number }>({ gesture: 'none', count: 0 });
+    const lastFrameTimeRef = useRef<number>(0);
+    const frameCountRef = useRef<number>(0);
+    const swipeCooldownRef = useRef<number>(0);
+    const lastWristXRef = useRef<number>(0);
 
     const processLandmarks = useCallback((results: any) => {
+        // FPS calculation
+        const now = performance.now();
+        frameCountRef.current++;
+        if (now - lastFrameTimeRef.current >= 1000) {
+            setFps(frameCountRef.current);
+            frameCountRef.current = 0;
+            lastFrameTimeRef.current = now;
+        }
+
         if (!results.landmarks || results.landmarks.length === 0) {
+            gestureStateMachineRef.current.update('none');
             setCurrentGesture('none');
             setConfidence(0);
-            pinchSmoother.current.reset();
-            gestureHoldRef.current = { gesture: 'none', count: 0 };
+            onGestureDetected?.('none');
             return;
         }
 
-        const landmarks = results.landmarks[0];
+        // Apply Kalman smoothing to landmarks
+        const smoothedLandmarks = landmarkSmootherRef.current.update(results.landmarks[0]);
 
-        // Get handedness
         if (results.handedness?.[0]?.[0]) {
             setHandedness(results.handedness[0][0].categoryName);
         }
 
-        // Key landmarks
-        const wrist = landmarks[0];
-        const thumbTip = landmarks[4];
-        const thumbIp = landmarks[3];
-        const indexTip = landmarks[8];
-        const indexPip = landmarks[6];
-        const indexMcp = landmarks[5];
-        const middleTip = landmarks[12];
-        const middlePip = landmarks[10];
-        const middleMcp = landmarks[9];
-        const ringTip = landmarks[16];
-        const ringPip = landmarks[14];
-        const pinkyTip = landmarks[20];
-        const pinkyPip = landmarks[18];
+        // Extract key landmarks
+        const wrist = smoothedLandmarks[0];
+        const thumbTip = smoothedLandmarks[4];
+        const thumbIp = smoothedLandmarks[3];
+        const thumbMcp = smoothedLandmarks[2];
+        const indexTip = smoothedLandmarks[8];
+        const indexPip = smoothedLandmarks[6];
+        const indexMcp = smoothedLandmarks[5];
+        const middleTip = smoothedLandmarks[12];
+        const middlePip = smoothedLandmarks[10];
+        const middleMcp = smoothedLandmarks[9];
+        const ringTip = smoothedLandmarks[16];
+        const ringPip = smoothedLandmarks[14];
+        const ringMcp = smoothedLandmarks[13];
+        const pinkyTip = smoothedLandmarks[20];
+        const pinkyPip = smoothedLandmarks[18];
+        const pinkyMcp = smoothedLandmarks[17];
 
-        // Calculate pinch distance with smoothing
-        const rawPinchDistance = getDistance(thumbTip, indexTip);
-        const pinchDistance = pinchSmoother.current.add(rawPinchDistance);
-
-        // Calculate palm size for relative measurements
+        // Palm size for normalization
         const palmSize = getDistance(wrist, middleMcp);
+
+        // ========== FINGER CURL DETECTION (angle-based, more accurate) ==========
+        const indexCurl = getAngle(indexMcp, indexPip, indexTip);
+        const middleCurl = getAngle(middleMcp, middlePip, middleTip);
+        const ringCurl = getAngle(ringMcp, ringPip, ringTip);
+        const pinkyCurl = getAngle(pinkyMcp, pinkyPip, pinkyTip);
+
+        // Extended = angle > 2.5 radians (~143 degrees = straight)
+        const curlThreshold = 2.3;
+        const indexExtended = indexCurl > curlThreshold;
+        const middleExtended = middleCurl > curlThreshold;
+        const ringExtended = ringCurl > curlThreshold;
+        const pinkyExtended = pinkyCurl > curlThreshold;
+
+        // Thumb extension (distance-based)
+        const thumbExtended = getDistance(thumbTip, wrist) > palmSize * 0.85;
+
+        const extendedCount = [indexExtended, middleExtended, ringExtended, pinkyExtended].filter(Boolean).length;
+
+        // ========== PINCH DETECTION (3D distance) ==========
+        const rawPinchDistance = get3DDistance(thumbTip, indexTip);
+        const pinchDistance = pinchFilterRef.current.filter(rawPinchDistance);
         const normalizedPinch = pinchDistance / palmSize;
 
-        // Check if fingers are extended
-        const indexExtended = indexTip.y < indexPip.y;
-        const middleExtended = middleTip.y < middlePip.y;
-        const ringExtended = ringTip.y < ringPip.y;
-        const pinkyExtended = pinkyTip.y < pinkyPip.y;
-        const thumbExtended = getDistance(thumbTip, indexMcp) > palmSize * 0.8;
-
-        let detectedGesture = 'none';
+        // ========== GESTURE DETECTION ==========
+        let rawGesture = 'none';
         let gestureConfidence = 0;
 
-        // Pinch gesture (thumb and index close, others can be any state)
-        if (normalizedPinch < 0.35) {
-            detectedGesture = 'pinch';
-            gestureConfidence = Math.min(1, (0.35 - normalizedPinch) / 0.25);
+        // PINCH: Thumb and index tips close (< 0.45 palm size)
+        if (normalizedPinch < 0.45 && !middleExtended && !ringExtended) {
+            rawGesture = 'pinch';
+            gestureConfidence = Math.min(1, (0.45 - normalizedPinch) / 0.3);
+        }
+        // POINT: Only index extended
+        else if (indexExtended && !middleExtended && !ringExtended && !pinkyExtended) {
+            rawGesture = 'point';
+            gestureConfidence = 0.9;
+        }
+        // OPEN: 4+ fingers extended including thumb
+        else if (extendedCount >= 3 && thumbExtended) {
+            rawGesture = 'open';
+            gestureConfidence = 0.85;
+        }
+        // FIST: No fingers extended
+        else if (extendedCount === 0 && !thumbExtended) {
+            rawGesture = 'fist';
+            gestureConfidence = 0.8;
+        }
 
-            // Smooth zoom control
+        // Apply gesture state machine for stability
+        const stableGesture = gestureStateMachineRef.current.update(rawGesture);
+        setCurrentGesture(stableGesture);
+        setConfidence(gestureConfidence);
+        onGestureDetected?.(stableGesture);
+
+        // ========== GESTURE ACTIONS ==========
+
+        // PINCH ZOOM: Fingers apart = zoom IN, fingers together = zoom OUT
+        if (stableGesture === 'pinch') {
             if (lastPinchRef.current > 0) {
-                const delta = (lastPinchRef.current - normalizedPinch) * 5;
-                const smoothedDelta = zoomSmoother.current.add(delta);
+                // Now: positive delta when fingers move APART (normalizedPinch increases)
+                const delta = (normalizedPinch - lastPinchRef.current) * 15; // Higher sensitivity
+                const smoothedDelta = zoomFilterRef.current.filter(delta);
 
-                if (Math.abs(smoothedDelta) > 0.01) {
+                if (Math.abs(smoothedDelta) > 0.002) {
                     setZoomLevel(prev => {
+                        // Fingers apart (positive delta) = zoom in (increase)
+                        // Fingers together (negative delta) = zoom out (decrease)
                         const newZoom = Math.max(0.5, Math.min(3, prev + smoothedDelta));
                         onZoomChange?.(newZoom);
                         return newZoom;
@@ -131,213 +343,204 @@ export function HandTracker({ onZoomChange, onGestureDetected }: HandTrackerProp
                 }
             }
             lastPinchRef.current = normalizedPinch;
-        }
-        // Point gesture (only index extended)
-        else if (indexExtended && !middleExtended && !ringExtended && !pinkyExtended) {
-            detectedGesture = 'point';
-            gestureConfidence = 0.9;
-            lastPinchRef.current = 0;
-            zoomSmoother.current.reset();
-        }
-        // Open hand (all fingers extended)
-        else if (indexExtended && middleExtended && ringExtended && pinkyExtended && thumbExtended) {
-            detectedGesture = 'open';
-            gestureConfidence = 0.85;
-            lastPinchRef.current = 0;
-            zoomSmoother.current.reset();
-        }
-        // Fist (no fingers extended)
-        else if (!indexExtended && !middleExtended && !ringExtended && !pinkyExtended) {
-            detectedGesture = 'fist';
-            gestureConfidence = 0.8;
-            lastPinchRef.current = 0;
-            zoomSmoother.current.reset();
-        }
-        else {
-            lastPinchRef.current = 0;
-            zoomSmoother.current.reset();
-        }
-
-        // Gesture stability - require consistent detection
-        if (detectedGesture === gestureHoldRef.current.gesture) {
-            gestureHoldRef.current.count++;
         } else {
-            gestureHoldRef.current = { gesture: detectedGesture, count: 1 };
+            lastPinchRef.current = 0;
+            zoomFilterRef.current.reset(0);
         }
 
-        // Only update gesture after 3 consistent frames
-        if (gestureHoldRef.current.count >= 3) {
-            setCurrentGesture(detectedGesture);
-            setConfidence(gestureConfidence);
-            if (detectedGesture !== 'none') {
-                onGestureDetected?.(detectedGesture);
+        // OPEN: Hand position for rotation + swipe
+        if (stableGesture === 'open') {
+            // Smooth hand position
+            const smoothX = handXFilterRef.current.filter(wrist.x);
+            const smoothY = handYFilterRef.current.filter(wrist.y);
+            onHandPosition?.(smoothX, smoothY);
+
+            // Velocity-based swipe detection
+            wristVelocityRef.current.add(wrist.x);
+            const velocity = wristVelocityRef.current.getVelocity();
+
+            if (Date.now() > swipeCooldownRef.current) {
+                // High velocity = swipe (velocity > 0.8 = fast movement)
+                if (Math.abs(velocity) > 0.6) {
+                    onSwipe?.(velocity > 0 ? 'right' : 'left');
+                    swipeCooldownRef.current = Date.now() + 600; // 600ms cooldown
+                    wristVelocityRef.current.reset();
+                }
             }
+        } else {
+            handXFilterRef.current.reset(0.5);
+            handYFilterRef.current.reset(0.5);
+            wristVelocityRef.current.reset();
         }
 
-        // Draw landmarks with better visualization
-        const canvas = canvasRef.current;
-        const ctx = canvas?.getContext('2d');
-        if (canvas && ctx) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // ========== DRAW VISUALIZATION ==========
+        const ctx = canvasRef.current?.getContext('2d');
+        if (ctx && canvasRef.current) {
+            ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
 
-            // Draw connections first (behind points)
+            // Draw connections
             const connections = [
-                [0, 1], [1, 2], [2, 3], [3, 4], // thumb
-                [0, 5], [5, 6], [6, 7], [7, 8], // index
-                [5, 9], [9, 10], [10, 11], [11, 12], // middle
-                [9, 13], [13, 14], [14, 15], [15, 16], // ring
-                [13, 17], [17, 18], [18, 19], [19, 20], // pinky
-                [0, 17] // palm
+                [0, 1], [1, 2], [2, 3], [3, 4],  // Thumb
+                [0, 5], [5, 6], [6, 7], [7, 8],  // Index
+                [0, 9], [9, 10], [10, 11], [11, 12], // Middle
+                [0, 13], [13, 14], [14, 15], [15, 16], // Ring
+                [0, 17], [17, 18], [18, 19], [19, 20], // Pinky
+                [5, 9], [9, 13], [13, 17] // Palm
             ];
 
-            ctx.strokeStyle = 'rgba(0, 212, 255, 0.6)';
+            ctx.strokeStyle = stableGesture === 'open' ? '#22c55e' :
+                stableGesture === 'pinch' ? '#f59e0b' :
+                    stableGesture === 'point' ? '#3b82f6' : '#888888';
             ctx.lineWidth = 2;
-            for (const [start, end] of connections) {
+
+            for (const [i, j] of connections) {
+                const p1 = smoothedLandmarks[i];
+                const p2 = smoothedLandmarks[j];
                 ctx.beginPath();
-                ctx.moveTo(landmarks[start].x * canvas.width, landmarks[start].y * canvas.height);
-                ctx.lineTo(landmarks[end].x * canvas.width, landmarks[end].y * canvas.height);
+                ctx.moveTo(p1.x * canvasRef.current.width, p1.y * canvasRef.current.height);
+                ctx.lineTo(p2.x * canvasRef.current.width, p2.y * canvasRef.current.height);
                 ctx.stroke();
             }
 
-            // Draw points
-            for (let i = 0; i < landmarks.length; i++) {
-                const point = landmarks[i];
-                const size = [4, 8, 12, 16, 20].includes(i) ? 6 : 4; // Bigger for fingertips
-                const color = [4, 8].includes(i) ? '#00ff88' : '#00d4ff'; // Green for thumb/index tips
-
+            // Draw landmarks
+            for (let i = 0; i < smoothedLandmarks.length; i++) {
+                const lm = smoothedLandmarks[i];
                 ctx.beginPath();
-                ctx.arc(point.x * canvas.width, point.y * canvas.height, size, 0, 2 * Math.PI);
-                ctx.fillStyle = color;
+                ctx.arc(lm.x * canvasRef.current.width, lm.y * canvasRef.current.height, 4, 0, 2 * Math.PI);
+                ctx.fillStyle = i === 4 || i === 8 ? '#ff4444' : '#ffffff'; // Highlight thumb/index tips
                 ctx.fill();
             }
-
-            // Draw pinch indicator line
-            if (detectedGesture === 'pinch') {
-                ctx.strokeStyle = '#00ff88';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.moveTo(thumbTip.x * canvas.width, thumbTip.y * canvas.height);
-                ctx.lineTo(indexTip.x * canvas.width, indexTip.y * canvas.height);
-                ctx.stroke();
-            }
         }
-    }, [onZoomChange, onGestureDetected]);
+    }, [onZoomChange, onGestureDetected, onSwipe, onHandPosition]);
 
-    const startTracking = useCallback(async () => {
+    const startTracking = async () => {
+        if (isTracking) return;
         setIsLoading(true);
         setError(null);
 
         try {
-            if (!window.FilesetResolver || !window.HandLandmarker) {
-                throw new Error('MediaPipe not loaded. Please refresh the page.');
+            // Check for MediaPipe
+            let attempts = 0;
+            while (!window.HandLandmarker && attempts < 20) {
+                await new Promise(r => setTimeout(r, 100));
+                attempts++;
             }
 
+            if (!window.HandLandmarker) {
+                throw new Error('MediaPipe not loaded');
+            }
+
+            // Initialize HandLandmarker
+            const vision = await window.FilesetResolver.forVisionTasks(
+                'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.8/wasm'
+            );
+
+            handLandmarkerRef.current = await window.HandLandmarker.createFromOptions(vision, {
+                baseOptions: {
+                    modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
+                    delegate: 'GPU'
+                },
+                runningMode: 'VIDEO',
+                numHands: 1,
+                minHandDetectionConfidence: 0.7,
+                minHandPresenceConfidence: 0.7,
+                minTrackingConfidence: 0.7
+            });
+
+            // Get camera
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: { width: 640, height: 480, facingMode: 'user' }
             });
 
+            streamRef.current = stream;
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
                 await videoRef.current.play();
-                streamRef.current = stream;
             }
 
-            if (!handLandmarkerRef.current) {
-                const vision = await window.FilesetResolver.forVisionTasks(
-                    'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.8/wasm'
-                );
-
-                handLandmarkerRef.current = await window.HandLandmarker.createFromOptions(vision, {
-                    baseOptions: {
-                        modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
-                        delegate: 'GPU'
-                    },
-                    runningMode: 'VIDEO',
-                    numHands: 1,
-                    minHandDetectionConfidence: 0.7,
-                    minHandPresenceConfidence: 0.7,
-                    minTrackingConfidence: 0.7
-                });
-            }
-
+            isTrackingRef.current = true; // Set ref BEFORE state
             setIsTracking(true);
             setIsLoading(false);
 
-            const detectLoop = () => {
-                if (!handLandmarkerRef.current || !videoRef.current || !streamRef.current) return;
+            // Detection loop - use ref to avoid stale closure
+            const detect = () => {
+                if (!isTrackingRef.current || !videoRef.current || !handLandmarkerRef.current) return;
 
-                const video = videoRef.current;
-                if (video.readyState >= 2) {
-                    try {
-                        const results = handLandmarkerRef.current.detectForVideo(video, performance.now());
-                        processLandmarks(results);
-                    } catch (e) {
-                        // Silent error handling for detection
-                    }
+                try {
+                    const results = handLandmarkerRef.current.detectForVideo(videoRef.current, performance.now());
+                    processLandmarks(results);
+                } catch (e) {
+                    console.error('Detection error:', e);
                 }
 
-                animationFrameRef.current = requestAnimationFrame(detectLoop);
+                animationFrameRef.current = requestAnimationFrame(detect);
             };
-            detectLoop();
 
+            detect();
         } catch (err: any) {
-            setError(err.message || 'Failed to start');
+            setError(err.message || 'Failed to start tracking');
             setIsLoading(false);
-
-            if (streamRef.current) {
-                streamRef.current.getTracks().forEach(track => track.stop());
-                streamRef.current = null;
-            }
+            console.error(err);
         }
-    }, [processLandmarks]);
+    };
 
-    const stopTracking = useCallback(() => {
+    const stopTracking = () => {
+        isTrackingRef.current = false; // Stop the loop first
+        setIsTracking(false);
         if (animationFrameRef.current) {
             cancelAnimationFrame(animationFrameRef.current);
         }
         if (streamRef.current) {
-            streamRef.current.getTracks().forEach(track => track.stop());
-            streamRef.current = null;
+            streamRef.current.getTracks().forEach(t => t.stop());
         }
-        if (videoRef.current) {
-            videoRef.current.srcObject = null;
-        }
-        setIsTracking(false);
-        setCurrentGesture('none');
-        setConfidence(0);
-        pinchSmoother.current.reset();
-        zoomSmoother.current.reset();
-    }, []);
+        landmarkSmootherRef.current.reset();
+        gestureStateMachineRef.current.reset();
+    };
 
     useEffect(() => {
-        return () => {
-            stopTracking();
-        };
-    }, [stopTracking]);
+        return () => stopTracking();
+    }, []);
+
+    const gestureEmoji = currentGesture === 'open' ? '✋' :
+        currentGesture === 'pinch' ? '🤏' :
+            currentGesture === 'point' ? '👆' :
+                currentGesture === 'fist' ? '✊' : '👋';
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            className="absolute bottom-6 right-6 z-10"
-        >
-            <div className="bg-card/90 backdrop-blur-xl border border-border/50 rounded-xl overflow-hidden shadow-xl">
+        <>
+            {/* Camera in-use notification - fixed at top */}
+            <AnimatePresence>
+                {isTracking && (
+                    <motion.div
+                        initial={{ y: -50, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: -50, opacity: 0 }}
+                        className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 bg-red-500/90 text-white rounded-full shadow-lg"
+                    >
+                        <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                        <Camera className="w-4 h-4" />
+                        <span className="text-sm font-medium">Camera Active</span>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            <motion.div
+                className={cn(
+                    "fixed bottom-4 right-4 z-50 rounded-xl overflow-hidden",
+                    "bg-black/80 backdrop-blur-xl border border-white/20 shadow-2xl"
+                )}
+                animate={{ width: isExpanded ? 280 : 180 }}
+            >
                 <button
                     onClick={() => setIsExpanded(!isExpanded)}
-                    className="w-full flex items-center justify-between p-3 hover:bg-secondary/20 transition-colors"
+                    className="w-full px-3 py-2 flex items-center justify-between hover:bg-white/5"
                 >
                     <div className="flex items-center gap-2">
                         <Hand className="w-4 h-4 text-primary" />
-                        <span className="text-xs font-medium uppercase tracking-wider">Hand Tracker</span>
+                        <span className="text-sm font-medium">HAND TRACKER</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <div className={cn(
-                            "w-2 h-2 rounded-full",
-                            isTracking ? "bg-green-500 animate-pulse" : "bg-muted-foreground"
-                        )} />
-                        <span className="text-[10px] text-muted-foreground">
-                            {isLoading ? 'Loading...' : isTracking ? handedness || 'Active' : 'Inactive'}
-                        </span>
+                        <span className={cn("w-2 h-2 rounded-full", isTracking ? "bg-green-500 animate-pulse" : "bg-gray-500")} />
                         {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
                     </div>
                 </button>
@@ -350,94 +553,72 @@ export function HandTracker({ onZoomChange, onGestureDetected }: HandTrackerProp
                             exit={{ height: 0, opacity: 0 }}
                             className="overflow-hidden"
                         >
-                            <div className="relative w-64 aspect-video bg-black border-t border-border/30">
-                                <video
-                                    ref={videoRef}
-                                    className={cn("absolute inset-0 w-full h-full object-cover scale-x-[-1]", !isTracking && "hidden")}
-                                    playsInline
-                                    muted
-                                />
-                                <canvas
-                                    ref={canvasRef}
-                                    width={256}
-                                    height={144}
-                                    className="absolute inset-0 w-full h-full scale-x-[-1]"
-                                />
-
-                                {!isTracking && (
-                                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                        <Camera className="w-6 h-6 text-muted-foreground/30 mb-1" />
-                                        <span className="text-[10px] text-muted-foreground/40 text-center px-2">
-                                            {error || 'Click Start for hand tracking'}
-                                        </span>
-                                    </div>
+                            <div className="p-3 space-y-3">
+                                {error && (
+                                    <div className="text-xs text-red-400 bg-red-500/10 p-2 rounded">{error}</div>
                                 )}
 
-                                <div className="absolute top-2 left-2 w-3 h-3 border-l border-t border-primary/30" />
-                                <div className="absolute top-2 right-2 w-3 h-3 border-r border-t border-primary/30" />
-                                <div className="absolute bottom-2 left-2 w-3 h-3 border-l border-b border-primary/30" />
-                                <div className="absolute bottom-2 right-2 w-3 h-3 border-r border-b border-primary/30" />
-                            </div>
+                                <div className="relative aspect-[4/3] bg-black rounded-lg overflow-hidden">
+                                    <video ref={videoRef} className="absolute inset-0 w-full h-full object-cover transform scale-x-[-1]" playsInline muted />
+                                    <canvas ref={canvasRef} width={280} height={210} className="absolute inset-0 w-full h-full transform scale-x-[-1]" />
+                                    {!isTracking && (
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                                            <Camera className="w-8 h-8 text-muted-foreground" />
+                                        </div>
+                                    )}
+                                    {isTracking && (
+                                        <div className="absolute top-1 right-1 text-[10px] bg-black/50 px-1 rounded">
+                                            {fps} FPS
+                                        </div>
+                                    )}
+                                </div>
 
-                            <div className="p-2.5 flex items-center justify-between border-t border-border/30">
                                 <button
                                     onClick={isTracking ? stopTracking : startTracking}
                                     disabled={isLoading}
                                     className={cn(
-                                        'flex items-center gap-1 px-3 py-1.5 rounded-md text-xs transition-all',
+                                        "w-full py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2",
                                         isTracking
-                                            ? 'bg-red-500/20 text-red-400 border border-red-500/50'
-                                            : 'bg-primary/20 text-primary border border-primary/50',
-                                        isLoading && 'opacity-50 cursor-not-allowed'
+                                            ? "bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                                            : "bg-green-500/20 text-green-400 hover:bg-green-500/30",
+                                        isLoading && "opacity-50 cursor-wait"
                                     )}
                                 >
-                                    {isTracking ? <VideoOff className="w-3 h-3" /> : <Video className="w-3 h-3" />}
-                                    {isLoading ? 'Loading...' : isTracking ? 'Stop' : 'Start'}
+                                    {isLoading ? (
+                                        <span className="animate-pulse">Initializing...</span>
+                                    ) : isTracking ? (
+                                        <>
+                                            <VideoOff className="w-4 h-4" />
+                                            Stop Tracking
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Video className="w-4 h-4" />
+                                            Start Tracking
+                                        </>
+                                    )}
                                 </button>
 
-                                <div className="flex items-center gap-2">
-                                    <span className="text-[9px] text-muted-foreground">Conf:</span>
-                                    <div className="w-12 h-1 bg-secondary/50 rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full bg-primary rounded-full transition-all"
-                                            style={{ width: `${confidence * 100}%` }}
-                                        />
+                                {isTracking && (
+                                    <div className="grid grid-cols-2 gap-2 text-xs">
+                                        <div className="bg-white/5 rounded p-2">
+                                            <div className="text-muted-foreground">Gesture</div>
+                                            <div className="font-medium flex items-center gap-1">
+                                                <span className="text-lg">{gestureEmoji}</span>
+                                                <span className="capitalize">{currentGesture}</span>
+                                            </div>
+                                        </div>
+                                        <div className="bg-white/5 rounded p-2">
+                                            <div className="text-muted-foreground">Zoom</div>
+                                            <div className="font-mono font-medium text-primary">{zoomLevel.toFixed(1)}x</div>
+                                        </div>
                                     </div>
-                                    <span className="text-[9px] text-primary font-mono">{Math.round(confidence * 100)}%</span>
-                                </div>
-                            </div>
-
-                            <div className="px-2.5 pb-2.5 flex gap-1.5">
-                                {['Pinch', 'Point', 'Open', 'Fist'].map((gesture) => (
-                                    <div
-                                        key={gesture}
-                                        className={cn(
-                                            "flex-1 py-1 px-1 rounded-md border text-center transition-all",
-                                            currentGesture.toLowerCase() === gesture.toLowerCase()
-                                                ? "bg-primary/20 border-primary/50 text-primary"
-                                                : "bg-secondary/20 border-border/20 text-muted-foreground/50"
-                                        )}
-                                    >
-                                        <span className="text-[8px] uppercase tracking-wider">{gesture}</span>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div className="px-2.5 pb-2.5 flex items-center gap-2 border-t border-border/30 pt-2">
-                                <ZoomOut className="w-3 h-3 text-muted-foreground" />
-                                <div className="flex-1 h-1.5 bg-secondary/50 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full bg-gradient-to-r from-primary/60 to-primary rounded-full transition-all"
-                                        style={{ width: `${((zoomLevel - 0.5) / 2.5) * 100}%` }}
-                                    />
-                                </div>
-                                <ZoomIn className="w-3 h-3 text-muted-foreground" />
-                                <span className="text-[10px] text-primary font-mono w-10 text-right">{zoomLevel.toFixed(2)}x</span>
+                                )}
                             </div>
                         </motion.div>
                     )}
                 </AnimatePresence>
-            </div>
-        </motion.div>
+            </motion.div>
+        </>
     );
 }
