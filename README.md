@@ -1,89 +1,159 @@
 # Ele-Visualize
 
-## Our Aim
-The primary aim of **Ele-Visualize** is to revolutionize science education by transforming the periodic table from a static reference chart into an **immersive, interactive 3D experience**. We aim to bridge the gap between theoretical chemistry and tangible visualization. By leveraging modern web technologies and computer vision, we strive to create a platform where users don't just *see* elements, but *interact* with them—manipulating atomic structures in real-time using intuitive hand gestures.
+> A futuristic 3D atomic and molecular visualization platform with real-time hand gesture controls
 
-## What We Are Trying to Do
-We are developing a sophisticated web application that integrates high-fidelity **3D graphics** with **computer vision**. The project seeks to solve the problem of abstract visualization in chemistry by building a minority-report-style interface.
--   **Interactive Visualization**: Converting numerical atomic data (shells, electron configuration) into dynamic, orbiting 3D models.
--   **Touchless Interface**: replacing traditional mouse/keyboard inputs with natural hand gestures (pinching, grabbing, pointing) for a more immersive learning environment.
--   **Modern User Experience**: Delivering a high-performance, aesthetically pleasing "Cyberpunk/Glassmorphism" interface that appeals to modern users and keeps them engaged.
+![Status](https://img.shields.io/badge/Status-Active-brightgreen) ![React](https://img.shields.io/badge/React-18-blue) ![Three.js](https://img.shields.io/badge/Three.js-R3F-orange) ![MediaPipe](https://img.shields.io/badge/MediaPipe-Hand%20Tracking-purple)
 
-## What We Have Done Up To Now
-### Frontend Architecture (Client-Side)
-We have built a robust React-based frontend powered by **Vite** for performance.
-1.  **3D Atom Engine**:
-    *   Developed a custom 3D rendering engine using **Three.js** and **React Three Fiber (R3F)**.
-    *   Implemented procedural generation of atoms: The system calculates electron distribution across shells (K, L, M, N...) largely based on real chemical data and renders them as dynamic particles orbiting a glowing nucleus.
-    *   Added cinematic post-processing effects (Bloom, Glow) to achieve a futuristic neon aesthetic.
-2.  **User Interface (UI)**:
-    *   Designed a fully responsive layout with a collapsible sidebar and glass-panel overlays using **Tailwind CSS**.
-    *   Implemented real-time filtering and search capabilities for the period table.
-    *   Integrated **Framer Motion** for smooth, physics-based UI transitions.
+---
 
-### Backend Infrastructure (Server-Side)
-We have established a solid backend foundation using **Node.js** and **TypeScript**.
-1.  **REST API**:
-    *   Implemented an Express.js server providing endpoints (`/api/elements`) to serve rich chemical data, including atomic mass, category, and electron shell configurations for all elements.
-2.  **Real-Time Communication Layer**:
-    *   Set up a **WebSocket Server** (`ws://localhost:3001/ws`) designed to handle high-frequency data streams. This layer is specifically architected to receive coordinates from the Computer Vision system and broadcast them instantly to the frontend for low-latency control.
+## What is Ele-Visualize?
 
-## End Goal
-Our specific end goal is the seamless integration of **MediaPipe Hand Tracking**.
--   **The Vision**: A user sits in front of their webcam and holds up a hand.
--   **The Mechanism**: The backend (or a dedicated CV worker) processes the video feed to detect 21 built-in 3D hand landmarks.
--   **The Interaction**:
-    *   **Pinch Gesture**: Validated by calculating distance between thumb and index finger tip. Used to **Zoom In/Out** of the atom.
-    *   **Closed Fist / Grab**: Used to **Rotate** the atom in 3D space.
-    *   **Pointer Finger**: Used to **Select** different electron shells or highlight specific particles.
--   This "Touchless Laboratory" creates a safe, virtual environment for exploring the building blocks of the universe.
+Ele-Visualize transforms chemistry education by bringing the periodic table to life. Instead of memorizing static diagrams, users can:
 
-## Tools We Have Used
-### Core Stack
--   **React 18**: Component-based UI library.
--   **TypeScript**: For type-safe code across the entire stack.
--   **Vite**: Next-generation frontend tooling.
+- **Explore 3D atoms** with orbiting electrons and detailed nuclei
+- **Visualize molecules** like H2O, CO2, CH4 with accurate 3D bond structures
+- **See orbital shapes** (s, p, d) as probability clouds
+- **Control everything with hand gestures** - no mouse needed!
 
-### Styling & Animation
--   **Tailwind CSS**: Utility-first CSS framework for rapid UI development.
--   **Framer Motion**: Production-ready animation library for React.
--   **Lucide React**: Beautiful, consistent icon set.
+---
 
-### 3D & Graphics
--   **Three.js**: JavaScript 3D library.
--   **React Three Fiber**: React renderer for Three.js.
--   **React Three Drei**: Useful helpers for R3F (Stars, OrbitControls).
--   **React Three Postprocessing**: For bloom and visual effects.
+## Features
 
-### Backend & Network
--   **Node.js**: JavaScript runtime.
--   **Express**: Minimal web framework for Node.js.
--   **ws**: Simple to use, blazing fast and thoroughly tested WebSocket client and server for Node.js.
--   **Cors**: Middleware for enabling Cross-Origin Resource Sharing.
+### Atom Visualization
+- True 3D atomic models using Three.js
+- Orbiting electrons on proper shells
+- Zoom into nucleus to see individual protons/neutrons
+- Accurate electron configuration display (aufbau principle)
+- Toggle orbital probability clouds (s/p/d shapes)
 
-### Data Management
--   **TanStack Query (React Query)**: For powerful asynchronous state management and data fetching.
+### Molecule Visualization
+- 10 pre-built molecules: H2O, CO2, CH4, NH3, O2, N2, HCl, C2H6, CO, NaCl
+- Accurate molecular geometry (bent, linear, tetrahedral, etc.)
+- Single, double, and triple bond rendering
+- Atom labels and descriptions
+
+### Hand Gesture Controls
+| Gesture | Action |
+|---------|--------|
+| Open Hand | Rotate atom/molecule in 3D |
+| Pinch | Zoom in/out (fingers apart = zoom in) |
+| Point | Highlight electrons |
+| Swipe | Navigate between elements |
+
+**Powered by:**
+- MediaPipe Hand Tracking (21 landmarks)
+- Kalman filtering for ultra-smooth tracking
+- Gesture state machine for stability
+- Velocity-based swipe detection
+
+### User Experience
+- Dark/Light mode toggle
+- Mobile responsive with touch swipe
+- Collapsible sidebar
+- Gesture tutorial for first-time users
+- Camera-in-use notification
+- Error boundaries for stability
+
+---
+
+## Tech Stack
+
+| Category | Technologies |
+|----------|--------------|
+| **Frontend** | React 18, TypeScript, Vite |
+| **3D Graphics** | Three.js, React Three Fiber, Drei |
+| **Styling** | Tailwind CSS, Framer Motion |
+| **Hand Tracking** | MediaPipe Tasks Vision |
+| **Icons** | Lucide React |
+
+---
 
 ## Getting Started
 
-The project is organized into two main folders:
--   **`frontend/`**: The React/Three.js application.
--   **`backend/`**: The Node.js/Express server and WebSocket handler.
+### Prerequisites
+- Node.js 18+
+- npm or yarn
+- Webcam (for hand tracking)
 
-### Running the Application
+### Installation
 
-1.  **Start the Backend**:
-    ```bash
-    cd backend
-    npm install
-    npm run dev
-    ```
-    *Server will start on `http://localhost:3001`*
+```bash
+# Clone the repository
+git clone https://github.com/vutikurishanmukha9/Ele-Visualize.git
+cd Ele-Visualize
 
-2.  **Start the Frontend**:
-    ```bash
-    cd frontend
-    npm install
-    npm run dev
-    ```
-    *App will run on `http://localhost:8080` (or similar)*
+# Install frontend dependencies
+cd frontend
+npm install
+
+# Start development server
+npm run dev
+```
+
+The app will open at `http://localhost:8080`
+
+---
+
+## How to Use
+
+1. **Select Mode** - Choose "Atoms" or "Molecules" tab
+2. **Pick an Element/Molecule** - Click from the sidebar list
+3. **Start Hand Tracking** - Click the Hand Tracker panel then "Start Tracking"
+4. **Use Gestures**:
+   - Open hand to rotate
+   - Pinch fingers to zoom
+   - Swipe to navigate
+5. **Toggle Orbitals** - Click "Show Orbitals" for probability clouds
+
+---
+
+## Project Structure
+
+```
+Ele-Visualize/
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── Atom3D.tsx        # 3D atom renderer
+│   │   │   ├── Molecule3D.tsx    # 3D molecule renderer
+│   │   │   ├── HandTracker.tsx   # Gesture detection
+│   │   │   ├── GestureTutorial.tsx
+│   │   │   └── ErrorBoundary.tsx
+│   │   ├── data/
+│   │   │   ├── elements.ts       # Periodic table data
+│   │   │   ├── molecules.ts      # Molecule structures
+│   │   │   └── elementProperties.ts
+│   │   └── pages/
+│   │       └── Index.tsx         # Main app page
+│   └── index.html
+└── backend/                       # Optional API server
+```
+
+---
+
+## Future Roadmap
+
+- [ ] Element comparison (side-by-side view)
+- [ ] Voice commands ("Show Carbon")
+- [ ] Quiz mode for learning
+- [ ] AR mode using camera background
+- [ ] More molecules and reactions
+- [ ] PWA offline support
+
+---
+
+## Author
+
+**V Shanmukha** - [GitHub](https://github.com/vutikurishanmukha9)
+
+---
+
+## License
+
+This project is open source and available under the [MIT License](LICENSE).
+
+---
+
+<p align="center">
+  Made with love for science education
+</p>
