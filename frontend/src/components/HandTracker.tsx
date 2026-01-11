@@ -222,6 +222,7 @@ export function HandTracker({ onZoomChange, onGestureDetected, onSwipe, onHandPo
     const frameCountRef = useRef<number>(0);
     const swipeCooldownRef = useRef<number>(0);
     const lastWristXRef = useRef<number>(0);
+    const drawFrameRef = useRef<number>(0); // Throttle canvas drawing
 
     const processLandmarks = useCallback((results: any) => {
         // FPS calculation
@@ -238,6 +239,11 @@ export function HandTracker({ onZoomChange, onGestureDetected, onSwipe, onHandPo
             setCurrentGesture('none');
             setConfidence(0);
             onGestureDetected?.('none');
+            // Clear canvas when no hand detected
+            const ctx = canvasRef.current?.getContext('2d');
+            if (ctx && canvasRef.current) {
+                ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+            }
             return;
         }
 
@@ -306,15 +312,15 @@ export function HandTracker({ onZoomChange, onGestureDetected, onSwipe, onHandPo
             rawGesture = 'point';
             gestureConfidence = 0.9;
         }
-        // OPEN: 4+ fingers extended including thumb
+        // OPEN: 3+ fingers extended including thumb
         else if (extendedCount >= 3 && thumbExtended) {
             rawGesture = 'open';
             gestureConfidence = 0.85;
         }
-        // FIST: No fingers extended
-        else if (extendedCount === 0 && !thumbExtended) {
+        // FIST: 1 or fewer fingers extended (more lenient)
+        else if (extendedCount <= 1 && !thumbExtended) {
             rawGesture = 'fist';
-            gestureConfidence = 0.8;
+            gestureConfidence = 0.85;
         }
 
         // Apply gesture state machine for stability

@@ -107,6 +107,7 @@ const Index = () => {
   const [handPositionX, setHandPositionX] = useState(0.5);
   const [handPositionY, setHandPositionY] = useState(0.5);
   const [isHandControlled, setIsHandControlled] = useState(false);
+  const [isFrozen, setIsFrozen] = useState(false); // Fist freeze
   const [showTutorial, setShowTutorial] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -201,6 +202,8 @@ const Index = () => {
   const handleGestureDetected = useCallback((gesture: string) => {
     setCurrentGesture(gesture);
     setIsHandControlled(gesture === 'open');
+    // Fist = freeze current state
+    setIsFrozen(gesture === 'fist');
   }, []);
 
   const handleHandPosition = useCallback((x: number, y: number) => {
@@ -485,6 +488,7 @@ const Index = () => {
                     isHandControlled={isHandControlled && currentGesture === 'open'}
                     zoom={zoomLevel}
                     showOrbitals={showOrbitals}
+                    isFrozen={isFrozen}
                   />
                 </Suspense>
               </ErrorBoundary>
@@ -633,7 +637,7 @@ const Index = () => {
                     : "bg-black/60 text-muted-foreground hover:bg-purple-500/20"
                 )}
               >
-                {showOrbitals ? '🔮 Orbitals ON' : '🔮 Show Orbitals'}
+                {showOrbitals ? 'Orbitals ON' : 'Show Orbitals'}
               </button>
             )}
 

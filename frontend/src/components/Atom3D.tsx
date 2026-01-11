@@ -13,7 +13,8 @@ interface Atom3DProps {
     handRotationY?: number;
     isHandControlled?: boolean;
     zoom?: number;
-    showOrbitals?: boolean; // New prop for orbital clouds
+    showOrbitals?: boolean;
+    isFrozen?: boolean; // Fist freeze - stops auto-rotation
 }
 
 // Glowing sphere material
@@ -281,7 +282,7 @@ function OrbitalShell({ radius, electronCount, shellIndex, color, tiltX, tiltZ }
 // Main 3D Scene
 function AtomScene({
     protons, neutrons, electrons, color, symbol,
-    handRotationX = 0.5, handRotationY = 0.5, isHandControlled = false, zoom = 1, showOrbitals = false
+    handRotationX = 0.5, handRotationY = 0.5, isHandControlled = false, zoom = 1, showOrbitals = false, isFrozen = false
 }: Atom3DProps) {
     const groupRef = useRef<THREE.Group>(null);
     const showParticles = zoom > 1.5;
@@ -296,6 +297,9 @@ function AtomScene({
 
     useFrame(() => {
         if (groupRef.current) {
+            // Skip rotation when frozen (fist gesture)
+            if (isFrozen) return;
+
             if (isHandControlled) {
                 groupRef.current.rotation.y = THREE.MathUtils.lerp(groupRef.current.rotation.y, (handRotationY - 0.5) * Math.PI * 3, 0.1);
                 groupRef.current.rotation.x = THREE.MathUtils.lerp(groupRef.current.rotation.x, (handRotationX - 0.5) * Math.PI, 0.1);
@@ -333,7 +337,7 @@ function AtomScene({
 // Exported component
 export function Atom3D({
     protons, neutrons, electrons, color, symbol,
-    handRotationX = 0.5, handRotationY = 0.5, isHandControlled = false, zoom = 1, showOrbitals = false
+    handRotationX = 0.5, handRotationY = 0.5, isHandControlled = false, zoom = 1, showOrbitals = false, isFrozen = false
 }: Atom3DProps) {
     return (
         <div style={{ width: '100%', height: '350px', background: 'transparent' }}>
@@ -358,6 +362,7 @@ export function Atom3D({
                     isHandControlled={isHandControlled}
                     zoom={zoom}
                     showOrbitals={showOrbitals}
+                    isFrozen={isFrozen}
                 />
 
                 {!isHandControlled && <OrbitControls enablePan={false} enableZoom={true} minDistance={5} maxDistance={20} />}

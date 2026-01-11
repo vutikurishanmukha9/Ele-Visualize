@@ -14,25 +14,25 @@ export function GestureTutorial({ onClose }: GestureTutorialProps) {
             icon: <Hand className="w-12 h-12" />,
             title: "Open Hand",
             description: "Spread all 5 fingers to rotate the atom",
-            emoji: "👋"
+            emoji: "Open Hand"
         },
         {
             icon: <ZoomIn className="w-12 h-12" />,
             title: "Pinch Zoom",
-            description: "Touch thumb and index together, move apart to zoom",
-            emoji: "🤏"
+            description: "Fingers apart = zoom in, together = zoom out",
+            emoji: "Pinch"
         },
         {
             icon: <ArrowLeftRight className="w-12 h-12" />,
             title: "Swipe",
-            description: "Open hand + swipe left/right to change elements",
-            emoji: "👉"
+            description: "Open hand + fast swipe to change elements",
+            emoji: "Swipe"
         },
         {
             icon: <Move className="w-12 h-12" />,
-            title: "Point",
-            description: "Point with index finger to highlight electrons",
-            emoji: "☝️"
+            title: "Fist Freeze",
+            description: "Close fist to freeze/hold current rotation",
+            emoji: "Fist"
         }
     ];
 
