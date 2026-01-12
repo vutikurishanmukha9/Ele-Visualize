@@ -10,8 +10,10 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { GestureTutorial } from '@/components/GestureTutorial';
 import { PeriodicTableGrid } from '@/components/PeriodicTableGrid';
 import { ComparisonMode } from '@/components/ComparisonMode';
+import { ReactionSimulator } from '@/components/ReactionSimulator';
+import { MoleculeBuilder } from '@/components/MoleculeBuilder';
 import { cn } from '@/lib/utils';
-import { Sun, Moon, Maximize2, Minimize2, Info, Thermometer, Droplets, Scale, Loader, HelpCircle, Menu, X, Atom, FlaskConical, Grid3X3, GitCompare, Play, Pause, Gauge } from 'lucide-react';
+import { Sun, Moon, Maximize2, Minimize2, Info, Thermometer, Droplets, Scale, Loader, HelpCircle, Menu, X, Atom, FlaskConical, Grid3X3, GitCompare, Play, Pause, Gauge, Zap, Wrench } from 'lucide-react';
 
 // Category colors
 const categoryColors: Record<ElementCategory, string> = {
@@ -116,7 +118,7 @@ const Index = () => {
   const [showOrbitals, setShowOrbitals] = useState(false);
 
   // New feature states
-  const [mainViewMode, setMainViewMode] = useState<'3d' | 'grid' | 'compare'>('3d');
+  const [mainViewMode, setMainViewMode] = useState<'3d' | 'grid' | 'compare' | 'reaction' | 'builder'>('3d');
   const [compareElement1, setCompareElement1] = useState<ChemicalElement | null>(null);
   const [compareElement2, setCompareElement2] = useState<ChemicalElement | null>(null);
   const [animationSpeed, setAnimationSpeed] = useState(1);
@@ -529,6 +531,32 @@ const Index = () => {
             </motion.div>
           )}
 
+          {/* Reaction Simulator View */}
+          {mainViewMode === 'reaction' && (
+            <motion.div
+              key="reaction-view"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="w-full h-full"
+            >
+              <ReactionSimulator onClose={() => setMainViewMode('3d')} />
+            </motion.div>
+          )}
+
+          {/* Molecule Builder View */}
+          {mainViewMode === 'builder' && (
+            <motion.div
+              key="builder-view"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="w-full h-full"
+            >
+              <MoleculeBuilder onClose={() => setMainViewMode('3d')} />
+            </motion.div>
+          )}
+
           {/* Atom View - only in 3D mode */}
           {mainViewMode === '3d' && viewMode === 'atoms' && selectedElement && (
             <motion.div
@@ -717,6 +745,26 @@ const Index = () => {
               title="Compare Elements"
             >
               <GitCompare className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setMainViewMode('reaction')}
+              className={cn(
+                "p-2 rounded transition-colors",
+                mainViewMode === 'reaction' ? "bg-primary text-primary-foreground" : "hover:bg-white/10"
+              )}
+              title="Reaction Simulator"
+            >
+              <Zap className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setMainViewMode('builder')}
+              className={cn(
+                "p-2 rounded transition-colors",
+                mainViewMode === 'builder' ? "bg-primary text-primary-foreground" : "hover:bg-white/10"
+              )}
+              title="Molecule Builder"
+            >
+              <Wrench className="w-4 h-4" />
             </button>
           </div>
 

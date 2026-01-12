@@ -89,7 +89,7 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
     }, []);
 
     return (
-        <div className="w-full overflow-x-auto p-4">
+        <div className="w-full overflow-x-auto p-4 pt-16">
             <div className="min-w-[800px]">
                 {/* Main table */}
                 <div className="grid gap-0.5" style={{ gridTemplateColumns: 'repeat(18, minmax(32px, 1fr))' }}>
