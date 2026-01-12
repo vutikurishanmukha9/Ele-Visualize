@@ -8,8 +8,10 @@ import { Atom3D } from '@/components/Atom3D';
 import { Molecule3D } from '@/components/Molecule3D';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { GestureTutorial } from '@/components/GestureTutorial';
+import { PeriodicTableGrid } from '@/components/PeriodicTableGrid';
+import { ComparisonMode } from '@/components/ComparisonMode';
 import { cn } from '@/lib/utils';
-import { Sun, Moon, Maximize2, Minimize2, Info, Thermometer, Droplets, Scale, Loader, HelpCircle, Menu, X, Atom, FlaskConical } from 'lucide-react';
+import { Sun, Moon, Maximize2, Minimize2, Info, Thermometer, Droplets, Scale, Loader, HelpCircle, Menu, X, Atom, FlaskConical, Grid3X3, GitCompare, Play, Pause, Gauge } from 'lucide-react';
 
 // Category colors
 const categoryColors: Record<ElementCategory, string> = {
@@ -107,11 +109,18 @@ const Index = () => {
   const [handPositionX, setHandPositionX] = useState(0.5);
   const [handPositionY, setHandPositionY] = useState(0.5);
   const [isHandControlled, setIsHandControlled] = useState(false);
-  const [isFrozen, setIsFrozen] = useState(false); // Fist freeze
+  const [isFrozen, setIsFrozen] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [showOrbitals, setShowOrbitals] = useState(false);
+
+  // New feature states
+  const [mainViewMode, setMainViewMode] = useState<'3d' | 'grid' | 'compare'>('3d');
+  const [compareElement1, setCompareElement1] = useState<ChemicalElement | null>(null);
+  const [compareElement2, setCompareElement2] = useState<ChemicalElement | null>(null);
+  const [animationSpeed, setAnimationSpeed] = useState(1);
+  const [isPaused, setIsPaused] = useState(false);
 
   // Check for mobile
   useEffect(() => {
@@ -213,9 +222,22 @@ const Index = () => {
   }, []);
 
   const handleElementClick = useCallback((element: ChemicalElement) => {
-    setSelectedElement(element);
+    if (mainViewMode === 'compare') {
+      // In compare mode, add to comparison slots
+      if (!compareElement1) {
+        setCompareElement1(element);
+      } else if (!compareElement2) {
+        setCompareElement2(element);
+      } else {
+        // Both slots full, replace first
+        setCompareElement1(element);
+        setCompareElement2(null);
+      }
+    } else {
+      setSelectedElement(element);
+    }
     if (isMobile) setSidebarOpen(false);
-  }, [isMobile]);
+  }, [isMobile, mainViewMode, compareElement1, compareElement2]);
 
   const handleSwipe = useCallback((direction: 'left' | 'right') => {
     const currentIndex = selectedElement
@@ -466,8 +488,49 @@ const Index = () => {
         )}
 
         <AnimatePresence mode="wait">
-          {/* Atom View */}
-          {viewMode === 'atoms' && selectedElement && (
+          {/* Periodic Table Grid View */}
+          {mainViewMode === 'grid' && (
+            <motion.div
+              key="grid-view"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="w-full h-full overflow-auto"
+            >
+              <PeriodicTableGrid
+                selectedElement={selectedElement}
+                onSelectElement={(el) => {
+                  setSelectedElement(el);
+                  setMainViewMode('3d');
+                }}
+                categoryColors={categoryColors}
+              />
+            </motion.div>
+          )}
+
+          {/* Comparison View */}
+          {mainViewMode === 'compare' && (
+            <motion.div
+              key="compare-view"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="w-full h-full"
+            >
+              <ComparisonMode
+                element1={compareElement1}
+                element2={compareElement2}
+                onRemoveElement={(slot) => {
+                  if (slot === 1) setCompareElement1(null);
+                  else setCompareElement2(null);
+                }}
+                categoryColors={categoryColors}
+              />
+            </motion.div>
+          )}
+
+          {/* Atom View - only in 3D mode */}
+          {mainViewMode === '3d' && viewMode === 'atoms' && selectedElement && (
             <motion.div
               key={`atom-${selectedElement.atomicNumber}`}
               initial={{ opacity: 0 }}
@@ -489,6 +552,8 @@ const Index = () => {
                     zoom={zoomLevel}
                     showOrbitals={showOrbitals}
                     isFrozen={isFrozen}
+                    animationSpeed={animationSpeed}
+                    isPaused={isPaused}
                   />
                 </Suspense>
               </ErrorBoundary>
@@ -547,7 +612,7 @@ const Index = () => {
           )}
 
           {/* Molecule View */}
-          {viewMode === 'molecules' && selectedMolecule && (
+          {mainViewMode === '3d' && viewMode === 'molecules' && selectedMolecule && (
             <motion.div
               key={`molecule-${selectedMolecule.formula}`}
               initial={{ opacity: 0 }}
@@ -601,8 +666,8 @@ const Index = () => {
             </motion.div>
           )}
 
-          {/* Empty State */}
-          {((viewMode === 'atoms' && !selectedElement) || (viewMode === 'molecules' && !selectedMolecule)) && (
+          {/* Empty State - only in 3D mode */}
+          {mainViewMode === '3d' && ((viewMode === 'atoms' && !selectedElement) || (viewMode === 'molecules' && !selectedMolecule)) && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-muted-foreground px-4">
               <div className="text-6xl mb-4 opacity-20">{viewMode === 'atoms' ? '⚛' : '🧪'}</div>
               <p className="text-xl">{viewMode === 'atoms' ? 'Select an Element' : 'Select a Molecule'}</p>
@@ -619,52 +684,116 @@ const Index = () => {
           )}
         </AnimatePresence>
 
-        {(selectedElement || selectedMolecule) && (
-          <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
+        {/* Top controls panel */}
+        <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
+          {/* View Mode Tabs */}
+          <div className="flex gap-1 bg-black/60 p-1 rounded-lg">
+            <button
+              onClick={() => setMainViewMode('3d')}
+              className={cn(
+                "p-2 rounded transition-colors",
+                mainViewMode === '3d' ? "bg-primary text-primary-foreground" : "hover:bg-white/10"
+              )}
+              title="3D View"
+            >
+              <Atom className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setMainViewMode('grid')}
+              className={cn(
+                "p-2 rounded transition-colors",
+                mainViewMode === 'grid' ? "bg-primary text-primary-foreground" : "hover:bg-white/10"
+              )}
+              title="Periodic Table"
+            >
+              <Grid3X3 className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setMainViewMode('compare')}
+              className={cn(
+                "p-2 rounded transition-colors",
+                mainViewMode === 'compare' ? "bg-primary text-primary-foreground" : "hover:bg-white/10"
+              )}
+              title="Compare Elements"
+            >
+              <GitCompare className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Animation Controls */}
+          {mainViewMode === '3d' && selectedElement && (
+            <div className="flex items-center gap-2 bg-black/60 px-3 py-2 rounded-lg">
+              <button
+                onClick={() => setIsPaused(!isPaused)}
+                className={cn(
+                  "p-1.5 rounded transition-colors",
+                  isPaused ? "bg-green-500/20 text-green-400" : "hover:bg-white/10"
+                )}
+                title={isPaused ? "Play" : "Pause"}
+              >
+                {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+              </button>
+              <Gauge className="w-4 h-4 text-muted-foreground" />
+              <input
+                type="range"
+                min="0.1"
+                max="3"
+                step="0.1"
+                value={animationSpeed}
+                onChange={(e) => setAnimationSpeed(parseFloat(e.target.value))}
+                className="w-20 accent-primary"
+                title={`Speed: ${animationSpeed.toFixed(1)}x`}
+              />
+              <span className="text-xs text-muted-foreground w-8">{animationSpeed.toFixed(1)}x</span>
+            </div>
+          )}
+
+          {/* Zoom indicator */}
+          {(selectedElement || selectedMolecule) && mainViewMode === '3d' && (
             <div className="bg-black/60 px-3 py-2 rounded-lg text-sm">
               <span className="text-muted-foreground">Zoom: </span>
               <span className="text-primary font-mono">{zoomLevel.toFixed(1)}x</span>
             </div>
+          )}
 
-            {/* Orbital toggle - only for atoms */}
-            {viewMode === 'atoms' && selectedElement && (
-              <button
-                onClick={() => setShowOrbitals(!showOrbitals)}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
-                  showOrbitals
-                    ? "bg-purple-500/30 text-purple-300 border border-purple-400/50"
-                    : "bg-black/60 text-muted-foreground hover:bg-purple-500/20"
-                )}
-              >
-                {showOrbitals ? 'Orbitals ON' : 'Show Orbitals'}
-              </button>
-            )}
+          {/* Orbital toggle - only for atoms */}
+          {viewMode === 'atoms' && selectedElement && mainViewMode === '3d' && (
+            <button
+              onClick={() => setShowOrbitals(!showOrbitals)}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
+                showOrbitals
+                  ? "bg-purple-500/30 text-purple-300 border border-purple-400/50"
+                  : "bg-black/60 text-muted-foreground hover:bg-purple-500/20"
+              )}
+            >
+              {showOrbitals ? 'Orbitals ON' : 'Show Orbitals'}
+            </button>
+          )}
 
-            {viewMode === 'atoms' && zoomLevel > 1.5 && (
-              <div className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
-                Nucleus Detail
+          {viewMode === 'atoms' && zoomLevel > 1.5 && mainViewMode === '3d' && (
+            <div className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
+              Nucleus Detail
+            </div>
+          )}
+
+          {showOrbitals && viewMode === 'atoms' && mainViewMode === '3d' && (
+            <div className="bg-black/60 p-2 rounded-lg text-xs space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-red-400 opacity-50" />
+                <span className="text-muted-foreground">s orbital</span>
               </div>
-            )}
-
-            {showOrbitals && viewMode === 'atoms' && (
-              <div className="bg-black/60 p-2 rounded-lg text-xs space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-red-400 opacity-50" />
-                  <span className="text-muted-foreground">s orbital</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-cyan-400 opacity-50" />
-                  <span className="text-muted-foreground">p orbital</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-yellow-400 opacity-50" />
-                  <span className="text-muted-foreground">d orbital</span>
-                </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-cyan-400 opacity-50" />
+                <span className="text-muted-foreground">p orbital</span>
               </div>
-            )}
-          </div>
-        )}
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-yellow-400 opacity-50" />
+                <span className="text-muted-foreground">d orbital</span>
+              </div>
+            </div>
+          )}
+        </div>
       </main>
 
       <HandTracker

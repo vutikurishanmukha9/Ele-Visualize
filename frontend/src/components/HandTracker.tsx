@@ -384,36 +384,54 @@ export function HandTracker({ onZoomChange, onGestureDetected, onSwipe, onHandPo
         if (ctx && canvasRef.current) {
             ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
 
-            // Draw connections
-            const connections = [
-                [0, 1], [1, 2], [2, 3], [3, 4],  // Thumb
-                [0, 5], [5, 6], [6, 7], [7, 8],  // Index
-                [0, 9], [9, 10], [10, 11], [11, 12], // Middle
-                [0, 13], [13, 14], [14, 15], [15, 16], // Ring
-                [0, 17], [17, 18], [18, 19], [19, 20], // Pinky
-                [5, 9], [9, 13], [13, 17] // Palm
-            ];
+            const w = canvasRef.current.width;
+            const h = canvasRef.current.height;
 
+            // Set stroke style once
             ctx.strokeStyle = stableGesture === 'open' ? '#22c55e' :
                 stableGesture === 'pinch' ? '#f59e0b' :
-                    stableGesture === 'point' ? '#3b82f6' : '#888888';
+                    stableGesture === 'fist' ? '#ef4444' :
+                        stableGesture === 'point' ? '#3b82f6' : '#888888';
             ctx.lineWidth = 2;
 
-            for (const [i, j] of connections) {
-                const p1 = smoothedLandmarks[i];
-                const p2 = smoothedLandmarks[j];
-                ctx.beginPath();
-                ctx.moveTo(p1.x * canvasRef.current.width, p1.y * canvasRef.current.height);
-                ctx.lineTo(p2.x * canvasRef.current.width, p2.y * canvasRef.current.height);
-                ctx.stroke();
-            }
+            // Batched path drawing - single beginPath/stroke
+            ctx.beginPath();
 
-            // Draw landmarks
-            for (let i = 0; i < smoothedLandmarks.length; i++) {
+            // Thumb
+            ctx.moveTo(smoothedLandmarks[0].x * w, smoothedLandmarks[0].y * h);
+            for (const i of [1, 2, 3, 4]) ctx.lineTo(smoothedLandmarks[i].x * w, smoothedLandmarks[i].y * h);
+
+            // Index
+            ctx.moveTo(smoothedLandmarks[0].x * w, smoothedLandmarks[0].y * h);
+            for (const i of [5, 6, 7, 8]) ctx.lineTo(smoothedLandmarks[i].x * w, smoothedLandmarks[i].y * h);
+
+            // Middle
+            ctx.moveTo(smoothedLandmarks[0].x * w, smoothedLandmarks[0].y * h);
+            for (const i of [9, 10, 11, 12]) ctx.lineTo(smoothedLandmarks[i].x * w, smoothedLandmarks[i].y * h);
+
+            // Ring
+            ctx.moveTo(smoothedLandmarks[0].x * w, smoothedLandmarks[0].y * h);
+            for (const i of [13, 14, 15, 16]) ctx.lineTo(smoothedLandmarks[i].x * w, smoothedLandmarks[i].y * h);
+
+            // Pinky
+            ctx.moveTo(smoothedLandmarks[0].x * w, smoothedLandmarks[0].y * h);
+            for (const i of [17, 18, 19, 20]) ctx.lineTo(smoothedLandmarks[i].x * w, smoothedLandmarks[i].y * h);
+
+            // Palm connections
+            ctx.moveTo(smoothedLandmarks[5].x * w, smoothedLandmarks[5].y * h);
+            ctx.lineTo(smoothedLandmarks[9].x * w, smoothedLandmarks[9].y * h);
+            ctx.lineTo(smoothedLandmarks[13].x * w, smoothedLandmarks[13].y * h);
+            ctx.lineTo(smoothedLandmarks[17].x * w, smoothedLandmarks[17].y * h);
+
+            ctx.stroke(); // Single stroke call
+
+            // Only draw key landmarks (tips + wrist) - reduced from 21 to 6
+            ctx.fillStyle = '#ffffff';
+            for (const i of [0, 4, 8, 12, 16, 20]) {
                 const lm = smoothedLandmarks[i];
                 ctx.beginPath();
-                ctx.arc(lm.x * canvasRef.current.width, lm.y * canvasRef.current.height, 4, 0, 2 * Math.PI);
-                ctx.fillStyle = i === 4 || i === 8 ? '#ff4444' : '#ffffff'; // Highlight thumb/index tips
+                ctx.arc(lm.x * w, lm.y * h, i === 4 || i === 8 ? 5 : 3, 0, Math.PI * 2);
+                ctx.fillStyle = i === 4 || i === 8 ? '#ff4444' : '#ffffff';
                 ctx.fill();
             }
         }
