@@ -169,6 +169,156 @@ export const molecules: Molecule[] = [
             { from: 0, to: 1, order: 1 },
         ]
     },
+    {
+        name: "Ozone",
+        formula: "O₃",
+        description: "Protects Earth from UV. Bent shape",
+        atoms: [
+            { element: "Oxygen", symbol: "O", color: "#ff4444", position: [0, 0, 0], radius: 0.6 },
+            { element: "Oxygen", symbol: "O", color: "#ff4444", position: [-1.1, 0.5, 0], radius: 0.6 },
+            { element: "Oxygen", symbol: "O", color: "#ff4444", position: [1.1, 0.5, 0], radius: 0.6 },
+        ],
+        bonds: [
+            { from: 0, to: 1, order: 2 },
+            { from: 0, to: 2, order: 1 },
+        ]
+    },
+    {
+        name: "Sulfur Dioxide",
+        formula: "SO₂",
+        description: "Volcanic gas. Bent molecular shape",
+        atoms: [
+            { element: "Sulfur", symbol: "S", color: "#ffff33", position: [0, 0, 0], radius: 0.65 },
+            { element: "Oxygen", symbol: "O", color: "#ff4444", position: [-1.2, 0.6, 0], radius: 0.6 },
+            { element: "Oxygen", symbol: "O", color: "#ff4444", position: [1.2, 0.6, 0], radius: 0.6 },
+        ],
+        bonds: [
+            { from: 0, to: 1, order: 2 },
+            { from: 0, to: 2, order: 2 },
+        ]
+    },
+    {
+        name: "Hydrogen Sulfide",
+        formula: "H₂S",
+        description: "Rotten egg smell. Bent shape like water",
+        atoms: [
+            { element: "Sulfur", symbol: "S", color: "#ffff33", position: [0, 0, 0], radius: 0.65 },
+            { element: "Hydrogen", symbol: "H", color: "#ffffff", position: [-1.0, 0.6, 0], radius: 0.35 },
+            { element: "Hydrogen", symbol: "H", color: "#ffffff", position: [1.0, 0.6, 0], radius: 0.35 },
+        ],
+        bonds: [
+            { from: 0, to: 1, order: 1 },
+            { from: 0, to: 2, order: 1 },
+        ]
+    },
+    {
+        name: "Ethylene",
+        formula: "C₂H₄",
+        description: "Plant hormone. Double C=C bond",
+        atoms: [
+            { element: "Carbon", symbol: "C", color: "#444444", position: [-0.67, 0, 0], radius: 0.5 },
+            { element: "Carbon", symbol: "C", color: "#444444", position: [0.67, 0, 0], radius: 0.5 },
+            { element: "Hydrogen", symbol: "H", color: "#ffffff", position: [-1.25, 0.9, 0], radius: 0.3 },
+            { element: "Hydrogen", symbol: "H", color: "#ffffff", position: [-1.25, -0.9, 0], radius: 0.3 },
+            { element: "Hydrogen", symbol: "H", color: "#ffffff", position: [1.25, 0.9, 0], radius: 0.3 },
+            { element: "Hydrogen", symbol: "H", color: "#ffffff", position: [1.25, -0.9, 0], radius: 0.3 },
+        ],
+        bonds: [
+            { from: 0, to: 1, order: 2 },
+            { from: 0, to: 2, order: 1 },
+            { from: 0, to: 3, order: 1 },
+            { from: 1, to: 4, order: 1 },
+            { from: 1, to: 5, order: 1 },
+        ]
+    },
+    {
+        name: "Acetylene",
+        formula: "C₂H₂",
+        description: "Welding gas. Triple C≡C bond",
+        atoms: [
+            { element: "Carbon", symbol: "C", color: "#444444", position: [-0.6, 0, 0], radius: 0.5 },
+            { element: "Carbon", symbol: "C", color: "#444444", position: [0.6, 0, 0], radius: 0.5 },
+            { element: "Hydrogen", symbol: "H", color: "#ffffff", position: [-1.65, 0, 0], radius: 0.3 },
+            { element: "Hydrogen", symbol: "H", color: "#ffffff", position: [1.65, 0, 0], radius: 0.3 },
+        ],
+        bonds: [
+            { from: 0, to: 1, order: 3 },
+            { from: 0, to: 2, order: 1 },
+            { from: 1, to: 3, order: 1 },
+        ]
+    },
+    {
+        name: "Formaldehyde",
+        formula: "CH₂O",
+        description: "Preservative. Trigonal planar",
+        atoms: [
+            { element: "Carbon", symbol: "C", color: "#444444", position: [0, 0, 0], radius: 0.5 },
+            { element: "Oxygen", symbol: "O", color: "#ff4444", position: [0, 1.2, 0], radius: 0.6 },
+            { element: "Hydrogen", symbol: "H", color: "#ffffff", position: [-0.95, -0.55, 0], radius: 0.3 },
+            { element: "Hydrogen", symbol: "H", color: "#ffffff", position: [0.95, -0.55, 0], radius: 0.3 },
+        ],
+        bonds: [
+            { from: 0, to: 1, order: 2 },
+            { from: 0, to: 2, order: 1 },
+            { from: 0, to: 3, order: 1 },
+        ]
+    },
+    {
+        name: "Hydrogen Peroxide",
+        formula: "H₂O₂",
+        description: "Bleaching agent. Open book shape",
+        atoms: [
+            { element: "Oxygen", symbol: "O", color: "#ff4444", position: [-0.7, 0, 0], radius: 0.6 },
+            { element: "Oxygen", symbol: "O", color: "#ff4444", position: [0.7, 0, 0], radius: 0.6 },
+            { element: "Hydrogen", symbol: "H", color: "#ffffff", position: [-1.25, 0.7, 0.4], radius: 0.35 },
+            { element: "Hydrogen", symbol: "H", color: "#ffffff", position: [1.25, -0.7, 0.4], radius: 0.35 },
+        ],
+        bonds: [
+            { from: 0, to: 1, order: 1 },
+            { from: 0, to: 2, order: 1 },
+            { from: 1, to: 3, order: 1 },
+        ]
+    },
+    {
+        name: "Phosphine",
+        formula: "PH₃",
+        description: "Toxic gas. Pyramidal like ammonia",
+        atoms: [
+            { element: "Phosphorus", symbol: "P", color: "#ff8800", position: [0, 0, 0], radius: 0.6 },
+            { element: "Hydrogen", symbol: "H", color: "#ffffff", position: [1.0, 0.4, 0], radius: 0.35 },
+            { element: "Hydrogen", symbol: "H", color: "#ffffff", position: [-0.5, 0.4, 0.87], radius: 0.35 },
+            { element: "Hydrogen", symbol: "H", color: "#ffffff", position: [-0.5, 0.4, -0.87], radius: 0.35 },
+        ],
+        bonds: [
+            { from: 0, to: 1, order: 1 },
+            { from: 0, to: 2, order: 1 },
+            { from: 0, to: 3, order: 1 },
+        ]
+    },
+    {
+        name: "Nitric Oxide",
+        formula: "NO",
+        description: "Signaling molecule. Unpaired electron",
+        atoms: [
+            { element: "Nitrogen", symbol: "N", color: "#3355ff", position: [-0.55, 0, 0], radius: 0.55 },
+            { element: "Oxygen", symbol: "O", color: "#ff4444", position: [0.6, 0, 0], radius: 0.6 },
+        ],
+        bonds: [
+            { from: 0, to: 1, order: 2 },
+        ]
+    },
+    {
+        name: "Hydrogen Fluoride",
+        formula: "HF",
+        description: "Etches glass. Very polar bond",
+        atoms: [
+            { element: "Hydrogen", symbol: "H", color: "#ffffff", position: [-0.45, 0, 0], radius: 0.35 },
+            { element: "Fluorine", symbol: "F", color: "#90e050", position: [0.45, 0, 0], radius: 0.5 },
+        ],
+        bonds: [
+            { from: 0, to: 1, order: 1 },
+        ]
+    },
 ];
 
 export const getMoleculeByFormula = (formula: string): Molecule | undefined => {

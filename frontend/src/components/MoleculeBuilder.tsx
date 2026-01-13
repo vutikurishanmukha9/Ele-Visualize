@@ -378,8 +378,8 @@ export const MoleculeBuilder = memo(function MoleculeBuilder({ onClose }: Molecu
                                 <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-slate-800/50 flex items-center justify-center">
                                     <Plus className="w-10 h-10 opacity-50" />
                                 </div>
-                                <p className="text-lg font-medium">Click anywhere to add atoms</p>
-                                <p className="text-sm opacity-60 mt-1">Then click two atoms to create a bond</p>
+                                <p className="text-sm sm:text-lg font-medium text-center">Click anywhere to add atoms</p>
+                                <p className="text-xs sm:text-sm opacity-60 mt-1 text-center">Then click two atoms to create a bond</p>
                             </div>
                         </div>
                     )}
@@ -392,10 +392,9 @@ export const MoleculeBuilder = memo(function MoleculeBuilder({ onClose }: Molecu
                             initial={{ y: 20, opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
                             exit={{ y: 20, opacity: 0 }}
-                            className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-slate-800/90 backdrop-blur px-5 py-3 rounded-xl border border-white/10 flex items-center gap-4 shadow-2xl"
+                            className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 bg-slate-800/90 backdrop-blur px-3 sm:px-5 py-2 sm:py-3 rounded-xl border border-white/10 flex items-center gap-2 sm:gap-4 shadow-2xl max-w-[90%]"
                         >
-                            <span className="text-sm text-slate-300">Click another atom to bond</span>
-                            <div className="w-px h-6 bg-white/20" />
+                            <span className="text-xs sm:text-sm text-slate-300 hidden sm:inline">Click another atom to bond</span>
                             <button
                                 onClick={() => deleteAtom(selectedAtom)}
                                 className="flex items-center gap-2 px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 rounded-lg text-red-400 transition-colors"
@@ -415,7 +414,7 @@ export const MoleculeBuilder = memo(function MoleculeBuilder({ onClose }: Molecu
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 border-t border-white/10 flex items-center justify-between bg-black/20">
+            <div className="px-3 sm:px-6 py-3 sm:py-4 border-t border-white/10 flex items-center justify-between bg-black/20">
                 <div className="flex items-center gap-4 text-sm text-slate-400">
                     <span className="flex items-center gap-2">
                         <span className="w-3 h-3 rounded-full bg-slate-600" />

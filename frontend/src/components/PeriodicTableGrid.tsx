@@ -10,7 +10,7 @@ interface PeriodicTableGridProps {
     categoryColors: Record<string, string>;
 }
 
-// Periodic table layout positions
+// Periodic table layout positions for desktop
 const LAYOUT: Record<number, [number, number]> = {
     1: [1, 1], 2: [1, 18],
     3: [2, 1], 4: [2, 2], 5: [2, 13], 6: [2, 14], 7: [2, 15], 8: [2, 16], 9: [2, 17], 10: [2, 18],
@@ -33,18 +33,39 @@ const LAYOUT: Record<number, [number, number]> = {
     97: [10, 11], 98: [10, 12], 99: [10, 13], 100: [10, 14], 101: [10, 15], 102: [10, 16], 103: [10, 17],
 };
 
-// Element popup for details
+// Category list for mobile filters
+const CATEGORIES = [
+    'all',
+    'alkali-metal',
+    'alkaline-earth',
+    'transition-metal',
+    'post-transition',
+    'metalloid',
+    'nonmetal',
+    'halogen',
+    'noble-gas',
+    'lanthanide',
+    'actinide',
+];
+
+const CATEGORY_LABELS: Record<string, string> = {
+    'all': 'All',
+    'alkali-metal': 'Alkali',
+    'alkaline-earth': 'Alkaline',
+    'transition-metal': 'Transition',
+    'post-transition': 'Post-Trans',
+    'metalloid': 'Metalloid',
+    'nonmetal': 'Nonmetal',
+    'halogen': 'Halogen',
+    'noble-gas': 'Noble',
+    'lanthanide': 'Lanthanide',
+    'actinide': 'Actinide',
+};
+
+// Element popup
 const ElementPopup = memo(function ElementPopup({
-    element,
-    color,
-    onClose,
-    onSelect,
-}: {
-    element: ChemicalElement;
-    color: string;
-    onClose: () => void;
-    onSelect: () => void;
-}) {
+    element, color, onClose, onSelect,
+}: { element: ChemicalElement; color: string; onClose: () => void; onSelect: () => void; }) {
     return (
         <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
@@ -59,60 +80,28 @@ const ElementPopup = memo(function ElementPopup({
                 className="bg-slate-900 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-white/10"
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* Header */}
                 <div className="flex items-start justify-between mb-4">
-                    <div
-                        className="w-20 h-20 rounded-2xl flex flex-col items-center justify-center text-white shadow-lg"
-                        style={{ backgroundColor: color }}
-                    >
+                    <div className="w-20 h-20 rounded-2xl flex flex-col items-center justify-center text-white shadow-lg" style={{ backgroundColor: color }}>
                         <span className="text-xs opacity-70">{element.atomicNumber}</span>
                         <span className="text-3xl font-bold">{element.symbol}</span>
                     </div>
-                    <button
-                        onClick={onClose}
-                        className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                    >
-                        <X className="w-5 h-5 text-slate-400" />
-                    </button>
+                    <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg"><X className="w-5 h-5 text-slate-400" /></button>
                 </div>
-
-                {/* Name & Category */}
                 <h3 className="text-2xl font-bold text-white mb-1">{element.name}</h3>
-                <p className="text-sm capitalize mb-4" style={{ color }}>
-                    {element.category.replace('-', ' ')}
-                </p>
-
-                {/* Info */}
+                <p className="text-sm capitalize mb-4" style={{ color }}>{element.category.replace('-', ' ')}</p>
                 <div className="space-y-2 text-sm mb-4">
                     <div className="flex justify-between py-2 border-b border-white/10">
                         <span className="text-slate-400">Atomic Mass</span>
                         <span className="text-white font-medium">{element.atomicMass.toFixed(4)} u</span>
                     </div>
-                    <div className="flex justify-between py-2 border-b border-white/10">
+                    <div className="flex justify-between py-2">
                         <span className="text-slate-400">Electron Shells</span>
                         <span className="text-white font-medium">{element.shells.join(' - ')}</span>
                     </div>
-                    <div className="flex justify-between py-2">
-                        <span className="text-slate-400">Total Electrons</span>
-                        <span className="text-white font-medium">{element.shells.reduce((a, b) => a + b, 0)}</span>
-                    </div>
                 </div>
-
-                {/* Actions */}
                 <div className="flex gap-2">
-                    <button
-                        onClick={onSelect}
-                        className="flex-1 py-3 rounded-xl font-medium transition-all text-white"
-                        style={{ backgroundColor: color }}
-                    >
-                        View 3D Model
-                    </button>
-                    <a
-                        href={`https://en.wikipedia.org/wiki/${element.name}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-colors"
-                    >
+                    <button onClick={onSelect} className="flex-1 py-3 rounded-xl font-medium text-white" style={{ backgroundColor: color }}>View 3D Model</button>
+                    <a href={`https://en.wikipedia.org/wiki/${element.name}`} target="_blank" rel="noopener noreferrer" className="p-3 bg-white/10 hover:bg-white/20 rounded-xl">
                         <ExternalLink className="w-5 h-5" />
                     </a>
                 </div>
@@ -121,68 +110,79 @@ const ElementPopup = memo(function ElementPopup({
     );
 });
 
-// Enhanced element cell
-const ElementCell = memo(function ElementCell({
-    element,
-    isSelected,
-    color,
-    onQuickView,
-}: {
-    element: ChemicalElement;
-    isSelected: boolean;
-    color: string;
-    onQuickView: () => void;
-}) {
+// Mobile element card
+const MobileElementCard = memo(function MobileElementCard({
+    element, color, onTap,
+}: { element: ChemicalElement; color: string; onTap: () => void; }) {
     return (
         <motion.button
-            whileHover={{ scale: 1.15, zIndex: 20 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={onTap}
+            className="flex items-center gap-3 p-3 rounded-xl w-full text-left"
+            style={{ backgroundColor: `${color}20`, borderLeft: `4px solid ${color}` }}
+        >
+            <div
+                className="w-12 h-12 rounded-lg flex flex-col items-center justify-center text-white font-bold flex-shrink-0"
+                style={{ backgroundColor: color }}
+            >
+                <span className="text-[10px] opacity-70">{element.atomicNumber}</span>
+                <span className="text-lg">{element.symbol}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+                <div className="font-semibold text-white truncate">{element.name}</div>
+                <div className="text-xs text-slate-400 capitalize">{element.category.replace('-', ' ')}</div>
+            </div>
+            <div className="text-right text-xs text-slate-500">
+                {element.atomicMass.toFixed(2)} u
+            </div>
+        </motion.button>
+    );
+});
+
+// Desktop element cell
+const DesktopElementCell = memo(function DesktopElementCell({
+    element, isSelected, color, onQuickView,
+}: { element: ChemicalElement; isSelected: boolean; color: string; onQuickView: () => void; }) {
+    return (
+        <motion.button
+            whileHover={{ scale: 1.1, zIndex: 20 }}
             whileTap={{ scale: 0.95 }}
             onClick={onQuickView}
             className={cn(
-                "w-full aspect-square rounded-lg transition-all duration-150 text-white relative overflow-hidden group",
-                isSelected && "ring-2 ring-white ring-offset-2 ring-offset-black"
+                "w-full aspect-square rounded transition-all text-white relative overflow-hidden",
+                isSelected && "ring-2 ring-white"
             )}
-            style={{
-                backgroundColor: color,
-                boxShadow: isSelected
-                    ? `0 0 20px ${color}, 0 4px 12px rgba(0,0,0,0.4)`
-                    : `0 2px 8px rgba(0,0,0,0.3)`,
-            }}
+            style={{ backgroundColor: color, boxShadow: isSelected ? `0 0 15px ${color}` : undefined }}
         >
-            {/* Shine effect on hover */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-
-            {/* Content */}
-            <div className="h-full flex flex-col items-center justify-center relative z-10">
-                <span className="text-[7px] sm:text-[8px] opacity-60 leading-none">{element.atomicNumber}</span>
-                <span className="text-[10px] sm:text-sm font-bold leading-tight">{element.symbol}</span>
+            <div className="h-full flex flex-col items-center justify-center">
+                <span className="text-[8px] opacity-60">{element.atomicNumber}</span>
+                <span className="text-xs font-bold">{element.symbol}</span>
             </div>
         </motion.button>
     );
 });
 
 export const PeriodicTableGrid = memo(function PeriodicTableGrid({
-    selectedElement,
-    onSelectElement,
-    categoryColors,
+    selectedElement, onSelectElement, categoryColors,
 }: PeriodicTableGridProps) {
     const [quickViewElement, setQuickViewElement] = useState<ChemicalElement | null>(null);
+    const [mobileCategory, setMobileCategory] = useState('all');
 
     const grid = useMemo(() => {
         const cells: (ChemicalElement | null)[][] = Array(11).fill(null).map(() => Array(19).fill(null));
         elements.forEach((element) => {
             const pos = LAYOUT[element.atomicNumber];
-            if (pos) {
-                cells[pos[0]][pos[1]] = element;
-            }
+            if (pos) cells[pos[0]][pos[1]] = element;
         });
         return cells;
     }, []);
 
-    const handleQuickView = (element: ChemicalElement) => {
-        setQuickViewElement(element);
-    };
+    const filteredElements = useMemo(() => {
+        if (mobileCategory === 'all') return elements;
+        return elements.filter(el => el.category === mobileCategory);
+    }, [mobileCategory]);
 
+    const handleQuickView = (element: ChemicalElement) => setQuickViewElement(element);
     const handleSelect = () => {
         if (quickViewElement) {
             onSelectElement(quickViewElement);
@@ -191,90 +191,134 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
     };
 
     return (
-        <div className="w-full h-full overflow-x-auto overflow-y-auto p-2 sm:p-4 pt-14 sm:pt-16 bg-gradient-to-b from-slate-950 to-black">
-            {/* Title */}
-            <h2 className="text-center text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4">
-                Periodic Table of Elements
-            </h2>
+        <div className="w-full h-full bg-gradient-to-b from-slate-950 to-black">
+            {/* ===== MOBILE VIEW ===== */}
+            <div className="sm:hidden h-full flex flex-col pt-12 pb-20">
+                {/* Title */}
+                <h2 className="text-center text-lg font-bold text-white py-3 flex-shrink-0">
+                    Periodic Table
+                </h2>
 
-            {/* Scroll hint for mobile */}
-            <div className="sm:hidden text-center text-xs text-slate-500 mb-2">
-                ← Swipe to explore →
+                {/* Category Filter Tabs */}
+                <div className="flex-shrink-0 overflow-x-auto pb-2 px-2">
+                    <div className="flex gap-2 min-w-max">
+                        {CATEGORIES.map(cat => (
+                            <button
+                                key={cat}
+                                onClick={() => setMobileCategory(cat)}
+                                className={cn(
+                                    "px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap",
+                                    mobileCategory === cat
+                                        ? "bg-primary text-primary-foreground"
+                                        : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+                                )}
+                                style={
+                                    mobileCategory === cat && cat !== 'all'
+                                        ? { backgroundColor: categoryColors[cat] || undefined }
+                                        : undefined
+                                }
+                            >
+                                {CATEGORY_LABELS[cat]}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Element count */}
+                <div className="px-4 py-2 text-xs text-slate-500 flex-shrink-0">
+                    {filteredElements.length} elements
+                </div>
+
+                {/* Scrollable Element List */}
+                <div className="flex-1 overflow-y-auto px-3">
+                    <div className="grid grid-cols-1 gap-2 pb-4">
+                        {filteredElements.map(element => (
+                            <MobileElementCard
+                                key={element.atomicNumber}
+                                element={element}
+                                color={categoryColors[element.category] || '#666'}
+                                onTap={() => handleQuickView(element)}
+                            />
+                        ))}
+                    </div>
+                </div>
             </div>
 
-            <div className="min-w-[550px] sm:min-w-[750px] mx-auto">
-                {/* Main table */}
-                <div className="grid gap-0.5 sm:gap-1" style={{ gridTemplateColumns: 'repeat(18, minmax(20px, 1fr))' }}>
-                    {grid.slice(1, 8).map((row, rowIndex) =>
-                        row.slice(1).map((element, colIndex) => (
-                            <div key={`${rowIndex}-${colIndex}`} className="aspect-square">
-                                {element ? (
-                                    <ElementCell
-                                        element={element}
-                                        isSelected={selectedElement?.atomicNumber === element.atomicNumber}
-                                        color={categoryColors[element.category] || '#666'}
-                                        onQuickView={() => handleQuickView(element)}
-                                    />
-                                ) : (
-                                    <div className="w-full h-full" />
-                                )}
-                            </div>
-                        ))
-                    )}
-                </div>
+            {/* ===== DESKTOP VIEW ===== */}
+            <div className="hidden sm:block h-full overflow-auto p-4">
+                <h2 className="text-center text-xl font-bold text-white mb-4">
+                    Periodic Table of Elements
+                </h2>
 
-                {/* Gap */}
-                <div className="h-3 sm:h-4" />
-
-                {/* Lanthanides */}
-                <div className="flex items-center gap-1 mb-1">
-                    <span className="text-[10px] sm:text-xs text-slate-500 w-12 sm:w-16">La-Lu</span>
-                    <div className="flex-1 grid gap-0.5 sm:gap-1" style={{ gridTemplateColumns: 'repeat(15, minmax(20px, 1fr))' }}>
-                        {grid[9].slice(3, 18).map((element, i) => (
-                            <div key={`la-${i}`} className="aspect-square">
-                                {element ? (
-                                    <ElementCell
-                                        element={element}
-                                        isSelected={selectedElement?.atomicNumber === element.atomicNumber}
-                                        color={categoryColors[element.category] || '#666'}
-                                        onQuickView={() => handleQuickView(element)}
-                                    />
-                                ) : <div />}
-                            </div>
-                        ))}
+                <div className="max-w-5xl mx-auto">
+                    {/* Main table */}
+                    <div className="grid gap-1" style={{ gridTemplateColumns: 'repeat(18, minmax(32px, 1fr))' }}>
+                        {grid.slice(1, 8).map((row, rowIndex) =>
+                            row.slice(1).map((element, colIndex) => (
+                                <div key={`${rowIndex}-${colIndex}`} className="aspect-square">
+                                    {element ? (
+                                        <DesktopElementCell
+                                            element={element}
+                                            isSelected={selectedElement?.atomicNumber === element.atomicNumber}
+                                            color={categoryColors[element.category] || '#666'}
+                                            onQuickView={() => handleQuickView(element)}
+                                        />
+                                    ) : <div className="w-full h-full" />}
+                                </div>
+                            ))
+                        )}
                     </div>
-                </div>
 
-                {/* Actinides */}
-                <div className="flex items-center gap-1">
-                    <span className="text-[10px] sm:text-xs text-slate-500 w-12 sm:w-16">Ac-Lr</span>
-                    <div className="flex-1 grid gap-0.5 sm:gap-1" style={{ gridTemplateColumns: 'repeat(15, minmax(20px, 1fr))' }}>
-                        {grid[10].slice(3, 18).map((element, i) => (
-                            <div key={`ac-${i}`} className="aspect-square">
-                                {element ? (
-                                    <ElementCell
-                                        element={element}
-                                        isSelected={selectedElement?.atomicNumber === element.atomicNumber}
-                                        color={categoryColors[element.category] || '#666'}
-                                        onQuickView={() => handleQuickView(element)}
-                                    />
-                                ) : <div />}
-                            </div>
-                        ))}
-                    </div>
-                </div>
+                    {/* Gap */}
+                    <div className="h-4" />
 
-                {/* Legend */}
-                <div className="mt-4 sm:mt-6 flex flex-wrap gap-1.5 sm:gap-2 justify-center">
-                    {Object.entries(categoryColors).slice(0, 10).map(([category, color]) => (
-                        <div key={category} className="flex items-center gap-1 text-[10px] sm:text-xs">
-                            <div
-                                className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded"
-                                style={{ backgroundColor: color }}
-                            />
-                            <span className="text-slate-400 capitalize">{category.replace('-', ' ')}</span>
+                    {/* Lanthanides */}
+                    <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs text-slate-500 w-14">La-Lu</span>
+                        <div className="flex-1 grid gap-1" style={{ gridTemplateColumns: 'repeat(15, minmax(32px, 1fr))' }}>
+                            {grid[9].slice(3, 18).map((element, i) => (
+                                <div key={`la-${i}`} className="aspect-square">
+                                    {element ? (
+                                        <DesktopElementCell
+                                            element={element}
+                                            isSelected={selectedElement?.atomicNumber === element.atomicNumber}
+                                            color={categoryColors[element.category] || '#666'}
+                                            onQuickView={() => handleQuickView(element)}
+                                        />
+                                    ) : <div />}
+                                </div>
+                            ))}
                         </div>
-                    ))}
+                    </div>
+
+                    {/* Actinides */}
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-500 w-14">Ac-Lr</span>
+                        <div className="flex-1 grid gap-1" style={{ gridTemplateColumns: 'repeat(15, minmax(32px, 1fr))' }}>
+                            {grid[10].slice(3, 18).map((element, i) => (
+                                <div key={`ac-${i}`} className="aspect-square">
+                                    {element ? (
+                                        <DesktopElementCell
+                                            element={element}
+                                            isSelected={selectedElement?.atomicNumber === element.atomicNumber}
+                                            color={categoryColors[element.category] || '#666'}
+                                            onQuickView={() => handleQuickView(element)}
+                                        />
+                                    ) : <div />}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Legend */}
+                    <div className="mt-6 flex flex-wrap gap-3 justify-center">
+                        {Object.entries(categoryColors).slice(0, 10).map(([category, color]) => (
+                            <div key={category} className="flex items-center gap-1.5 text-xs">
+                                <div className="w-3 h-3 rounded" style={{ backgroundColor: color }} />
+                                <span className="text-slate-400 capitalize">{category.replace('-', ' ')}</span>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
 

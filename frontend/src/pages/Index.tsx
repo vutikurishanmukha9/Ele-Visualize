@@ -113,7 +113,7 @@ const Index = () => {
   const [isHandControlled, setIsHandControlled] = useState(false);
   const [isFrozen, setIsFrozen] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [showOrbitals, setShowOrbitals] = useState(false);
 
@@ -497,7 +497,7 @@ const Index = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="w-full h-full overflow-auto"
+              className="w-full h-full"
             >
               <PeriodicTableGrid
                 selectedElement={selectedElement}
