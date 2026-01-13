@@ -713,9 +713,9 @@ const Index = () => {
         </AnimatePresence>
 
         {/* Top controls panel */}
-        <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
+        <div className="absolute top-2 sm:top-4 right-2 sm:right-4 flex flex-col gap-1.5 sm:gap-2 items-end z-20">
           {/* View Mode Tabs */}
-          <div className="flex gap-1 bg-black/60 p-1 rounded-lg">
+          <div className="flex gap-0.5 sm:gap-1 bg-black/60 p-0.5 sm:p-1 rounded-lg">
             <button
               onClick={() => setMainViewMode('3d')}
               className={cn(

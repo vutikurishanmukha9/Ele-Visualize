@@ -178,19 +178,22 @@ export const ComparisonMode = memo(function ComparisonMode({
     }, [element1, element2, props1, props2]);
 
     return (
-        <div className="h-full flex flex-col p-4 overflow-auto">
-            <h2 className="text-lg font-semibold mb-4 text-center">Element Comparison</h2>
+        <div className="h-full flex flex-col p-2 sm:p-4 pt-14 sm:pt-4 overflow-auto">
+            <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-center">Element Comparison</h2>
 
-            {/* Element Cards */}
-            <div className="flex gap-4 mb-6">
+            {/* Element Cards - stack on mobile */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4 sm:mb-6">
                 <ElementCard
                     element={element1}
                     slot={1}
                     color={element1 ? categoryColors[element1.category] || '#666' : '#666'}
                     onRemove={() => onRemoveElement(1)}
                 />
-                <div className="flex items-center">
+                <div className="hidden sm:flex items-center">
                     <ArrowRight className="w-6 h-6 text-muted-foreground" />
+                </div>
+                <div className="sm:hidden flex justify-center">
+                    <ArrowRight className="w-5 h-5 text-muted-foreground rotate-90" />
                 </div>
                 <ElementCard
                     element={element2}

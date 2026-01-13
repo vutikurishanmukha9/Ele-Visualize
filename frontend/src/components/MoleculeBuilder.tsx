@@ -57,7 +57,7 @@ const PaletteAtom = memo(function PaletteAtom({
             whileTap={{ scale: 0.95 }}
             onClick={onClick}
             className={cn(
-                "w-14 h-14 rounded-xl flex flex-col items-center justify-center font-bold shadow-lg transition-all border-2",
+                "w-11 h-11 sm:w-14 sm:h-14 rounded-xl flex flex-col items-center justify-center font-bold shadow-lg transition-all border-2",
                 isSelected
                     ? "border-white ring-2 ring-white/50"
                     : "border-transparent hover:border-white/30"
@@ -67,8 +67,8 @@ const PaletteAtom = memo(function PaletteAtom({
                 color: ['H', 'S', 'F'].includes(symbol) ? '#000' : '#fff'
             }}
         >
-            <span className="text-xl">{symbol}</span>
-            <span className="text-[9px] opacity-70">val: {valence}</span>
+            <span className="text-lg sm:text-xl">{symbol}</span>
+            <span className="text-[8px] sm:text-[9px] opacity-70">v:{valence}</span>
         </motion.button>
     );
 });
@@ -269,26 +269,26 @@ export const MoleculeBuilder = memo(function MoleculeBuilder({ onClose }: Molecu
     return (
         <div className="h-full flex flex-col bg-gradient-to-b from-slate-900 to-slate-950">
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
-                        <Atom className="w-6 h-6 text-white" />
+            <div className="flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 pt-14 sm:pt-4 border-b border-white/10">
+                <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+                        <Atom className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold text-white">Molecule Builder</h2>
-                        <p className="text-xs text-slate-400">Select atom type, click canvas to place</p>
+                        <h2 className="text-base sm:text-xl font-bold text-white">Molecule Builder</h2>
+                        <p className="hidden sm:block text-xs text-slate-400">Select atom type, click canvas to place</p>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
                     {formula && (
                         <div className={cn(
-                            "px-4 py-2 rounded-xl font-mono text-lg flex items-center gap-2 border",
+                            "px-2 sm:px-4 py-1 sm:py-2 rounded-xl font-mono text-sm sm:text-lg flex items-center gap-1 sm:gap-2 border",
                             isValid
                                 ? "bg-green-500/10 text-green-400 border-green-500/30"
                                 : "bg-yellow-500/10 text-yellow-400 border-yellow-500/30"
                         )}>
-                            {isValid ? <Check className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
+                            {isValid ? <Check className="w-4 h-4 sm:w-5 sm:h-5" /> : <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" />}
                             <span className="font-bold">{formula}</span>
                         </div>
                     )}
@@ -300,11 +300,11 @@ export const MoleculeBuilder = memo(function MoleculeBuilder({ onClose }: Molecu
                 </div>
             </div>
 
-            {/* Palette */}
-            <div className="px-6 py-3 border-b border-white/10 bg-black/20">
-                <div className="flex items-center gap-3">
-                    <span className="text-sm text-slate-400">Select atom:</span>
-                    <div className="flex gap-2">
+            {/* Palette - scrollable on mobile */}
+            <div className="px-3 sm:px-6 py-2 sm:py-3 border-b border-white/10 bg-black/20 overflow-x-auto">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-max">
+                    <span className="text-xs sm:text-sm text-slate-400 whitespace-nowrap">Select:</span>
+                    <div className="flex gap-1.5 sm:gap-2">
                         {paletteElements.map(el => (
                             <PaletteAtom
                                 key={el.symbol}

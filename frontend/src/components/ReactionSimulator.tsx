@@ -25,7 +25,7 @@ const ElementButton = memo(function ElementButton({
         <button
             onClick={onClick}
             className={cn(
-                "w-12 h-12 rounded-lg font-bold text-lg transition-all",
+                "w-10 h-10 sm:w-12 sm:h-12 rounded-lg font-bold text-base sm:text-lg transition-all",
                 isSelected
                     ? "ring-2 ring-white scale-110 shadow-lg"
                     : "hover:scale-105"
@@ -199,11 +199,11 @@ export const ReactionSimulator = memo(function ReactionSimulator({ onClose }: Re
     }, []);
 
     return (
-        <div className="h-full flex flex-col p-4 relative overflow-hidden">
+        <div className="h-full flex flex-col p-2 sm:p-4 pt-14 sm:pt-4 relative overflow-hidden overflow-y-auto">
             {/* Header */}
-            <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold flex items-center gap-2">
-                    <Zap className="w-6 h-6 text-yellow-400" />
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+                <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+                    <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-400" />
                     Reaction Simulator
                 </h2>
                 {onClose && (
@@ -214,9 +214,9 @@ export const ReactionSimulator = memo(function ReactionSimulator({ onClose }: Re
             </div>
 
             {/* Element Selection */}
-            <div className="mb-4">
-                <p className="text-sm text-muted-foreground mb-2">Select elements to react:</p>
-                <div className="flex flex-wrap gap-2">
+            <div className="mb-3 sm:mb-4">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-2">Select elements to react:</p>
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                     {reactiveElements.map(({ symbol, color }) => (
                         <ElementButton
                             key={symbol}
