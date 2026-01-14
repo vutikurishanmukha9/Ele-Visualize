@@ -2,12 +2,13 @@ import { memo, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { elements, ChemicalElement } from '../data/elements';
 import { cn } from '@/lib/utils';
-import { X, ExternalLink } from 'lucide-react';
+import { X, ExternalLink, Atom, Grid3X3, GitCompare, Zap, Wrench } from 'lucide-react';
 
 interface PeriodicTableGridProps {
     selectedElement: ChemicalElement | null;
     onSelectElement: (element: ChemicalElement) => void;
     categoryColors: Record<string, string>;
+    onChangeViewMode?: (mode: '3d' | 'grid' | 'compare' | 'reaction' | 'builder') => void;
 }
 
 // Periodic table layout positions for desktop
@@ -163,7 +164,7 @@ const DesktopElementCell = memo(function DesktopElementCell({
 });
 
 export const PeriodicTableGrid = memo(function PeriodicTableGrid({
-    selectedElement, onSelectElement, categoryColors,
+    selectedElement, onSelectElement, categoryColors, onChangeViewMode,
 }: PeriodicTableGridProps) {
     const [quickViewElement, setQuickViewElement] = useState<ChemicalElement | null>(null);
     const [mobileCategory, setMobileCategory] = useState('all');
@@ -193,15 +194,34 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
     return (
         <div className="w-full h-full bg-gradient-to-b from-slate-950 to-black">
             {/* ===== MOBILE VIEW ===== */}
-            <div className="sm:hidden h-full flex flex-col pt-12 pb-20">
-                {/* Title */}
-                <h2 className="text-center text-lg font-bold text-white py-3 flex-shrink-0">
-                    Periodic Table
-                </h2>
+            <div className="sm:hidden h-full flex flex-col pt-14 pb-20">
+                {/* Mobile Header with View Mode Tabs */}
+                <div className="flex items-center justify-between px-3 py-2 flex-shrink-0">
+                    <h2 className="text-lg font-bold text-white">Elements</h2>
+                    {onChangeViewMode && (
+                        <div className="flex gap-1 bg-black/40 p-1 rounded-lg">
+                            <button onClick={() => onChangeViewMode('3d')} className="p-1.5 rounded hover:bg-white/10" title="3D View">
+                                <Atom className="w-4 h-4 text-slate-400" />
+                            </button>
+                            <button className="p-1.5 rounded bg-primary text-primary-foreground" title="Grid">
+                                <Grid3X3 className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => onChangeViewMode('compare')} className="p-1.5 rounded hover:bg-white/10" title="Compare">
+                                <GitCompare className="w-4 h-4 text-slate-400" />
+                            </button>
+                            <button onClick={() => onChangeViewMode('reaction')} className="p-1.5 rounded hover:bg-white/10" title="Reaction">
+                                <Zap className="w-4 h-4 text-slate-400" />
+                            </button>
+                            <button onClick={() => onChangeViewMode('builder')} className="p-1.5 rounded hover:bg-white/10" title="Builder">
+                                <Wrench className="w-4 h-4 text-slate-400" />
+                            </button>
+                        </div>
+                    )}
+                </div>
 
-                {/* Category Filter Tabs */}
-                <div className="flex-shrink-0 overflow-x-auto pb-2 px-2">
-                    <div className="flex gap-2 min-w-max">
+                {/* Category Filter Tabs - wrapping to stay within viewport */}
+                <div className="flex-shrink-0 px-2 pb-2">
+                    <div className="flex flex-wrap gap-1.5">
                         {CATEGORIES.map(cat => (
                             <button
                                 key={cat}

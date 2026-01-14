@@ -300,11 +300,11 @@ export const MoleculeBuilder = memo(function MoleculeBuilder({ onClose }: Molecu
                 </div>
             </div>
 
-            {/* Palette - scrollable on mobile */}
-            <div className="px-3 sm:px-6 py-2 sm:py-3 border-b border-white/10 bg-black/20 overflow-x-auto">
-                <div className="flex items-center gap-2 sm:gap-3 min-w-max">
-                    <span className="text-xs sm:text-sm text-slate-400 whitespace-nowrap">Select:</span>
-                    <div className="flex gap-1.5 sm:gap-2">
+            {/* Palette - wrapping grid on mobile, horizontal on desktop */}
+            <div className="px-2 sm:px-6 py-2 sm:py-3 border-b border-white/10 bg-black/20">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <span className="text-xs text-slate-400">Select:</span>
+                    <div className="grid grid-cols-6 sm:flex gap-1.5 sm:gap-2">
                         {paletteElements.map(el => (
                             <PaletteAtom
                                 key={el.symbol}
@@ -373,13 +373,13 @@ export const MoleculeBuilder = memo(function MoleculeBuilder({ onClose }: Molecu
 
                     {/* Empty state */}
                     {atoms.length === 0 && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-4">
                             <div className="text-center text-slate-500">
-                                <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-slate-800/50 flex items-center justify-center">
-                                    <Plus className="w-10 h-10 opacity-50" />
+                                <div className="w-14 h-14 sm:w-20 sm:h-20 mx-auto mb-3 sm:mb-4 rounded-full bg-slate-800/50 flex items-center justify-center">
+                                    <Plus className="w-7 h-7 sm:w-10 sm:h-10 opacity-50" />
                                 </div>
-                                <p className="text-sm sm:text-lg font-medium text-center">Click anywhere to add atoms</p>
-                                <p className="text-xs sm:text-sm opacity-60 mt-1 text-center">Then click two atoms to create a bond</p>
+                                <p className="text-xs sm:text-lg font-medium">Tap to add atoms</p>
+                                <p className="text-[10px] sm:text-sm opacity-60 mt-1">Then tap two atoms to bond</p>
                             </div>
                         </div>
                     )}
@@ -414,37 +414,37 @@ export const MoleculeBuilder = memo(function MoleculeBuilder({ onClose }: Molecu
             </div>
 
             {/* Footer */}
-            <div className="px-3 sm:px-6 py-3 sm:py-4 border-t border-white/10 flex items-center justify-between bg-black/20">
-                <div className="flex items-center gap-4 text-sm text-slate-400">
-                    <span className="flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-full bg-slate-600" />
+            <div className="px-2 sm:px-6 py-2 sm:py-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0 bg-black/20 pb-20 sm:pb-4">
+                <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-slate-400">
+                    <span className="flex items-center gap-1 sm:gap-2">
+                        <span className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-slate-600" />
                         {atoms.length} atoms
                     </span>
-                    <span className="flex items-center gap-2">
-                        <span className="w-3 h-1 rounded bg-slate-600" />
+                    <span className="flex items-center gap-1 sm:gap-2">
+                        <span className="w-2 h-0.5 sm:w-3 sm:h-1 rounded bg-slate-600" />
                         {bonds.length} bonds
                     </span>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex gap-2 sm:gap-3">
                     <button
                         onClick={reset}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors text-slate-300"
+                        className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg sm:rounded-xl transition-colors text-slate-300 text-xs sm:text-sm"
                     >
-                        <RotateCcw className="w-4 h-4" />
+                        <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4" />
                         Reset
                     </button>
                     <button
                         onClick={saveMolecule}
                         disabled={!isValid}
                         className={cn(
-                            "flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all",
+                            "flex items-center gap-1 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-medium transition-all text-xs sm:text-sm",
                             isValid
                                 ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:shadow-lg hover:shadow-cyan-500/25"
                                 : "bg-slate-800 text-slate-500 cursor-not-allowed"
                         )}
                     >
-                        <Save className="w-4 h-4" />
-                        Save Molecule
+                        <Save className="w-3 h-3 sm:w-4 sm:h-4" />
+                        Save
                     </button>
                 </div>
             </div>
