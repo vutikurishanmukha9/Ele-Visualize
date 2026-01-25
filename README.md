@@ -11,7 +11,9 @@
 Ele-Visualize transforms chemistry education by bringing the periodic table to life. Instead of memorizing static diagrams, users can:
 
 - **Explore 3D atoms** with orbiting electrons and detailed nuclei
-- **Visualize molecules** like H2O, CO2, CH4 with accurate 3D bond structures
+- **Visualize molecules** with accurate 3D bond structures
+- **Build custom molecules** using an intuitive builder
+- **Simulate chemical reactions** to understand bonding
 - **See orbital shapes** (s, p, d) as probability clouds
 - **Control everything with hand gestures** - no mouse needed!
 
@@ -25,12 +27,24 @@ Ele-Visualize transforms chemistry education by bringing the periodic table to l
 - Zoom into nucleus to see individual protons/neutrons
 - Accurate electron configuration display (aufbau principle)
 - Toggle orbital probability clouds (s/p/d shapes)
+- Element Comparison view
 
 ### Molecule Visualization
-- 10 pre-built molecules: H2O, CO2, CH4, NH3, O2, N2, HCl, C2H6, CO, NaCl
-- Accurate molecular geometry (bent, linear, tetrahedral, etc.)
+- **20+ pre-built molecules**: Including H2O, CO2, CH4, NH3, O2, C6H6, C2H5OH, and more
+- Accurate molecular geometry
 - Single, double, and triple bond rendering
 - Atom labels and descriptions
+
+### New: Molecule Builder
+- **Interactive Canvas**: Click to place atoms, click two atoms to bond
+- **Smart Validation**: Checks octet rules and valency in real-time
+- **Mobile Optimized**: 6-column palette grid and stacked layout for mobile
+- **Save & Reset**: Build complex structures and visualize them in 3D
+
+### New: Reaction Simulator
+- **Interactive Reactions**: Combine elements to see how they react (e.g., Na + Cl → NaCl)
+- **Visual Feedback**: Reaction equations and product visualization
+- **Educational**: Learn about synthesis, combustion, and more
 
 ### Hand Gesture Controls
 | Gesture | Action |
@@ -47,9 +61,11 @@ Ele-Visualize transforms chemistry education by bringing the periodic table to l
 - Velocity-based swipe detection
 
 ### User Experience
+- **Mobile-First Design**: 
+  - Dedicated mobile views for Periodic Table (category tabs + vertical list)
+  - Responsive Molecule Builder with optimized touch targets
+  - Collapsible sidebar closed by default on mobile
 - Dark/Light mode toggle
-- Mobile responsive with touch swipe
-- Collapsible sidebar
 - Gesture tutorial for first-time users
 - Camera-in-use notification
 - Error boundaries for stability
@@ -96,14 +112,14 @@ The app will open at `http://localhost:8080`
 
 ## How to Use
 
-1. **Select Mode** - Choose "Atoms" or "Molecules" tab
-2. **Pick an Element/Molecule** - Click from the sidebar list
+1. **Select Mode** - Choose from Atoms, Grid, Compare, Reaction, or Builder
+2. **Periodic Table** - Use category filters on mobile to browse elements easily
 3. **Start Hand Tracking** - Click the Hand Tracker panel then "Start Tracking"
 4. **Use Gestures**:
    - Open hand to rotate
    - Pinch fingers to zoom
    - Swipe to navigate
-5. **Toggle Orbitals** - Click "Show Orbitals" for probability clouds
+5. **Builder Mode** - Create custom molecules by placing atoms and bonding them
 
 ---
 
@@ -117,12 +133,14 @@ Ele-Visualize/
 │   │   │   ├── Atom3D.tsx        # 3D atom renderer
 │   │   │   ├── Molecule3D.tsx    # 3D molecule renderer
 │   │   │   ├── HandTracker.tsx   # Gesture detection
-│   │   │   ├── GestureTutorial.tsx
-│   │   │   └── ErrorBoundary.tsx
+│   │   │   ├── MoleculeBuilder.tsx # Custom molecule builder
+│   │   │   ├── ReactionSimulator.tsx # Chemical reaction sim
+│   │   │   ├── PeriodicTableGrid.tsx # Responsive grid view
+│   │   │   └── ...
 │   │   ├── data/
 │   │   │   ├── elements.ts       # Periodic table data
 │   │   │   ├── molecules.ts      # Molecule structures
-│   │   │   └── elementProperties.ts
+│   │   │   └── reactions.ts      # Reaction definitions
 │   │   └── pages/
 │   │       └── Index.tsx         # Main app page
 │   └── index.html
@@ -133,11 +151,12 @@ Ele-Visualize/
 
 ## Future Roadmap
 
-- [ ] Element comparison (side-by-side view)
+- [x] Element comparison (side-by-side view)
+- [x] Molecule Builder
+- [x] Mobile-optimized layout
 - [ ] Voice commands ("Show Carbon")
 - [ ] Quiz mode for learning
 - [ ] AR mode using camera background
-- [ ] More molecules and reactions
 - [ ] PWA offline support
 
 ---
