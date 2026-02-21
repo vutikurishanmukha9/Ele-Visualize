@@ -145,7 +145,7 @@ const ReactionAnimation = memo(function ReactionAnimation({
                     "text-sm mt-2 px-3 py-1 rounded-full inline-block",
                     reaction.type === 'exothermic' ? "bg-red-500/30 text-red-300" : "bg-blue-500/30 text-blue-300"
                 )}>
-                    {reaction.type === 'exothermic' ? '🔥 Exothermic' : '❄️ Endothermic'} ({reaction.energyChange} kJ/mol)
+                    {reaction.type === 'exothermic' ? 'Exothermic' : 'Endothermic'} ({reaction.energyChange} kJ/mol)
                 </div>
             </motion.div>
         </motion.div>
@@ -291,7 +291,7 @@ export const ReactionSimulator = memo(function ReactionSimulator({ onClose }: Re
             {/* No Reaction Found */}
             {selectedElements.length >= 2 && !activeReaction && !showAnimation && (
                 <div className="flex-1 flex flex-col items-center justify-center text-center text-muted-foreground">
-                    <div className="text-4xl mb-4 opacity-30">❌</div>
+                    <div className="text-4xl mb-4 opacity-30">X</div>
                     <p>No known reaction between these elements</p>
                     <p className="text-sm mt-2">Try different combinations!</p>
                 </div>

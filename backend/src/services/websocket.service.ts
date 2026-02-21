@@ -5,7 +5,8 @@
 
 import { WebSocket, WebSocketServer } from 'ws';
 import { Server } from 'http';
-import { recognizeGesture, HandLandmark, GestureResult } from './gesture.service.js';
+import { randomUUID } from 'crypto';
+import type { HandLandmark, GestureResult } from './gesture.service.js';
 
 interface Client {
     ws: WebSocket;
@@ -21,7 +22,7 @@ export function initWebSocket(server: Server): WebSocketServer {
     wss = new WebSocketServer({ server, path: '/ws' });
 
     wss.on('connection', (ws, req) => {
-        const clientId = `client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const clientId = randomUUID();
         const client: Client = { ws, id: clientId, type: 'unknown' };
         clients.set(clientId, client);
 
@@ -65,16 +66,11 @@ function handleMessage(client: Client, message: any) {
             break;
 
         case 'hand_landmarks':
-            // Process hand landmarks and recognize gesture
-            const landmarks: HandLandmark[] = message.landmarks;
-            const gesture = recognizeGesture(landmarks);
-
-            // Broadcast gesture to all visualizer clients
+            // Relay raw landmarks to all visualizer clients
+            // Gesture recognition is handled on the frontend with Kalman filter smoothing
             broadcastToVisualizers({
-                type: 'gesture',
-                gesture: gesture.gesture,
-                confidence: gesture.confidence,
-                data: gesture.data,
+                type: 'hand_landmarks',
+                landmarks: message.landmarks,
                 timestamp: Date.now()
             });
             break;

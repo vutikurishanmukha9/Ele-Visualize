@@ -2,19 +2,13 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, ChevronDown, ChevronUp, Hand, Video, VideoOff, ZoomIn, ZoomOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { HandLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
 
 interface HandTrackerProps {
     onZoomChange?: (zoomLevel: number) => void;
     onGestureDetected?: (gesture: string) => void;
     onSwipe?: (direction: 'left' | 'right') => void;
     onHandPosition?: (x: number, y: number) => void;
-}
-
-declare global {
-    interface Window {
-        HandLandmarker: any;
-        FilesetResolver: any;
-    }
 }
 
 // ============== ADVANCED SMOOTHING CLASSES ==============
@@ -443,23 +437,12 @@ export function HandTracker({ onZoomChange, onGestureDetected, onSwipe, onHandPo
         setError(null);
 
         try {
-            // Check for MediaPipe
-            let attempts = 0;
-            while (!window.HandLandmarker && attempts < 20) {
-                await new Promise(r => setTimeout(r, 100));
-                attempts++;
-            }
-
-            if (!window.HandLandmarker) {
-                throw new Error('MediaPipe not loaded');
-            }
-
-            // Initialize HandLandmarker
-            const vision = await window.FilesetResolver.forVisionTasks(
+            // Initialize HandLandmarker using npm package
+            const vision = await FilesetResolver.forVisionTasks(
                 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.8/wasm'
             );
 
-            handLandmarkerRef.current = await window.HandLandmarker.createFromOptions(vision, {
+            handLandmarkerRef.current = await HandLandmarker.createFromOptions(vision, {
                 baseOptions: {
                     modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
                     delegate: 'GPU'
@@ -539,21 +522,21 @@ export function HandTracker({ onZoomChange, onGestureDetected, onSwipe, onHandPo
                         initial={{ y: -50, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         exit={{ y: -50, opacity: 0 }}
-                        className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 bg-red-500/90 text-white rounded-full shadow-lg"
+                        className="fixed top-2 sm:top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-red-500/90 text-white rounded-full shadow-lg"
                     >
                         <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
                         <Camera className="w-4 h-4" />
-                        <span className="text-sm font-medium">Camera Active</span>
+                        <span className="text-xs sm:text-sm font-medium">Camera Active</span>
                     </motion.div>
                 )}
             </AnimatePresence>
 
             <motion.div
                 className={cn(
-                    "fixed bottom-4 right-4 z-50 rounded-xl overflow-hidden",
+                    "fixed bottom-2 right-2 sm:bottom-4 sm:right-4 z-50 rounded-xl overflow-hidden",
                     "bg-black/80 backdrop-blur-xl border border-white/20 shadow-2xl"
                 )}
-                animate={{ width: isExpanded ? 280 : 180 }}
+                animate={{ width: isExpanded ? (window.innerWidth < 640 ? 220 : 280) : (window.innerWidth < 640 ? 140 : 180) }}
             >
                 <button
                     onClick={() => setIsExpanded(!isExpanded)}
@@ -561,7 +544,7 @@ export function HandTracker({ onZoomChange, onGestureDetected, onSwipe, onHandPo
                 >
                     <div className="flex items-center gap-2">
                         <Hand className="w-4 h-4 text-primary" />
-                        <span className="text-sm font-medium">HAND TRACKER</span>
+                        <span className="text-xs sm:text-sm font-medium">HAND TRACKER</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <span className={cn("w-2 h-2 rounded-full", isTracking ? "bg-green-500 animate-pulse" : "bg-gray-500")} />

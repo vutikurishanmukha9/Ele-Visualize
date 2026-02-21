@@ -1,4 +1,4 @@
-import { useRef, useMemo, memo } from 'react';
+import { useRef, useMemo, memo, MutableRefObject } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Sphere, Line, Html, Float, Stars, Instances, Instance } from '@react-three/drei';
 import * as THREE from 'three';
@@ -9,12 +9,12 @@ interface Atom3DProps {
     electrons: number[];
     color: string;
     symbol: string;
-    handRotationX?: number;
-    handRotationY?: number;
-    isHandControlled?: boolean;
+    handRotationXRef?: MutableRefObject<number>;
+    handRotationYRef?: MutableRefObject<number>;
+    isHandControlledRef?: MutableRefObject<boolean>;
     zoom?: number;
     showOrbitals?: boolean;
-    isFrozen?: boolean;
+    isFrozenRef?: MutableRefObject<boolean>;
     animationSpeed?: number; // 0.1 to 3, default 1
     isPaused?: boolean; // Pause all animations
 }
@@ -264,8 +264,8 @@ const OrbitalShell = memo(function OrbitalShell({ radius, electronCount, shellIn
 // Main 3D Scene - memoized
 const AtomScene = memo(function AtomScene({
     protons, neutrons, electrons, color, symbol,
-    handRotationX = 0.5, handRotationY = 0.5, isHandControlled = false, zoom = 1,
-    showOrbitals = false, isFrozen = false, animationSpeed = 1, isPaused = false
+    handRotationXRef, handRotationYRef, isHandControlledRef, zoom = 1,
+    showOrbitals = false, isFrozenRef, animationSpeed = 1, isPaused = false
 }: Atom3DProps) {
     const groupRef = useRef<THREE.Group>(null);
     const showParticles = zoom > 1.5;
@@ -279,13 +279,18 @@ const AtomScene = memo(function AtomScene({
     ], []);
 
     useFrame(() => {
-        if (groupRef.current && !isFrozen && !isPaused) {
-            if (isHandControlled) {
-                groupRef.current.rotation.y = THREE.MathUtils.lerp(groupRef.current.rotation.y, (handRotationY - 0.5) * Math.PI * 3, 0.1);
-                groupRef.current.rotation.x = THREE.MathUtils.lerp(groupRef.current.rotation.x, (handRotationX - 0.5) * Math.PI, 0.1);
-            } else {
-                groupRef.current.rotation.y += 0.004 * animationSpeed;
-            }
+        if (!groupRef.current || isPaused) return;
+        const frozen = isFrozenRef?.current ?? false;
+        const handControlled = isHandControlledRef?.current ?? false;
+        if (frozen) return;
+
+        if (handControlled) {
+            const rotX = handRotationXRef?.current ?? 0.5;
+            const rotY = handRotationYRef?.current ?? 0.5;
+            groupRef.current.rotation.y = THREE.MathUtils.lerp(groupRef.current.rotation.y, (rotY - 0.5) * Math.PI * 3, 0.1);
+            groupRef.current.rotation.x = THREE.MathUtils.lerp(groupRef.current.rotation.x, (rotX - 0.5) * Math.PI, 0.1);
+        } else {
+            groupRef.current.rotation.y += 0.004 * animationSpeed;
         }
     });
 
@@ -317,9 +322,10 @@ const AtomScene = memo(function AtomScene({
 // Exported component with optimized canvas settings
 export function Atom3D({
     protons, neutrons, electrons, color, symbol,
-    handRotationX = 0.5, handRotationY = 0.5, isHandControlled = false, zoom = 1,
-    showOrbitals = false, isFrozen = false, animationSpeed = 1, isPaused = false
+    handRotationXRef, handRotationYRef, isHandControlledRef, zoom = 1,
+    showOrbitals = false, isFrozenRef, animationSpeed = 1, isPaused = false
 }: Atom3DProps) {
+    const handControlled = isHandControlledRef?.current ?? false;
     return (
         <div style={{ width: '100%', height: '350px', background: 'transparent' }}>
             <Canvas
@@ -345,17 +351,17 @@ export function Atom3D({
                     electrons={electrons}
                     color={color}
                     symbol={symbol}
-                    handRotationX={handRotationX}
-                    handRotationY={handRotationY}
-                    isHandControlled={isHandControlled}
+                    handRotationXRef={handRotationXRef}
+                    handRotationYRef={handRotationYRef}
+                    isHandControlledRef={isHandControlledRef}
                     zoom={zoom}
                     showOrbitals={showOrbitals}
-                    isFrozen={isFrozen}
+                    isFrozenRef={isFrozenRef}
                     animationSpeed={animationSpeed}
                     isPaused={isPaused}
                 />
 
-                {!isHandControlled && <OrbitControls enablePan={false} enableZoom={true} minDistance={5} maxDistance={20} />}
+                {!handControlled && <OrbitControls enablePan={false} enableZoom={true} minDistance={5} maxDistance={20} />}
             </Canvas>
         </div>
     );

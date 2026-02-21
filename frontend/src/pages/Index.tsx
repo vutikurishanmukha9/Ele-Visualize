@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, memo, Suspense } from 'react';
+import { useState, useCallback, useEffect, useMemo, memo, Suspense, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { elements, ChemicalElement, categoryLabels, ElementCategory } from '@/data/elements';
 import { elementProperties } from '@/data/elementProperties';
@@ -12,7 +12,10 @@ import { PeriodicTableGrid } from '@/components/PeriodicTableGrid';
 import { ComparisonMode } from '@/components/ComparisonMode';
 import { ReactionSimulator } from '@/components/ReactionSimulator';
 import { MoleculeBuilder } from '@/components/MoleculeBuilder';
+import { ARButton } from '@/components/ARButton';
+import { xrStore } from '@/components/VisualizerCanvas';
 import { cn } from '@/lib/utils';
+import { useAppStore } from '@/store/useAppStore';
 import { Sun, Moon, Maximize2, Minimize2, Info, Thermometer, Droplets, Scale, Loader, HelpCircle, Menu, X, Atom, FlaskConical, Grid3X3, GitCompare, Play, Pause, Gauge, Zap, Wrench } from 'lucide-react';
 
 // Category colors
@@ -55,16 +58,16 @@ const getElectronConfig = (atomicNumber: number): string => {
 const ElementCard = memo(({
   element,
   isSelected,
-  onClick,
+  onSelect,
   color
 }: {
   element: ChemicalElement;
   isSelected: boolean;
-  onClick: () => void;
+  onSelect: (atomicNumber: number) => void;
   color: string;
 }) => (
   <button
-    onClick={onClick}
+    onClick={() => onSelect(element.atomicNumber)}
     className={cn(
       "relative p-2 rounded text-center transition-all border overflow-hidden",
       "bg-secondary/20 border-border/30 hover:border-primary/50",
@@ -99,30 +102,34 @@ const Atom3DLoader = () => (
 );
 
 const Index = () => {
-  const [selectedElement, setSelectedElement] = useState<ChemicalElement | null>(null);
-  const [selectedMolecule, setSelectedMolecule] = useState<Molecule | null>(null);
-  const [viewMode, setViewMode] = useState<'atoms' | 'molecules'>('atoms');
-  const [activeFilter, setActiveFilter] = useState<ElementCategory | 'all'>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [zoomLevel, setZoomLevel] = useState(1);
-  const [currentGesture, setCurrentGesture] = useState('none');
-  const [isDarkMode, setIsDarkMode] = useState(true);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [handPositionX, setHandPositionX] = useState(0.5);
-  const [handPositionY, setHandPositionY] = useState(0.5);
-  const [isHandControlled, setIsHandControlled] = useState(false);
-  const [isFrozen, setIsFrozen] = useState(false);
-  const [showTutorial, setShowTutorial] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const [showOrbitals, setShowOrbitals] = useState(false);
+  // Zustand store — all shared UI state
+  const {
+    selectedElement, setSelectedElement,
+    selectedMolecule, setSelectedMolecule,
+    viewMode, setViewMode,
+    activeFilter, setActiveFilter,
+    searchQuery, setSearchQuery,
+    zoomLevel, setZoomLevel,
+    isDarkMode,
+    isFullscreen, setIsFullscreen,
+    showTutorial, setShowTutorial,
+    sidebarOpen, setSidebarOpen,
+    isMobile, setIsMobile,
+    showOrbitals, setShowOrbitals,
+    mainViewMode, setMainViewMode,
+    compareElement1, setCompareElement1,
+    compareElement2, setCompareElement2,
+    animationSpeed, setAnimationSpeed,
+    isPaused,
+    toggleDarkMode, togglePaused,
+  } = useAppStore();
 
-  // New feature states
-  const [mainViewMode, setMainViewMode] = useState<'3d' | 'grid' | 'compare' | 'reaction' | 'builder'>('3d');
-  const [compareElement1, setCompareElement1] = useState<ChemicalElement | null>(null);
-  const [compareElement2, setCompareElement2] = useState<ChemicalElement | null>(null);
-  const [animationSpeed, setAnimationSpeed] = useState(1);
-  const [isPaused, setIsPaused] = useState(false);
+  // High-frequency hand tracking values stored as refs to avoid 60FPS re-renders
+  const handPositionX = useRef(0.5);
+  const handPositionY = useRef(0.5);
+  const currentGesture = useRef('none');
+  const isHandControlled = useRef(false);
+  const isFrozen = useRef(false);
 
   // Check for mobile
   useEffect(() => {
@@ -196,7 +203,7 @@ const Index = () => {
           setZoomLevel(z => Math.max(0.5, z - 0.2));
           break;
         case 'f':
-          setIsFullscreen(f => !f);
+          setIsFullscreen(!isFullscreen);
           break;
         case '?':
           setShowTutorial(true);
@@ -211,16 +218,16 @@ const Index = () => {
   const handleZoomChange = useCallback((zoom: number) => setZoomLevel(zoom), []);
 
   const handleGestureDetected = useCallback((gesture: string) => {
-    setCurrentGesture(gesture);
-    setIsHandControlled(gesture === 'open');
+    currentGesture.current = gesture;
+    isHandControlled.current = gesture === 'open';
     // Fist = freeze current state
-    setIsFrozen(gesture === 'fist');
+    isFrozen.current = gesture === 'fist';
   }, []);
 
   const handleHandPosition = useCallback((x: number, y: number) => {
-    setHandPositionX(x);
-    setHandPositionY(y);
-    setIsHandControlled(true);
+    handPositionX.current = x;
+    handPositionY.current = y;
+    isHandControlled.current = true;
   }, []);
 
   const handleElementClick = useCallback((element: ChemicalElement) => {
@@ -240,6 +247,12 @@ const Index = () => {
     }
     if (isMobile) setSidebarOpen(false);
   }, [isMobile, mainViewMode, compareElement1, compareElement2]);
+
+  // Stable callback for ElementCard — avoids inline arrows that break memo
+  const handleElementSelect = useCallback((atomicNumber: number) => {
+    const element = elements.find(el => el.atomicNumber === atomicNumber);
+    if (element) handleElementClick(element);
+  }, [handleElementClick]);
 
   const handleSwipe = useCallback((direction: 'left' | 'right') => {
     const currentIndex = selectedElement
@@ -321,7 +334,7 @@ const Index = () => {
                     <HelpCircle className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => setIsDarkMode(!isDarkMode)}
+                    onClick={() => toggleDarkMode()}
                     className="p-1.5 rounded hover:bg-secondary/50"
                     aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
                   >
@@ -415,7 +428,7 @@ const Index = () => {
                       element={element}
                       color={categoryColors[element.category]}
                       isSelected={selectedElement?.atomicNumber === element.atomicNumber}
-                      onClick={() => handleElementClick(element)}
+                      onSelect={handleElementSelect}
                     />
                   ))}
                 </div>
@@ -575,12 +588,12 @@ const Index = () => {
                     electrons={selectedElement.shells}
                     color={categoryColors[selectedElement.category]}
                     symbol={selectedElement.symbol}
-                    handRotationX={handPositionY}
-                    handRotationY={handPositionX}
-                    isHandControlled={isHandControlled && currentGesture === 'open'}
+                    handRotationXRef={handPositionY}
+                    handRotationYRef={handPositionX}
+                    isHandControlledRef={isHandControlled}
                     zoom={zoomLevel}
                     showOrbitals={showOrbitals}
-                    isFrozen={isFrozen}
+                    isFrozenRef={isFrozen}
                     animationSpeed={animationSpeed}
                     isPaused={isPaused}
                   />
@@ -653,9 +666,9 @@ const Index = () => {
                 <Suspense fallback={<Atom3DLoader />}>
                   <Molecule3D
                     molecule={selectedMolecule}
-                    handRotationX={handPositionY}
-                    handRotationY={handPositionX}
-                    isHandControlled={isHandControlled && currentGesture === 'open'}
+                    handRotationXRef={handPositionY}
+                    handRotationYRef={handPositionX}
+                    isHandControlledRef={isHandControlled}
                     zoom={zoomLevel}
                   />
                 </Suspense>
@@ -769,11 +782,14 @@ const Index = () => {
             </button>
           </div>
 
+          {/* AR Button — only shows on compatible devices */}
+          <ARButton xrStore={xrStore} />
+
           {/* Animation Controls */}
           {mainViewMode === '3d' && selectedElement && (
             <div className="flex items-center gap-2 bg-black/60 px-3 py-2 rounded-lg">
               <button
-                onClick={() => setIsPaused(!isPaused)}
+                onClick={() => togglePaused()}
                 className={cn(
                   "p-1.5 rounded transition-colors",
                   isPaused ? "bg-green-500/20 text-green-400" : "hover:bg-white/10"

@@ -1,4 +1,4 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, MutableRefObject } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Sphere, Cylinder, Html, Float, Stars } from '@react-three/drei';
 import * as THREE from 'three';
@@ -6,9 +6,9 @@ import { Molecule, Atom, Bond } from '@/data/molecules';
 
 interface Molecule3DProps {
     molecule: Molecule;
-    handRotationX?: number;
-    handRotationY?: number;
-    isHandControlled?: boolean;
+    handRotationXRef?: MutableRefObject<number>;
+    handRotationYRef?: MutableRefObject<number>;
+    isHandControlledRef?: MutableRefObject<boolean>;
     zoom?: number;
 }
 
@@ -104,30 +104,33 @@ function BondCylinder({
 // Molecule scene
 function MoleculeScene({
     molecule,
-    handRotationX = 0.5,
-    handRotationY = 0.5,
-    isHandControlled = false,
+    handRotationXRef,
+    handRotationYRef,
+    isHandControlledRef,
     zoom = 1
 }: Molecule3DProps) {
     const groupRef = useRef<THREE.Group>(null);
 
     // Hand-controlled or auto rotation
     useFrame(() => {
-        if (groupRef.current) {
-            if (isHandControlled) {
-                groupRef.current.rotation.y = THREE.MathUtils.lerp(
-                    groupRef.current.rotation.y,
-                    (handRotationY - 0.5) * Math.PI * 3,
-                    0.1
-                );
-                groupRef.current.rotation.x = THREE.MathUtils.lerp(
-                    groupRef.current.rotation.x,
-                    (handRotationX - 0.5) * Math.PI,
-                    0.1
-                );
-            } else {
-                groupRef.current.rotation.y += 0.005;
-            }
+        if (!groupRef.current) return;
+        const handControlled = isHandControlledRef?.current ?? false;
+
+        if (handControlled) {
+            const rotX = handRotationXRef?.current ?? 0.5;
+            const rotY = handRotationYRef?.current ?? 0.5;
+            groupRef.current.rotation.y = THREE.MathUtils.lerp(
+                groupRef.current.rotation.y,
+                (rotY - 0.5) * Math.PI * 3,
+                0.1
+            );
+            groupRef.current.rotation.x = THREE.MathUtils.lerp(
+                groupRef.current.rotation.x,
+                (rotX - 0.5) * Math.PI,
+                0.1
+            );
+        } else {
+            groupRef.current.rotation.y += 0.005;
         }
     });
 
@@ -157,11 +160,12 @@ function MoleculeScene({
 // Exported component
 export function Molecule3D({
     molecule,
-    handRotationX = 0.5,
-    handRotationY = 0.5,
-    isHandControlled = false,
+    handRotationXRef,
+    handRotationYRef,
+    isHandControlledRef,
     zoom = 1
 }: Molecule3DProps) {
+    const handControlled = isHandControlledRef?.current ?? false;
     return (
         <div style={{ width: '100%', height: '350px', background: 'transparent' }}>
             <Canvas
@@ -179,13 +183,13 @@ export function Molecule3D({
 
                 <MoleculeScene
                     molecule={molecule}
-                    handRotationX={handRotationX}
-                    handRotationY={handRotationY}
-                    isHandControlled={isHandControlled}
+                    handRotationXRef={handRotationXRef}
+                    handRotationYRef={handRotationYRef}
+                    isHandControlledRef={isHandControlledRef}
                     zoom={zoom}
                 />
 
-                {!isHandControlled && (
+                {!handControlled && (
                     <OrbitControls
                         enablePan={false}
                         enableZoom={true}

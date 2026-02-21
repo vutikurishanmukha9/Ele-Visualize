@@ -1,39 +1,117 @@
+import { MutableRefObject, useSyncExternalStore, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Box, Maximize2, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
 import { ChemicalElement } from '@/data/elements';
 import { cn } from '@/lib/utils';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
+import { createXRStore, XR } from '@react-three/xr';
 import { Atom } from './Atom';
+import { ARPlacement } from './ARPlacement';
+import { useXRHandBridge, XRHandPointer } from '@/hooks/useXRHandBridge';
+import * as THREE from 'three';
+
+// XR store — shared across the app so ARButton can trigger sessions
+export const xrStore = createXRStore({
+  depthSensing: true,
+  hitTest: true,
+});
 
 interface VisualizerCanvasProps {
   selectedElement: ChemicalElement | null;
+  handPositionX?: MutableRefObject<number>;
+  handPositionY?: MutableRefObject<number>;
+  currentGesture?: MutableRefObject<string>;
+  isHandControlled?: MutableRefObject<boolean>;
+  isFrozen?: MutableRefObject<boolean>;
 }
 
-export function VisualizerCanvas({ selectedElement }: VisualizerCanvasProps) {
+// Default refs for when hand tracking is not provided
+const defaultRef = <T,>(val: T) => ({ current: val });
+
+// Inner component: runs useXRHandBridge inside the Canvas and applies transforms
+function XRHandController({
+  handPositionX,
+  handPositionY,
+  currentGesture,
+  isHandControlled,
+  isFrozen,
+  targetRef,
+}: {
+  handPositionX: MutableRefObject<number>;
+  handPositionY: MutableRefObject<number>;
+  currentGesture: MutableRefObject<string>;
+  isHandControlled: MutableRefObject<boolean>;
+  isFrozen: MutableRefObject<boolean>;
+  targetRef: MutableRefObject<THREE.Group | null>;
+}) {
+  // Detect if XR session is active
+  const xrState = useSyncExternalStore(
+    (cb) => xrStore.subscribe(cb),
+    () => xrStore.getState(),
+  );
+  const isXRActive = !!(xrState as any)?.session;
+
+  const handState = useXRHandBridge({
+    handPositionX,
+    handPositionY,
+    currentGesture,
+    isHandControlled,
+    isFrozen,
+    isXRActive,
+  });
+
+  // Apply rotation & scale to the target group every frame
+  useFrame(() => {
+    if (!targetRef.current || !handState.isActive || handState.isFrozen) return;
+    targetRef.current.rotation.copy(handState.rotation);
+    const s = handState.scale;
+    targetRef.current.scale.set(s, s, s);
+  });
+
+  return <XRHandPointer handState={handState} />;
+}
+
+export function VisualizerCanvas({
+  selectedElement,
+  handPositionX,
+  handPositionY,
+  currentGesture,
+  isHandControlled,
+  isFrozen,
+}: VisualizerCanvasProps) {
+  const atomGroupRef = useRef<THREE.Group>(null);
+
+  // Use provided refs or fallback defaults
+  const hpx = handPositionX ?? defaultRef(0.5);
+  const hpy = handPositionY ?? defaultRef(0.5);
+  const cg = currentGesture ?? defaultRef('none');
+  const ihc = isHandControlled ?? defaultRef(false);
+  const ifz = isFrozen ?? defaultRef(false);
+
   return (
     <main className="flex-1 relative overflow-hidden grid-pattern">
       {/* Radial gradient background */}
       <div className="absolute inset-0 bg-gradient-radial pointer-events-none" />
 
-      {/* Corner decorations */}
-      <div className="absolute top-4 left-4 w-16 h-16 border-l-2 border-t-2 border-primary/20 rounded-tl-lg" />
-      <div className="absolute top-4 right-4 w-16 h-16 border-r-2 border-t-2 border-primary/20 rounded-tr-lg" />
-      <div className="absolute bottom-4 left-4 w-16 h-16 border-l-2 border-b-2 border-primary/20 rounded-bl-lg" />
-      <div className="absolute bottom-4 right-4 w-16 h-16 border-r-2 border-b-2 border-primary/20 rounded-br-lg" />
+      {/* Corner decorations — hidden on mobile for cleaner look */}
+      <div className="hidden sm:block absolute top-4 left-4 w-16 h-16 border-l-2 border-t-2 border-primary/20 rounded-tl-lg" />
+      <div className="hidden sm:block absolute top-4 right-4 w-16 h-16 border-r-2 border-t-2 border-primary/20 rounded-tr-lg" />
+      <div className="hidden sm:block absolute bottom-4 left-4 w-16 h-16 border-l-2 border-b-2 border-primary/20 rounded-bl-lg" />
+      <div className="hidden sm:block absolute bottom-4 right-4 w-16 h-16 border-r-2 border-b-2 border-primary/20 rounded-br-lg" />
 
-      {/* Floating title */}
+      {/* Floating title — hidden on mobile */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.2 }}
-        className="absolute top-8 left-1/2 -translate-x-1/2 text-center"
+        className="hidden sm:block absolute top-8 left-1/2 -translate-x-1/2 text-center"
       >
-        <h1 className="text-lg font-light tracking-[0.3em] uppercase text-muted-foreground/60">
+        <h1 className="text-sm md:text-lg font-light tracking-[0.3em] uppercase text-muted-foreground/60">
           Element Visualizer
         </h1>
-        <div className="w-24 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent mx-auto mt-2" />
+        <div className="w-16 md:w-24 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent mx-auto mt-2" />
       </motion.div>
 
       {/* Control buttons - floating on the right */}
@@ -41,7 +119,7 @@ export function VisualizerCanvas({ selectedElement }: VisualizerCanvasProps) {
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5, delay: 0.4 }}
-        className="absolute top-24 right-6 flex flex-col gap-2"
+        className="absolute top-16 sm:top-24 right-3 sm:right-6 flex flex-col gap-1.5 sm:gap-2"
       >
         {[
           { icon: ZoomIn, label: 'Zoom In' },
@@ -63,7 +141,7 @@ export function VisualizerCanvas({ selectedElement }: VisualizerCanvasProps) {
         ))}
       </motion.div>
 
-      {/* Center content - Three.js placeholder */}
+      {/* Center content - Three.js */}
       <div className="absolute inset-0 flex items-center justify-center">
         {selectedElement ? (
           <motion.div
@@ -76,30 +154,48 @@ export function VisualizerCanvas({ selectedElement }: VisualizerCanvasProps) {
           >
             {/* 3D Canvas */}
             <Canvas camera={{ position: [0, 0, 15], fov: 45 }}>
-              <ambientLight intensity={0.5} />
-              <pointLight position={[10, 10, 10]} intensity={1} />
-              <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+              <XR store={xrStore}>
+                <ambientLight intensity={0.5} />
+                <pointLight position={[10, 10, 10]} intensity={1} />
+                <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
 
-              <OrbitControls
-                enablePan={false}
-                minDistance={5}
-                maxDistance={30}
-                autoRotate
-                autoRotateSpeed={0.5}
-              />
+                <OrbitControls
+                  enablePan={false}
+                  minDistance={5}
+                  maxDistance={30}
+                  autoRotate
+                  autoRotateSpeed={0.5}
+                />
 
-              <Atom element={selectedElement} />
+                {/* Atom wrapped in a group for XR hand transforms */}
+                <group ref={atomGroupRef}>
+                  <Atom element={selectedElement} />
+                </group>
 
-              <EffectComposer>
-                <Bloom luminanceThreshold={0.5} luminanceSmoothing={0.9} height={300} intensity={1.5} />
-              </EffectComposer>
+                {/* XR hand controller — maps MediaPipe gestures to 3D transforms */}
+                <XRHandController
+                  handPositionX={hpx}
+                  handPositionY={hpy}
+                  currentGesture={cg}
+                  isHandControlled={ihc}
+                  isFrozen={ifz}
+                  targetRef={atomGroupRef}
+                />
+
+                {/* AR placement reticle — visible only during AR sessions */}
+                <ARPlacement />
+
+                <EffectComposer>
+                  <Bloom luminanceThreshold={0.5} luminanceSmoothing={0.9} height={300} intensity={1.5} />
+                </EffectComposer>
+              </XR>
             </Canvas>
 
             {/* Overlay Info (HTML) */}
             <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-end pb-32">
               {/* Element symbol with glow */}
               <div className="relative mb-4">
-                <span className="text-6xl font-bold text-primary text-glow-lg tracking-tight">
+                <span className="text-4xl sm:text-6xl font-bold text-primary text-glow-lg tracking-tight">
                   {selectedElement.symbol}
                 </span>
               </div>
@@ -109,12 +205,12 @@ export function VisualizerCanvas({ selectedElement }: VisualizerCanvasProps) {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="space-y-1 text-center bg-black/40 backdrop-blur-md p-4 rounded-xl border border-white/10"
+                className="space-y-1 text-center bg-black/40 backdrop-blur-md p-3 sm:p-4 rounded-xl border border-white/10 mx-4 sm:mx-0"
               >
-                <h2 className="text-2xl font-medium text-foreground">
+                <h2 className="text-xl sm:text-2xl font-medium text-foreground">
                   {selectedElement.name}
                 </h2>
-                <div className="flex gap-4 justify-center text-sm text-muted-foreground">
+                <div className="flex gap-2 sm:gap-4 justify-center text-xs sm:text-sm text-muted-foreground flex-wrap">
                   <p>Atomic Number: <span className="text-primary">{selectedElement.atomicNumber}</span></p>
                   <p>Mass: <span className="text-primary">{selectedElement.atomicMass.toFixed(2)}</span></p>
                 </div>
@@ -143,7 +239,6 @@ export function VisualizerCanvas({ selectedElement }: VisualizerCanvasProps) {
               </div>
             </div>
 
-            {/* Three.js mount point comment */}
             <div className="glass-panel p-6 rounded-xl max-w-md mx-auto corner-accent">
               <p className="text-sm text-muted-foreground mb-2">
                 Ready to Visualize
@@ -161,19 +256,20 @@ export function VisualizerCanvas({ selectedElement }: VisualizerCanvasProps) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.6 }}
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-6"
+        className="absolute bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 sm:gap-6"
       >
-        <div className="flex items-center gap-2 text-xs text-muted-foreground/50">
+        <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-muted-foreground/50">
           <span className="uppercase tracking-wider">FPS</span>
           <span className="text-primary font-mono">60</span>
         </div>
-        <div className="w-px h-4 bg-border/30" />
-        <div className="flex items-center gap-2 text-xs text-muted-foreground/50">
-          <span className="uppercase tracking-wider">Resolution</span>
+        <div className="w-px h-3 sm:h-4 bg-border/30" />
+        <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-muted-foreground/50">
+          <span className="uppercase tracking-wider hidden sm:inline">Resolution</span>
+          <span className="uppercase tracking-wider sm:hidden">Res</span>
           <span className="text-primary/70 font-mono">1920×1080</span>
         </div>
-        <div className="w-px h-4 bg-border/30" />
-        <div className="flex items-center gap-2 text-xs text-muted-foreground/50">
+        <div className="hidden sm:block w-px h-4 bg-border/30" />
+        <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground/50">
           <span className="uppercase tracking-wider">Renderer</span>
           <span className="text-primary/70 font-mono">WebGL 2.0</span>
         </div>

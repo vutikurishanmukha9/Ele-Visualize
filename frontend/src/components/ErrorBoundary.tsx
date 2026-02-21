@@ -29,7 +29,7 @@ export class ErrorBoundary extends Component<Props, State> {
             return this.props.fallback || (
                 <div className="w-full h-full flex items-center justify-center bg-black/20 rounded-lg">
                     <div className="text-center p-4">
-                        <div className="text-4xl mb-2">⚠️</div>
+                        <div className="text-4xl mb-2">!</div>
                         <p className="text-red-400 font-semibold">3D Rendering Error</p>
                         <p className="text-sm text-muted-foreground mt-1">
                             Your browser may not support WebGL
