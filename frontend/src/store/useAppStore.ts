@@ -12,6 +12,24 @@ import { Molecule } from '@/data/molecules';
 
 export type MainViewMode = '3d' | 'grid' | 'compare' | 'reaction' | 'builder';
 export type SidebarViewMode = 'atoms' | 'molecules';
+export type WorkspaceMode = 'explore' | 'table' | 'compare' | 'reactions' | 'builder' | 'lab' | 'library';
+export type InspectorTab = 'overview' | 'properties' | 'learning' | 'actions';
+export type UIDensity = 'comfortable' | 'compact';
+
+export interface SavedSession {
+    id: string;
+    title: string;
+    createdAt: string;
+    updatedAt: string;
+    selectedElement: number | null;
+    selectedMolecule: string | null;
+    workspaceMode: WorkspaceMode | string;
+    compareElements: number[];
+    builderAtoms: unknown[];
+    builderBonds: unknown[];
+    notes: string;
+    tags: string[];
+}
 
 interface AppState {
     // Selection
@@ -22,9 +40,16 @@ interface AppState {
 
     // View modes
     mainViewMode: MainViewMode;
+    workspaceMode: WorkspaceMode;
     viewMode: SidebarViewMode;
     activeFilter: ElementCategory | 'all';
     searchQuery: string;
+    commandOpen: boolean;
+    inspectorTab: InspectorTab;
+    recentItems: string[];
+    savedSessions: SavedSession[];
+    comparisonBasket: number[];
+    uiDensity: UIDensity;
 
     // UI toggles
     isDarkMode: boolean;
@@ -47,9 +72,19 @@ interface AppState {
 
     // Actions — view modes
     setMainViewMode: (mode: MainViewMode) => void;
+    setWorkspaceMode: (mode: WorkspaceMode) => void;
     setViewMode: (mode: SidebarViewMode) => void;
     setActiveFilter: (filter: ElementCategory | 'all') => void;
     setSearchQuery: (query: string) => void;
+    setCommandOpen: (open: boolean) => void;
+    setInspectorTab: (tab: InspectorTab) => void;
+    addRecentItem: (item: string) => void;
+    setSavedSessions: (sessions: SavedSession[]) => void;
+    addSavedSession: (session: SavedSession) => void;
+    removeSavedSession: (id: string) => void;
+    setComparisonBasket: (items: number[]) => void;
+    addToComparisonBasket: (atomicNumber: number) => void;
+    setUiDensity: (density: UIDensity) => void;
 
     // Actions — UI toggles
     toggleDarkMode: () => void;
@@ -74,9 +109,16 @@ export const useAppStore = create<AppState>((set) => ({
     compareElement2: null,
 
     mainViewMode: '3d',
+    workspaceMode: 'explore',
     viewMode: 'atoms',
     activeFilter: 'all',
     searchQuery: '',
+    commandOpen: false,
+    inspectorTab: 'overview',
+    recentItems: [],
+    savedSessions: [],
+    comparisonBasket: [],
+    uiDensity: 'comfortable',
 
     isDarkMode: true,
     isFullscreen: false,
@@ -96,9 +138,27 @@ export const useAppStore = create<AppState>((set) => ({
     setCompareElement2: (el) => set({ compareElement2: el }),
 
     setMainViewMode: (mode) => set({ mainViewMode: mode }),
+    setWorkspaceMode: (mode) => set({ workspaceMode: mode }),
     setViewMode: (mode) => set({ viewMode: mode }),
     setActiveFilter: (filter) => set({ activeFilter: filter }),
     setSearchQuery: (query) => set({ searchQuery: query }),
+    setCommandOpen: (open) => set({ commandOpen: open }),
+    setInspectorTab: (tab) => set({ inspectorTab: tab }),
+    addRecentItem: (item) => set((s) => ({
+        recentItems: [item, ...s.recentItems.filter(existing => existing !== item)].slice(0, 8),
+    })),
+    setSavedSessions: (sessions) => set({ savedSessions: sessions }),
+    addSavedSession: (session) => set((s) => ({
+        savedSessions: [session, ...s.savedSessions.filter(existing => existing.id !== session.id)],
+    })),
+    removeSavedSession: (id) => set((s) => ({
+        savedSessions: s.savedSessions.filter(session => session.id !== id),
+    })),
+    setComparisonBasket: (items) => set({ comparisonBasket: items.slice(0, 2) }),
+    addToComparisonBasket: (atomicNumber) => set((s) => ({
+        comparisonBasket: [atomicNumber, ...s.comparisonBasket.filter(item => item !== atomicNumber)].slice(0, 2),
+    })),
+    setUiDensity: (density) => set({ uiDensity: density }),
 
     toggleDarkMode: () => set((s) => ({ isDarkMode: !s.isDarkMode })),
     setIsFullscreen: (v) => set({ isFullscreen: v }),

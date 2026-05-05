@@ -94,6 +94,18 @@ function handleMessage(client: Client, message: any) {
             });
             break;
 
+        case 'session_opened':
+        case 'molecule_selected':
+        case 'compare_updated':
+        case 'builder_updated':
+        case 'presence':
+            broadcast({
+                ...message,
+                source: client.id,
+                timestamp: Date.now()
+            });
+            break;
+
         default:
             console.log(`[WS] Unknown message type: ${message.type}`);
     }

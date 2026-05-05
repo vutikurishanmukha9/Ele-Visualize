@@ -1,0 +1,13 @@
+{
+  "name": "ele-visualize-workspace",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Start-Process -FilePath npm.cmd -ArgumentList '--prefix','backend','run','dev' -WindowStyle Hidden; npm.cmd --prefix frontend run dev -- --host 127.0.0.1 --port 8080\"",
+    "dev:frontend": "npm --prefix frontend run dev -- --host 127.0.0.1 --port 8080",
+    "dev:backend": "npm --prefix backend run dev",
+    "build": "npm --prefix frontend run build && npm --prefix backend run build",
+    "build:frontend": "npm --prefix frontend run build",
+    "build:backend": "npm --prefix backend run build"
+  }
+}

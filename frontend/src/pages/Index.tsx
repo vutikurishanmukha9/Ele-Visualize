@@ -1,587 +1,452 @@
-import { useState, useCallback, useEffect, useMemo, memo, Suspense, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { elements, ChemicalElement, categoryLabels, ElementCategory } from '@/data/elements';
-import { elementProperties } from '@/data/elementProperties';
-import { molecules, Molecule } from '@/data/molecules';
-import { HandTracker } from '@/components/HandTracker';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  Atom,
+  Beaker,
+  BookOpen,
+  Boxes,
+  Check,
+  ChevronRight,
+  Command,
+  FlaskConical,
+  Gauge,
+  GitCompare,
+  Grid3X3,
+  Hand,
+  Library,
+  Maximize2,
+  Minimize2,
+  Pause,
+  Play,
+  Plus,
+  Save,
+  Search,
+  SlidersHorizontal,
+  Sparkles,
+  Trash2,
+  X,
+  Zap,
+} from 'lucide-react';
 import { Atom3D } from '@/components/Atom3D';
-import { Molecule3D } from '@/components/Molecule3D';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { GestureTutorial } from '@/components/GestureTutorial';
-import { PeriodicTableGrid } from '@/components/PeriodicTableGrid';
-import { ComparisonMode } from '@/components/ComparisonMode';
-import { ReactionSimulator } from '@/components/ReactionSimulator';
-import { MoleculeBuilder } from '@/components/MoleculeBuilder';
 import { ARButton } from '@/components/ARButton';
+import { ComparisonMode } from '@/components/ComparisonMode';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { HandTracker } from '@/components/HandTracker';
+import { Molecule3D } from '@/components/Molecule3D';
+import { MoleculeBuilder } from '@/components/MoleculeBuilder';
+import { PeriodicTableGrid } from '@/components/PeriodicTableGrid';
+import { ReactionSimulator } from '@/components/ReactionSimulator';
 import { xrStore } from '@/components/VisualizerCanvas';
+import { elementProperties } from '@/data/elementProperties';
+import { categoryLabels, ChemicalElement, ElementCategory, elements } from '@/data/elements';
+import { Molecule, molecules } from '@/data/molecules';
 import { cn } from '@/lib/utils';
-import { useAppStore } from '@/store/useAppStore';
-import { Sun, Moon, Maximize2, Minimize2, Info, Thermometer, Droplets, Scale, Loader, HelpCircle, Menu, X, Atom, FlaskConical, Grid3X3, GitCompare, Play, Pause, Gauge, Zap, Wrench } from 'lucide-react';
+import { sendProductEvent } from '@/lib/productSocket';
+import { sessionApi } from '@/lib/sessions';
+import { SavedSession, WorkspaceMode, useAppStore } from '@/store/useAppStore';
 
-// Category colors
 const categoryColors: Record<ElementCategory, string> = {
-  'alkali-metal': '#FF3366',
-  'alkaline-earth': '#FF9933',
-  'transition-metal': '#FFCC33',
-  'post-transition': '#33CC99',
-  'metalloid': '#33CCCC',
-  'nonmetal': '#3399FF',
-  'halogen': '#9933FF',
-  'noble-gas': '#CC33FF',
-  'lanthanide': '#FF66CC',
-  'actinide': '#FF3333',
+  'alkali-metal': '#ef476f',
+  'alkaline-earth': '#f78c35',
+  'transition-metal': '#ffd166',
+  'post-transition': '#6fd08c',
+  metalloid: '#4cc9f0',
+  nonmetal: '#2dd4bf',
+  halogen: '#a78bfa',
+  'noble-gas': '#f472b6',
+  lanthanide: '#fb7185',
+  actinide: '#f43f5e',
 };
 
-// Accurate electron configuration using aufbau principle
-const getElectronConfig = (atomicNumber: number): string => {
-  const orbitals = [
-    '1s', '2s', '2p', '3s', '3p', '4s', '3d', '4p', '5s', '4d', '5p',
-    '6s', '4f', '5d', '6p', '7s', '5f', '6d', '7p'
-  ];
-  const maxElectrons = [2, 2, 6, 2, 6, 2, 10, 6, 2, 10, 6, 2, 14, 10, 6, 2, 14, 10, 6];
-  const superscripts = '⁰¹²³⁴⁵⁶⁷⁸⁹';
+const workspaces: { id: WorkspaceMode; label: string; icon: typeof Atom }[] = [
+  { id: 'explore', label: 'Explore', icon: Atom },
+  { id: 'table', label: 'Table', icon: Grid3X3 },
+  { id: 'compare', label: 'Compare', icon: GitCompare },
+  { id: 'reactions', label: 'Reactions', icon: Zap },
+  { id: 'builder', label: 'Builder', icon: Boxes },
+  { id: 'lab', label: 'AR Lab', icon: Hand },
+  { id: 'library', label: 'Library', icon: Library },
+];
 
+const categories = Object.keys(categoryLabels) as ElementCategory[];
+
+function getElectronConfig(atomicNumber: number) {
+  const orbitals = ['1s', '2s', '2p', '3s', '3p', '4s', '3d', '4p', '5s', '4d', '5p', '6s', '4f', '5d', '6p', '7s', '5f', '6d', '7p'];
+  const maxElectrons = [2, 2, 6, 2, 6, 2, 10, 6, 2, 10, 6, 2, 14, 10, 6, 2, 14, 10, 6];
   let remaining = atomicNumber;
   const config: string[] = [];
-
   for (let i = 0; i < orbitals.length && remaining > 0; i++) {
-    const electrons = Math.min(remaining, maxElectrons[i]);
-    const sup = electrons.toString().split('').map(d => superscripts[parseInt(d)]).join('');
-    config.push(`${orbitals[i]}${sup}`);
-    remaining -= electrons;
+    const count = Math.min(remaining, maxElectrons[i]);
+    config.push(`${orbitals[i]}${count}`);
+    remaining -= count;
   }
-
   return config.join(' ');
+}
+
+const formatTemp = (kelvin: number | null | undefined) => {
+  if (kelvin == null) return 'Not available';
+  return `${Math.round(kelvin - 273.15)} C`;
 };
 
-// Element card with focus styles
-const ElementCard = memo(({
-  element,
-  isSelected,
-  onSelect,
-  color
-}: {
-  element: ChemicalElement;
-  isSelected: boolean;
-  onSelect: (atomicNumber: number) => void;
-  color: string;
-}) => (
-  <button
-    onClick={() => onSelect(element.atomicNumber)}
-    className={cn(
-      "relative p-2 rounded text-center transition-all border overflow-hidden",
-      "bg-secondary/20 border-border/30 hover:border-primary/50",
-      "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-background",
-      isSelected && "border-primary bg-primary/10"
-    )}
-    aria-label={`Select ${element.name}`}
-  >
-    <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: color }} />
-    <div className="text-[10px] text-muted-foreground">{element.atomicNumber}</div>
-    <div className="text-lg font-bold" style={{ color }}>{element.symbol}</div>
-    <div className="text-[9px] text-muted-foreground truncate">{element.name}</div>
-  </button>
-));
-
-ElementCard.displayName = 'ElementCard';
-
-const formatTemp = (kelvin: number | null) => {
-  if (kelvin === null) return '—';
-  const celsius = kelvin - 273.15;
-  return `${Math.round(celsius)}°C`;
-};
-
-// Loading spinner for 3D
-const Atom3DLoader = () => (
-  <div className="w-full h-[350px] flex items-center justify-center">
-    <div className="text-center">
-      <Loader className="w-10 h-10 animate-spin text-primary mx-auto mb-2" />
-      <p className="text-sm text-muted-foreground">Loading 3D Atom...</p>
-    </div>
+const Loader = () => (
+  <div className="flex h-[420px] items-center justify-center text-sm text-muted-foreground">
+    <Sparkles className="mr-2 h-4 w-4 animate-pulse text-primary" />
+    Preparing visual stage
   </div>
 );
 
-const Index = () => {
-  // Zustand store — all shared UI state
+interface ShellProps {
+  children: React.ReactNode;
+}
+
+function WorkbenchFrame({ children }: ShellProps) {
+  return <div className="h-screen w-screen overflow-hidden bg-background text-foreground">{children}</div>;
+}
+
+function TopBar({
+  onSave,
+  saveState,
+}: {
+  onSave: () => void;
+  saveState: 'idle' | 'saving' | 'saved' | 'error';
+}) {
   const {
-    selectedElement, setSelectedElement,
-    selectedMolecule, setSelectedMolecule,
-    viewMode, setViewMode,
-    activeFilter, setActiveFilter,
-    searchQuery, setSearchQuery,
-    zoomLevel, setZoomLevel,
-    isDarkMode,
-    isFullscreen, setIsFullscreen,
-    showTutorial, setShowTutorial,
-    sidebarOpen, setSidebarOpen,
-    isMobile, setIsMobile,
-    showOrbitals, setShowOrbitals,
-    mainViewMode, setMainViewMode,
-    compareElement1, setCompareElement1,
-    compareElement2, setCompareElement2,
-    animationSpeed, setAnimationSpeed,
-    isPaused,
-    toggleDarkMode, togglePaused,
+    commandOpen,
+    selectedElement,
+    selectedMolecule,
+    uiDensity,
+    setCommandOpen,
+    setUiDensity,
   } = useAppStore();
 
-  // High-frequency hand tracking values stored as refs to avoid 60FPS re-renders
-  const handPositionX = useRef(0.5);
-  const handPositionY = useRef(0.5);
-  const currentGesture = useRef('none');
-  const isHandControlled = useRef(false);
-  const isFrozen = useRef(false);
+  return (
+    <header className="workbench-topbar">
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="brand-mark">
+          <Atom className="h-5 w-5" />
+        </div>
+        <div className="min-w-0">
+          <div className="truncate text-sm font-semibold tracking-wide">Ele-Visualize</div>
+          <div className="hidden truncate text-xs text-muted-foreground sm:block">
+            Scientific workbench for atoms, molecules, reactions, and AR
+          </div>
+        </div>
+      </div>
 
-  // Check for mobile
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+      <button className="command-trigger" onClick={() => setCommandOpen(!commandOpen)}>
+        <Command className="h-4 w-4 text-primary" />
+        <span className="truncate">
+          {selectedElement ? `${selectedElement.symbol} ${selectedElement.name}` : selectedMolecule ? selectedMolecule.name : 'Search or run command'}
+        </span>
+        <span className="hidden rounded border border-white/10 px-1.5 py-0.5 text-[10px] text-muted-foreground md:inline">/</span>
+      </button>
 
-  // Show tutorial on first visit
-  useEffect(() => {
-    const hasSeenTutorial = localStorage.getItem('hasSeenGestureTutorial');
-    if (!hasSeenTutorial) {
-      setShowTutorial(true);
-      localStorage.setItem('hasSeenGestureTutorial', 'true');
-    }
-  }, []);
-
-  const filteredElements = useMemo(() => {
-    const query = searchQuery.toLowerCase();
-    return elements.filter((element) => {
-      const matchesFilter = activeFilter === 'all' || element.category === activeFilter;
-      const matchesSearch = !query ||
-        element.name.toLowerCase().includes(query) ||
-        element.symbol.toLowerCase().includes(query) ||
-        element.atomicNumber.toString().includes(query);
-      return matchesFilter && matchesSearch;
-    });
-  }, [activeFilter, searchQuery]);
-
-  const categories = useMemo(() => Object.keys(categoryLabels) as ElementCategory[], []);
-  const selectedProps = useMemo(() =>
-    selectedElement ? elementProperties[selectedElement.atomicNumber] : null,
-    [selectedElement]
+      <div className="flex items-center gap-1.5">
+        <button className="icon-button hidden sm:inline-flex" onClick={() => setUiDensity(uiDensity === 'comfortable' ? 'compact' : 'comfortable')} title="Toggle density">
+          <SlidersHorizontal className="h-4 w-4" />
+        </button>
+        <button className="premium-button" onClick={onSave} disabled={saveState === 'saving'}>
+          {saveState === 'saved' ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
+          <span className="hidden sm:inline">{saveState === 'saving' ? 'Saving' : saveState === 'saved' ? 'Saved' : 'Save'}</span>
+        </button>
+      </div>
+    </header>
   );
+}
 
-  const electronConfig = useMemo(() =>
-    selectedElement ? getElectronConfig(selectedElement.atomicNumber) : '',
-    [selectedElement]
-  );
+function WorkspaceNav() {
+  const { workspaceMode, setWorkspaceMode, setMainViewMode } = useAppStore();
 
-  // Keyboard shortcuts with focus handling
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement) return;
-
-      const currentIndex = selectedElement
-        ? filteredElements.findIndex(el => el.atomicNumber === selectedElement.atomicNumber)
-        : -1;
-
-      switch (e.key) {
-        case 'ArrowRight':
-        case 'ArrowDown':
-          e.preventDefault();
-          setSelectedElement(filteredElements[(currentIndex + 1) % filteredElements.length] || null);
-          break;
-        case 'ArrowLeft':
-        case 'ArrowUp':
-          e.preventDefault();
-          setSelectedElement(filteredElements[currentIndex > 0 ? currentIndex - 1 : filteredElements.length - 1] || null);
-          break;
-        case 'Escape':
-          setSelectedElement(null);
-          setIsFullscreen(false);
-          break;
-        case '+':
-        case '=':
-          setZoomLevel(z => Math.min(3, z + 0.2));
-          break;
-        case '-':
-          setZoomLevel(z => Math.max(0.5, z - 0.2));
-          break;
-        case 'f':
-          setIsFullscreen(!isFullscreen);
-          break;
-        case '?':
-          setShowTutorial(true);
-          break;
-      }
+  const selectWorkspace = (mode: WorkspaceMode) => {
+    setWorkspaceMode(mode);
+    const map: Record<WorkspaceMode, '3d' | 'grid' | 'compare' | 'reaction' | 'builder'> = {
+      explore: '3d',
+      table: 'grid',
+      compare: 'compare',
+      reactions: 'reaction',
+      builder: 'builder',
+      lab: '3d',
+      library: '3d',
     };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedElement, filteredElements]);
-
-  const handleZoomChange = useCallback((zoom: number) => setZoomLevel(zoom), []);
-
-  const handleGestureDetected = useCallback((gesture: string) => {
-    currentGesture.current = gesture;
-    isHandControlled.current = gesture === 'open';
-    // Fist = freeze current state
-    isFrozen.current = gesture === 'fist';
-  }, []);
-
-  const handleHandPosition = useCallback((x: number, y: number) => {
-    handPositionX.current = x;
-    handPositionY.current = y;
-    isHandControlled.current = true;
-  }, []);
-
-  const handleElementClick = useCallback((element: ChemicalElement) => {
-    if (mainViewMode === 'compare') {
-      // In compare mode, add to comparison slots
-      if (!compareElement1) {
-        setCompareElement1(element);
-      } else if (!compareElement2) {
-        setCompareElement2(element);
-      } else {
-        // Both slots full, replace first
-        setCompareElement1(element);
-        setCompareElement2(null);
-      }
-    } else {
-      setSelectedElement(element);
-    }
-    if (isMobile) setSidebarOpen(false);
-  }, [isMobile, mainViewMode, compareElement1, compareElement2]);
-
-  // Stable callback for ElementCard — avoids inline arrows that break memo
-  const handleElementSelect = useCallback((atomicNumber: number) => {
-    const element = elements.find(el => el.atomicNumber === atomicNumber);
-    if (element) handleElementClick(element);
-  }, [handleElementClick]);
-
-  const handleSwipe = useCallback((direction: 'left' | 'right') => {
-    const currentIndex = selectedElement
-      ? filteredElements.findIndex(el => el.atomicNumber === selectedElement.atomicNumber)
-      : -1;
-
-    if (direction === 'right') {
-      setSelectedElement(filteredElements[(currentIndex + 1) % filteredElements.length] || filteredElements[0]);
-    } else {
-      setSelectedElement(filteredElements[currentIndex > 0 ? currentIndex - 1 : filteredElements.length - 1] || filteredElements[0]);
-    }
-  }, [selectedElement, filteredElements]);
-
-  // Touch support for mobile
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    (e.currentTarget as any).touchStartX = touch.clientX;
-  }, []);
-
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    const touch = e.changedTouches[0];
-    const startX = (e.currentTarget as any).touchStartX;
-    const diff = touch.clientX - startX;
-
-    if (Math.abs(diff) > 50) {
-      handleSwipe(diff > 0 ? 'left' : 'right');
-    }
-  }, [handleSwipe]);
+    setMainViewMode(map[mode]);
+    sendProductEvent({ type: 'presence', workspaceMode: mode });
+  };
 
   return (
-    <div className={cn(
-      "h-screen w-screen flex overflow-hidden transition-colors",
-      isDarkMode
-        ? "bg-background text-foreground"
-        : "bg-white text-gray-900"
-    )}>
-      {/* Tutorial Overlay */}
-      <AnimatePresence>
-        {showTutorial && <GestureTutorial onClose={() => setShowTutorial(false)} />}
-      </AnimatePresence>
-
-      {/* Mobile Menu Button */}
-      {isMobile && (
+    <nav className="workspace-nav">
+      {workspaces.map(({ id, label, icon: Icon }) => (
         <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="fixed top-4 left-4 z-30 p-2 bg-card/80 rounded-lg border border-border/50"
+          key={id}
+          onClick={() => selectWorkspace(id)}
+          className={cn('workspace-tab', workspaceMode === id && 'is-active')}
+          title={label}
         >
-          {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          <Icon className="h-4 w-4" />
+          <span>{label}</span>
         </button>
+      ))}
+    </nav>
+  );
+}
+
+function CommandPalette({
+  filteredElements,
+  filteredMolecules,
+  onSelectElement,
+  onSelectMolecule,
+  onSave,
+}: {
+  filteredElements: ChemicalElement[];
+  filteredMolecules: Molecule[];
+  onSelectElement: (element: ChemicalElement) => void;
+  onSelectMolecule: (molecule: Molecule) => void;
+  onSave: () => void;
+}) {
+  const {
+    commandOpen,
+    searchQuery,
+    showOrbitals,
+    setCommandOpen,
+    setSearchQuery,
+    setShowOrbitals,
+    setWorkspaceMode,
+  } = useAppStore();
+
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === '/' && !(event.target instanceof HTMLInputElement)) {
+        event.preventDefault();
+        setCommandOpen(true);
+      }
+      if (event.key === 'Escape') setCommandOpen(false);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [setCommandOpen]);
+
+  const actions = [
+    { label: 'Open Periodic Table', icon: Grid3X3, run: () => setWorkspaceMode('table') },
+    { label: 'Compare Elements', icon: GitCompare, run: () => setWorkspaceMode('compare') },
+    { label: 'Start Reaction Simulator', icon: Zap, run: () => setWorkspaceMode('reactions') },
+    { label: 'Open Molecule Builder', icon: Boxes, run: () => setWorkspaceMode('builder') },
+    { label: showOrbitals ? 'Hide Orbitals' : 'Show Orbitals', icon: Sparkles, run: () => setShowOrbitals(!showOrbitals) },
+    { label: 'Save Current Session', icon: Save, run: onSave },
+  ];
+
+  if (!commandOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[80] bg-black/50 p-3 backdrop-blur-sm" onMouseDown={() => setCommandOpen(false)}>
+      <motion.div
+        initial={{ y: -18, opacity: 0, scale: 0.98 }}
+        animate={{ y: 0, opacity: 1, scale: 1 }}
+        className="command-panel"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
+          <Search className="h-4 w-4 text-primary" />
+          <input
+            autoFocus
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+            placeholder="Search elements, molecules, or commands"
+          />
+          <button className="icon-button" onClick={() => setCommandOpen(false)}>
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="max-h-[70vh] overflow-auto p-2">
+          <div className="command-section">Commands</div>
+          {actions.map(({ label, icon: Icon, run }) => (
+            <button
+              key={label}
+              className="command-item"
+              onClick={() => {
+                run();
+                setCommandOpen(false);
+              }}
+            >
+              <Icon className="h-4 w-4 text-primary" />
+              <span>{label}</span>
+            </button>
+          ))}
+
+          <div className="command-section">Elements</div>
+          {filteredElements.slice(0, 8).map((element) => (
+            <button
+              key={element.atomicNumber}
+              className="command-item"
+              onClick={() => {
+                onSelectElement(element);
+                setCommandOpen(false);
+              }}
+            >
+              <span className="element-dot" style={{ backgroundColor: categoryColors[element.category] }}>{element.symbol}</span>
+              <span>{element.name}</span>
+              <span className="ml-auto text-xs text-muted-foreground">#{element.atomicNumber}</span>
+            </button>
+          ))}
+
+          <div className="command-section">Molecules</div>
+          {filteredMolecules.slice(0, 6).map((molecule) => (
+            <button
+              key={molecule.formula}
+              className="command-item"
+              onClick={() => {
+                onSelectMolecule(molecule);
+                setCommandOpen(false);
+              }}
+            >
+              <FlaskConical className="h-4 w-4 text-primary" />
+              <span>{molecule.name}</span>
+              <span className="ml-auto text-xs text-muted-foreground">{molecule.formula}</span>
+            </button>
+          ))}
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+function DiscoveryRail({
+  filteredElements,
+  filteredMolecules,
+  onSelectElement,
+  onSelectMolecule,
+}: {
+  filteredElements: ChemicalElement[];
+  filteredMolecules: Molecule[];
+  onSelectElement: (element: ChemicalElement) => void;
+  onSelectMolecule: (molecule: Molecule) => void;
+}) {
+  const { activeFilter, searchQuery, viewMode, setActiveFilter, setSearchQuery, setViewMode } = useAppStore();
+
+  return (
+    <aside className="discovery-rail">
+      <div className="rail-header">
+        <div>
+          <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Discovery</div>
+          <div className="text-lg font-semibold">Find faster</div>
+        </div>
+        <div className="segmented">
+          <button className={cn(viewMode === 'atoms' && 'is-active')} onClick={() => setViewMode('atoms')}>Atoms</button>
+          <button className={cn(viewMode === 'molecules' && 'is-active')} onClick={() => setViewMode('molecules')}>Molecules</button>
+        </div>
+      </div>
+
+      <label className="search-field">
+        <Search className="h-4 w-4" />
+        <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Symbol, name, mass, formula" />
+      </label>
+
+      {viewMode === 'atoms' && (
+        <div className="category-strip">
+          <button className={cn(activeFilter === 'all' && 'is-active')} onClick={() => setActiveFilter('all')}>All</button>
+          {categories.map((category) => (
+            <button
+              key={category}
+              className={cn(activeFilter === category && 'is-active')}
+              onClick={() => setActiveFilter(category)}
+              style={activeFilter === category ? { borderColor: categoryColors[category], color: categoryColors[category] } : undefined}
+            >
+              {categoryLabels[category].replace(' Metals', '').replace(' Earth', '')}
+            </button>
+          ))}
+        </div>
       )}
 
-      <AnimatePresence>
-        {(sidebarOpen || !isMobile) && !isFullscreen && (
-          <motion.aside
-            initial={{ x: -300, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: -300, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className={cn(
-              "h-full backdrop-blur-xl border-r flex flex-col",
-              isMobile ? "fixed z-20 w-72" : "w-72",
-              isDarkMode
-                ? "bg-card/50 border-border/30"
-                : "bg-gray-50 border-gray-200"
-            )}
-          >
-            <div className="p-4 border-b border-border/30">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <h2 className="text-lg font-bold text-primary">Ele-Visualize</h2>
-                  <p className="text-xs text-muted-foreground">3D Atomic Explorer</p>
-                </div>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => setShowTutorial(true)}
-                    className="p-1.5 rounded hover:bg-secondary/50"
-                    aria-label="Show gesture tutorial"
-                  >
-                    <HelpCircle className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => toggleDarkMode()}
-                    className="p-1.5 rounded hover:bg-secondary/50"
-                    aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
-                  >
-                    {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                  </button>
-                  <button
-                    onClick={() => setIsFullscreen(true)}
-                    className="p-1.5 rounded hover:bg-secondary/50"
-                    aria-label="Enter fullscreen"
-                  >
-                    <Maximize2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
+      <div className="rail-list">
+        {viewMode === 'atoms'
+          ? filteredElements.map((element) => (
+            <button key={element.atomicNumber} className="result-card" onClick={() => onSelectElement(element)}>
+              <span className="periodic-tile" style={{ borderColor: categoryColors[element.category], color: categoryColors[element.category] }}>
+                <small>{element.atomicNumber}</small>
+                {element.symbol}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold">{element.name}</span>
+                <span className="block truncate text-xs text-muted-foreground">{categoryLabels[element.category]} / {element.atomicMass.toFixed(2)} u</span>
+              </span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </button>
+          ))
+          : filteredMolecules.map((molecule) => (
+            <button key={molecule.formula} className="result-card" onClick={() => onSelectMolecule(molecule)}>
+              <span className="molecule-tile">{molecule.formula}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold">{molecule.name}</span>
+                <span className="block truncate text-xs text-muted-foreground">{molecule.atoms.length} atoms / {molecule.bonds.length} bonds</span>
+              </span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </button>
+          ))}
+      </div>
+    </aside>
+  );
+}
 
-              {/* Mode Tabs */}
-              <div className="flex gap-1 mb-3">
-                <button
-                  onClick={() => { setViewMode('atoms'); setSelectedMolecule(null); }}
-                  className={cn(
-                    "flex-1 py-2 px-3 rounded-lg text-sm font-medium flex items-center justify-center gap-2",
-                    viewMode === 'atoms'
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary/50 text-muted-foreground hover:bg-secondary"
-                  )}
-                >
-                  <Atom className="w-4 h-4" />
-                  Atoms
-                </button>
-                <button
-                  onClick={() => { setViewMode('molecules'); setSelectedElement(null); }}
-                  className={cn(
-                    "flex-1 py-2 px-3 rounded-lg text-sm font-medium flex items-center justify-center gap-2",
-                    viewMode === 'molecules'
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary/50 text-muted-foreground hover:bg-secondary"
-                  )}
-                >
-                  <FlaskConical className="w-4 h-4" />
-                  Molecules
-                </button>
-              </div>
+function VisualStage({
+  selectedElement,
+  selectedMolecule,
+  handPositionX,
+  handPositionY,
+  isHandControlled,
+  isFrozen,
+}: {
+  selectedElement: ChemicalElement | null;
+  selectedMolecule: Molecule | null;
+  handPositionX: React.MutableRefObject<number>;
+  handPositionY: React.MutableRefObject<number>;
+  isHandControlled: React.MutableRefObject<boolean>;
+  isFrozen: React.MutableRefObject<boolean>;
+}) {
+  const {
+    animationSpeed,
+    isFullscreen,
+    isPaused,
+    showOrbitals,
+    viewMode,
+    workspaceMode,
+    zoomLevel,
+    setIsFullscreen,
+    setShowOrbitals,
+    setWorkspaceMode,
+    togglePaused,
+    setAnimationSpeed,
+  } = useAppStore();
 
-              {viewMode === 'atoms' && (
-                <input
-                  type="text"
-                  placeholder="Search elements..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                  aria-label="Search elements"
-                />
-              )}
-            </div>
+  const stageTitle = selectedElement ? `${selectedElement.name} atomic model` : selectedMolecule ? `${selectedMolecule.name} molecule` : 'Ready to explore';
 
-            {/* Filters - only show for atoms mode */}
-            {viewMode === 'atoms' && (
-              <div className="p-2 border-b border-border/30 flex flex-wrap gap-1">
-                <button
-                  onClick={() => setActiveFilter('all')}
-                  className={cn(
-                    "px-2 py-1 text-[10px] rounded focus:outline-none focus:ring-1 focus:ring-primary",
-                    activeFilter === 'all' ? "bg-primary/20 text-primary" : "bg-secondary/30 text-muted-foreground"
-                  )}
-                >
-                  All
-                </button>
-                {categories.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => setActiveFilter(cat)}
-                    className="px-2 py-1 text-[10px] rounded focus:outline-none focus:ring-1 focus:ring-primary"
-                    style={activeFilter === cat ? {
-                      color: categoryColors[cat],
-                      backgroundColor: `${categoryColors[cat]}20`
-                    } : { backgroundColor: 'hsl(var(--secondary)/0.3)', color: 'hsl(var(--muted-foreground))' }}
-                  >
-                    {categoryLabels[cat].split(' ')[0]}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Atoms List */}
-            {viewMode === 'atoms' && (
-              <div className="flex-1 overflow-auto p-2" role="listbox" aria-label="Element list">
-                <div className="grid grid-cols-3 gap-1">
-                  {filteredElements.map((element) => (
-                    <ElementCard
-                      key={element.atomicNumber}
-                      element={element}
-                      color={categoryColors[element.category]}
-                      isSelected={selectedElement?.atomicNumber === element.atomicNumber}
-                      onSelect={handleElementSelect}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Molecules List */}
-            {viewMode === 'molecules' && (
-              <div className="flex-1 overflow-auto p-2" role="listbox" aria-label="Molecule list">
-                <div className="space-y-2">
-                  {molecules.map((molecule) => (
-                    <button
-                      key={molecule.formula}
-                      onClick={() => { setSelectedMolecule(molecule); if (isMobile) setSidebarOpen(false); }}
-                      className={cn(
-                        "w-full p-3 rounded-lg text-left transition-colors border",
-                        "hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary",
-                        selectedMolecule?.formula === molecule.formula
-                          ? "bg-primary/10 border-primary"
-                          : "bg-secondary/20 border-border/30"
-                      )}
-                    >
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-lg font-bold text-primary">{molecule.formula}</span>
-                        <span className="text-sm text-foreground">{molecule.name}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">{molecule.description}</p>
-                      <div className="flex gap-1 mt-2">
-                        {molecule.atoms.slice(0, 4).map((atom, i) => (
-                          <span
-                            key={i}
-                            className="w-5 h-5 rounded-full text-[8px] flex items-center justify-center text-white font-bold"
-                            style={{ backgroundColor: atom.color }}
-                          >
-                            {atom.symbol}
-                          </span>
-                        ))}
-                        {molecule.atoms.length > 4 && (
-                          <span className="text-xs text-muted-foreground">+{molecule.atoms.length - 4}</span>
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="p-2 border-t border-border/30 text-[10px] text-muted-foreground flex justify-between">
-              <span>{viewMode === 'atoms' ? `${filteredElements.length} elements` : `${molecules.length} molecules`}</span>
-              <span>Press ? for help</span>
-            </div>
-          </motion.aside>
-        )}
-      </AnimatePresence>
-
-      <main
-        className={cn(
-          "flex-1 relative flex items-center justify-center",
-          isDarkMode ? "bg-black/20" : "bg-gradient-to-br from-blue-50 to-purple-50"
-        )}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      >
-        {isFullscreen && (
-          <button
-            onClick={() => setIsFullscreen(false)}
-            className="absolute top-4 left-4 z-20 p-2 bg-black/40 rounded-lg border border-white/10"
-            aria-label="Exit fullscreen"
-          >
-            <Minimize2 className="w-4 h-4" />
+  return (
+    <section className={cn('visual-stage', isFullscreen && 'is-fullscreen')}>
+      <div className="stage-toolbar">
+        <div className="min-w-0">
+          <div className="truncate text-xs uppercase tracking-[0.18em] text-muted-foreground">{workspaceMode === 'lab' ? 'AR and gesture lab' : 'Visual stage'}</div>
+          <div className="truncate text-base font-semibold">{stageTitle}</div>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <ARButton xrStore={xrStore} />
+          <button className="icon-button" onClick={togglePaused} title={isPaused ? 'Play animation' : 'Pause animation'}>
+            {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
           </button>
-        )}
+          <button className={cn('icon-button', showOrbitals && 'is-active')} onClick={() => setShowOrbitals(!showOrbitals)} title="Toggle orbitals">
+            <Sparkles className="h-4 w-4" />
+          </button>
+          <button className="icon-button" onClick={() => setIsFullscreen(!isFullscreen)} title="Toggle fullscreen">
+            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </button>
+        </div>
+      </div>
 
+      <div className="stage-canvas">
+        <div className="stage-grid" />
         <AnimatePresence mode="wait">
-          {/* Periodic Table Grid View */}
-          {mainViewMode === 'grid' && (
-            <motion.div
-              key="grid-view"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="w-full h-full"
-            >
-              <PeriodicTableGrid
-                selectedElement={selectedElement}
-                onSelectElement={(el) => {
-                  setSelectedElement(el);
-                  setMainViewMode('3d');
-                }}
-                categoryColors={categoryColors}
-                onChangeViewMode={setMainViewMode}
-              />
-            </motion.div>
-          )}
-
-          {/* Comparison View */}
-          {mainViewMode === 'compare' && (
-            <motion.div
-              key="compare-view"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="w-full h-full"
-            >
-              <ComparisonMode
-                element1={compareElement1}
-                element2={compareElement2}
-                onRemoveElement={(slot) => {
-                  if (slot === 1) setCompareElement1(null);
-                  else setCompareElement2(null);
-                }}
-                categoryColors={categoryColors}
-              />
-            </motion.div>
-          )}
-
-          {/* Reaction Simulator View */}
-          {mainViewMode === 'reaction' && (
-            <motion.div
-              key="reaction-view"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="w-full h-full"
-            >
-              <ReactionSimulator onClose={() => setMainViewMode('3d')} />
-            </motion.div>
-          )}
-
-          {/* Molecule Builder View */}
-          {mainViewMode === 'builder' && (
-            <motion.div
-              key="builder-view"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="w-full h-full"
-            >
-              <MoleculeBuilder onClose={() => setMainViewMode('3d')} />
-            </motion.div>
-          )}
-
-          {/* Atom View - only in 3D mode */}
-          {mainViewMode === '3d' && viewMode === 'atoms' && selectedElement && (
-            <motion.div
-              key={`atom-${selectedElement.atomicNumber}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex flex-col items-center w-full max-w-lg px-4"
-            >
+          {viewMode === 'atoms' && selectedElement && (
+            <motion.div key={selectedElement.atomicNumber} initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="w-full max-w-3xl">
               <ErrorBoundary>
-                <Suspense fallback={<Atom3DLoader />}>
+                <Suspense fallback={<Loader />}>
                   <Atom3D
                     protons={selectedElement.atomicNumber}
                     neutrons={Math.round(selectedElement.atomicMass) - selectedElement.atomicNumber}
@@ -599,71 +464,13 @@ const Index = () => {
                   />
                 </Suspense>
               </ErrorBoundary>
-
-              <div className={cn(
-                "mt-2 text-center backdrop-blur-md p-4 rounded-xl border w-full",
-                isDarkMode ? "bg-black/60 border-white/10" : "bg-white/90 border-gray-200 shadow-lg"
-              )}>
-                <div className="flex items-center justify-center gap-2 mb-1">
-                  <span className="text-3xl font-bold" style={{ color: categoryColors[selectedElement.category] }}>
-                    {selectedElement.symbol}
-                  </span>
-                  <span className="text-lg text-foreground">{selectedElement.name}</span>
-                  <a
-                    href={`https://en.wikipedia.org/wiki/${selectedElement.name}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-1 hover:bg-white/10 rounded"
-                  >
-                    <Info className="w-4 h-4 text-muted-foreground" />
-                  </a>
-                </div>
-
-                <div className="text-xs px-2 py-0.5 rounded inline-block mb-2"
-                  style={{ color: categoryColors[selectedElement.category], backgroundColor: `${categoryColors[selectedElement.category]}20` }}>
-                  {categoryLabels[selectedElement.category]}
-                </div>
-
-                <div className="text-xs font-mono text-primary/80 bg-white/5 rounded px-2 py-1 mb-2 break-all">
-                  {electronConfig}
-                </div>
-
-                <div className="flex gap-3 justify-center text-muted-foreground text-xs">
-                  <span>#{selectedElement.atomicNumber}</span>
-                  <span>{selectedElement.atomicMass.toFixed(2)} u</span>
-                </div>
-
-                {selectedProps && (
-                  <div className="grid grid-cols-3 gap-2 mt-2 text-xs">
-                    <div className="bg-white/5 rounded p-1">
-                      <Thermometer className="w-3 h-3 text-orange-400 mx-auto" />
-                      <div className="font-mono">{formatTemp(selectedProps.meltingPoint)}</div>
-                    </div>
-                    <div className="bg-white/5 rounded p-1">
-                      <Droplets className="w-3 h-3 text-blue-400 mx-auto" />
-                      <div className="font-mono">{formatTemp(selectedProps.boilingPoint)}</div>
-                    </div>
-                    <div className="bg-white/5 rounded p-1">
-                      <Scale className="w-3 h-3 text-green-400 mx-auto" />
-                      <div className="font-mono">{selectedProps.density || '—'}</div>
-                    </div>
-                  </div>
-                )}
-              </div>
             </motion.div>
           )}
 
-          {/* Molecule View */}
-          {mainViewMode === '3d' && viewMode === 'molecules' && selectedMolecule && (
-            <motion.div
-              key={`molecule-${selectedMolecule.formula}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex flex-col items-center w-full max-w-lg px-4"
-            >
+          {viewMode === 'molecules' && selectedMolecule && (
+            <motion.div key={selectedMolecule.formula} initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="w-full max-w-3xl">
               <ErrorBoundary>
-                <Suspense fallback={<Atom3DLoader />}>
+                <Suspense fallback={<Loader />}>
                   <Molecule3D
                     molecule={selectedMolecule}
                     handRotationXRef={handPositionY}
@@ -673,202 +480,462 @@ const Index = () => {
                   />
                 </Suspense>
               </ErrorBoundary>
-
-              <div className={cn(
-                "mt-2 text-center backdrop-blur-md p-4 rounded-xl border w-full",
-                isDarkMode ? "bg-black/60 border-white/10" : "bg-white/90 border-gray-200 shadow-lg"
-              )}>
-                <div className="flex items-center justify-center gap-2 mb-1">
-                  <span className="text-3xl font-bold text-primary">{selectedMolecule.formula}</span>
-                  <span className="text-lg text-foreground">{selectedMolecule.name}</span>
-                </div>
-                <p className="text-sm text-muted-foreground mb-3">{selectedMolecule.description}</p>
-
-                <div className="flex flex-wrap justify-center gap-2">
-                  {selectedMolecule.atoms.map((atom, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center gap-1 px-2 py-1 rounded-full text-xs"
-                      style={{ backgroundColor: `${atom.color}30`, color: atom.color }}
-                    >
-                      <span className="w-4 h-4 rounded-full text-white text-[10px] flex items-center justify-center font-bold"
-                        style={{ backgroundColor: atom.color }}>
-                        {atom.symbol}
-                      </span>
-                      {atom.element}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-3 text-xs text-muted-foreground">
-                  {selectedMolecule.bonds.length} bond{selectedMolecule.bonds.length !== 1 ? 's' : ''} •
-                  {selectedMolecule.atoms.length} atom{selectedMolecule.atoms.length !== 1 ? 's' : ''}
-                </div>
-              </div>
             </motion.div>
           )}
 
-          {/* Empty State - only in 3D mode */}
-          {mainViewMode === '3d' && ((viewMode === 'atoms' && !selectedElement) || (viewMode === 'molecules' && !selectedMolecule)) && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-muted-foreground px-4">
-              <div className="text-6xl mb-4 opacity-20">{viewMode === 'atoms' ? '⚛' : '🧪'}</div>
-              <p className="text-xl">{viewMode === 'atoms' ? 'Select an Element' : 'Select a Molecule'}</p>
-              <p className="text-sm mt-2 opacity-60">Use 👋 open hand to rotate</p>
-              <p className="text-sm opacity-60">Use 🤏 pinch to zoom</p>
-              {isMobile && <p className="text-sm opacity-60 mt-2">Swipe left/right to navigate</p>}
-              <button
-                onClick={() => setShowTutorial(true)}
-                className="mt-4 px-4 py-2 bg-primary/20 text-primary rounded-lg hover:bg-primary/30"
-              >
-                View Gesture Guide
+          {((viewMode === 'atoms' && !selectedElement) || (viewMode === 'molecules' && !selectedMolecule)) && (
+            <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="empty-stage">
+              <div className="brand-mark mx-auto h-14 w-14">
+                <Atom className="h-7 w-7" />
+              </div>
+              <h2>Choose a starting point</h2>
+              <p>Search an element, open a molecule, compare two discoveries, or run a reaction from the workbench.</p>
+              <button className="premium-button mx-auto" onClick={() => setWorkspaceMode('table')}>
+                <Grid3X3 className="h-4 w-4" />
+                Open periodic table
               </button>
             </motion.div>
           )}
         </AnimatePresence>
+      </div>
 
-        {/* Top controls panel */}
-        <div className="absolute top-2 sm:top-4 right-2 sm:right-4 flex flex-col gap-1.5 sm:gap-2 items-end z-50">
-          {/* View Mode Tabs */}
-          <div className="flex gap-0.5 sm:gap-1 bg-black/60 p-0.5 sm:p-1 rounded-lg">
-            <button
-              onClick={() => setMainViewMode('3d')}
-              className={cn(
-                "p-2 rounded transition-colors",
-                mainViewMode === '3d' ? "bg-primary text-primary-foreground" : "hover:bg-white/10"
-              )}
-              title="3D View"
-            >
-              <Atom className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setMainViewMode('grid')}
-              className={cn(
-                "p-2 rounded transition-colors",
-                mainViewMode === 'grid' ? "bg-primary text-primary-foreground" : "hover:bg-white/10"
-              )}
-              title="Periodic Table"
-            >
-              <Grid3X3 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setMainViewMode('compare')}
-              className={cn(
-                "p-2 rounded transition-colors",
-                mainViewMode === 'compare' ? "bg-primary text-primary-foreground" : "hover:bg-white/10"
-              )}
-              title="Compare Elements"
-            >
-              <GitCompare className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setMainViewMode('reaction')}
-              className={cn(
-                "p-2 rounded transition-colors",
-                mainViewMode === 'reaction' ? "bg-primary text-primary-foreground" : "hover:bg-white/10"
-              )}
-              title="Reaction Simulator"
-            >
-              <Zap className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setMainViewMode('builder')}
-              className={cn(
-                "p-2 rounded transition-colors",
-                mainViewMode === 'builder' ? "bg-primary text-primary-foreground" : "hover:bg-white/10"
-              )}
-              title="Molecule Builder"
-            >
-              <Wrench className="w-4 h-4" />
-            </button>
+      <div className="stage-status">
+        <span>Zoom {zoomLevel.toFixed(1)}x</span>
+        <span>Speed {animationSpeed.toFixed(1)}x</span>
+        <input
+          aria-label="Animation speed"
+          type="range"
+          min="0.1"
+          max="3"
+          step="0.1"
+          value={animationSpeed}
+          onChange={(event) => setAnimationSpeed(Number(event.target.value))}
+        />
+        <span>{showOrbitals ? 'Orbitals on' : 'Orbitals off'}</span>
+      </div>
+    </section>
+  );
+}
+
+function Inspector({
+  selectedElement,
+  selectedMolecule,
+  onCompare,
+  onSave,
+}: {
+  selectedElement: ChemicalElement | null;
+  selectedMolecule: Molecule | null;
+  onCompare: (element: ChemicalElement) => void;
+  onSave: () => void;
+}) {
+  const { inspectorTab, setInspectorTab, setWorkspaceMode } = useAppStore();
+  const props = selectedElement ? elementProperties[selectedElement.atomicNumber] : null;
+
+  return (
+    <aside className="inspector-panel">
+      <div className="rail-header">
+        <div>
+          <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Inspector</div>
+          <div className="text-lg font-semibold">{selectedElement?.name || selectedMolecule?.name || 'No selection'}</div>
+        </div>
+        <button className="icon-button" onClick={onSave} title="Save session">
+          <Save className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="inspector-tabs">
+        {(['overview', 'properties', 'learning', 'actions'] as const).map((tab) => (
+          <button key={tab} className={cn(inspectorTab === tab && 'is-active')} onClick={() => setInspectorTab(tab)}>
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      {!selectedElement && !selectedMolecule && (
+        <div className="empty-inspector">
+          <BookOpen className="h-8 w-8 text-primary" />
+          <p>Select an atom or molecule to reveal properties, learning notes, and quick actions.</p>
+        </div>
+      )}
+
+      {selectedElement && (
+        <div className="inspector-content">
+          <div className="hero-element" style={{ borderColor: categoryColors[selectedElement.category] }}>
+            <span style={{ color: categoryColors[selectedElement.category] }}>{selectedElement.symbol}</span>
+            <div>
+              <h3>{selectedElement.name}</h3>
+              <p>{categoryLabels[selectedElement.category]} / Atomic #{selectedElement.atomicNumber}</p>
+            </div>
           </div>
 
-          {/* AR Button — only shows on compatible devices */}
-          <ARButton xrStore={xrStore} />
-
-          {/* Animation Controls */}
-          {mainViewMode === '3d' && selectedElement && (
-            <div className="flex items-center gap-2 bg-black/60 px-3 py-2 rounded-lg">
-              <button
-                onClick={() => togglePaused()}
-                className={cn(
-                  "p-1.5 rounded transition-colors",
-                  isPaused ? "bg-green-500/20 text-green-400" : "hover:bg-white/10"
-                )}
-                title={isPaused ? "Play" : "Pause"}
-              >
-                {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
-              </button>
-              <Gauge className="w-4 h-4 text-muted-foreground" />
-              <input
-                type="range"
-                min="0.1"
-                max="3"
-                step="0.1"
-                value={animationSpeed}
-                onChange={(e) => setAnimationSpeed(parseFloat(e.target.value))}
-                className="w-20 accent-primary"
-                title={`Speed: ${animationSpeed.toFixed(1)}x`}
-              />
-              <span className="text-xs text-muted-foreground w-8">{animationSpeed.toFixed(1)}x</span>
+          {inspectorTab === 'overview' && (
+            <div className="metric-grid">
+              <div><small>Mass</small><strong>{selectedElement.atomicMass.toFixed(2)} u</strong></div>
+              <div><small>Shells</small><strong>{selectedElement.shells.join(' - ')}</strong></div>
+              <div><small>State</small><strong>{props?.state || 'Unknown'}</strong></div>
+              <div><small>Density</small><strong>{props?.density || 'N/A'}</strong></div>
             </div>
           )}
 
-          {/* Zoom indicator */}
-          {(selectedElement || selectedMolecule) && mainViewMode === '3d' && (
-            <div className="bg-black/60 px-3 py-2 rounded-lg text-sm">
-              <span className="text-muted-foreground">Zoom: </span>
-              <span className="text-primary font-mono">{zoomLevel.toFixed(1)}x</span>
+          {inspectorTab === 'properties' && (
+            <div className="detail-list">
+              <div><span>Electron config</span><strong>{getElectronConfig(selectedElement.atomicNumber)}</strong></div>
+              <div><span>Melting point</span><strong>{formatTemp(props?.meltingPoint)}</strong></div>
+              <div><span>Boiling point</span><strong>{formatTemp(props?.boilingPoint)}</strong></div>
+              <div><span>Category</span><strong>{categoryLabels[selectedElement.category]}</strong></div>
             </div>
           )}
 
-          {/* Orbital toggle - only for atoms */}
-          {viewMode === 'atoms' && selectedElement && mainViewMode === '3d' && (
-            <button
-              onClick={() => setShowOrbitals(!showOrbitals)}
-              className={cn(
-                "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
-                showOrbitals
-                  ? "bg-purple-500/30 text-purple-300 border border-purple-400/50"
-                  : "bg-black/60 text-muted-foreground hover:bg-purple-500/20"
-              )}
-            >
-              {showOrbitals ? 'Orbitals ON' : 'Show Orbitals'}
-            </button>
-          )}
-
-          {viewMode === 'atoms' && zoomLevel > 1.5 && mainViewMode === '3d' && (
-            <div className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs">
-              Nucleus Detail
+          {inspectorTab === 'learning' && (
+            <div className="learning-card">
+              <Beaker className="h-5 w-5 text-primary" />
+              <p>{selectedElement.name} has {selectedElement.shells.length} electron shell{selectedElement.shells.length === 1 ? '' : 's'} and belongs to {categoryLabels[selectedElement.category].toLowerCase()}. Use compare mode to see how mass, shells, and thermal properties shift across the table.</p>
             </div>
           )}
 
-          {showOrbitals && viewMode === 'atoms' && mainViewMode === '3d' && (
-            <div className="bg-black/60 p-2 rounded-lg text-xs space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-red-400 opacity-50" />
-                <span className="text-muted-foreground">s orbital</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-cyan-400 opacity-50" />
-                <span className="text-muted-foreground">p orbital</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-yellow-400 opacity-50" />
-                <span className="text-muted-foreground">d orbital</span>
-              </div>
+          {inspectorTab === 'actions' && (
+            <div className="action-stack">
+              <button onClick={() => onCompare(selectedElement)}><GitCompare className="h-4 w-4" /> Add to compare</button>
+              <button onClick={() => setWorkspaceMode('reactions')}><Zap className="h-4 w-4" /> Try in reactions</button>
+              <button onClick={() => setWorkspaceMode('builder')}><Boxes className="h-4 w-4" /> Open builder</button>
             </div>
           )}
         </div>
-      </main>
+      )}
 
+      {selectedMolecule && (
+        <div className="inspector-content">
+          <div className="hero-element">
+            <span>{selectedMolecule.formula}</span>
+            <div>
+              <h3>{selectedMolecule.name}</h3>
+              <p>{selectedMolecule.description}</p>
+            </div>
+          </div>
+          <div className="metric-grid">
+            <div><small>Atoms</small><strong>{selectedMolecule.atoms.length}</strong></div>
+            <div><small>Bonds</small><strong>{selectedMolecule.bonds.length}</strong></div>
+            <div><small>Bond orders</small><strong>{selectedMolecule.bonds.map(bond => bond.order).join(', ')}</strong></div>
+            <div><small>Elements</small><strong>{Array.from(new Set(selectedMolecule.atoms.map(atom => atom.symbol))).join(', ')}</strong></div>
+          </div>
+          <div className="action-stack">
+            <button onClick={() => setWorkspaceMode('builder')}><Boxes className="h-4 w-4" /> Rebuild concept</button>
+            <button onClick={() => setWorkspaceMode('reactions')}><Zap className="h-4 w-4" /> Explore reactions</button>
+          </div>
+        </div>
+      )}
+    </aside>
+  );
+}
+
+function LibraryView({
+  sessions,
+  onOpen,
+  onDelete,
+}: {
+  sessions: SavedSession[];
+  onOpen: (session: SavedSession) => void;
+  onDelete: (session: SavedSession) => void;
+}) {
+  return (
+    <section className="workspace-surface">
+      <div className="surface-heading">
+        <div>
+          <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Library</div>
+          <h2>Saved explorations</h2>
+        </div>
+        <Library className="h-6 w-6 text-primary" />
+      </div>
+
+      <div className="session-grid">
+        {sessions.length === 0 && (
+          <div className="empty-inspector col-span-full">
+            <Save className="h-8 w-8 text-primary" />
+            <p>Save an atom, molecule, comparison, or builder exploration and it will appear here.</p>
+          </div>
+        )}
+        {sessions.map((session) => (
+          <article key={session.id} className="session-card">
+            <div>
+              <h3>{session.title}</h3>
+              <p>{new Date(session.updatedAt).toLocaleString()}</p>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {(session.tags.length ? session.tags : [session.workspaceMode]).map(tag => <span key={tag}>{tag}</span>)}
+            </div>
+            <div className="flex gap-2">
+              <button className="premium-button flex-1" onClick={() => onOpen(session)}>Open</button>
+              <button className="icon-button" onClick={() => onDelete(session)}><Trash2 className="h-4 w-4" /></button>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function BottomStatus({ selectedElement, selectedMolecule }: { selectedElement: ChemicalElement | null; selectedMolecule: Molecule | null }) {
+  const { comparisonBasket, recentItems, workspaceMode } = useAppStore();
+  return (
+    <footer className="bottom-status">
+      <span>{workspaceMode.toUpperCase()}</span>
+      <span>{selectedElement ? `${selectedElement.symbol} selected` : selectedMolecule ? `${selectedMolecule.formula} selected` : 'No selection'}</span>
+      <span>{comparisonBasket.length}/2 compare slots</span>
+      <span className="hidden md:inline">{recentItems.length} recent</span>
+    </footer>
+  );
+}
+
+export default function Index() {
+  const {
+    activeFilter,
+    comparisonBasket,
+    isMobile,
+    mainViewMode,
+    savedSessions,
+    searchQuery,
+    selectedElement,
+    selectedMolecule,
+    viewMode,
+    workspaceMode,
+    zoomLevel,
+    addRecentItem,
+    addSavedSession,
+    addToComparisonBasket,
+    removeSavedSession,
+    setCommandOpen,
+    setComparisonBasket,
+    setIsMobile,
+    setMainViewMode,
+    setSavedSessions,
+    setSearchQuery,
+    setSelectedElement,
+    setSelectedMolecule,
+    setSidebarOpen,
+    setViewMode,
+    setWorkspaceMode,
+    setZoomLevel,
+  } = useAppStore();
+
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const handPositionX = useRef(0.5);
+  const handPositionY = useRef(0.5);
+  const isHandControlled = useRef(false);
+  const isFrozen = useRef(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 900;
+      setIsMobile(mobile);
+      setSidebarOpen(!mobile);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, [setIsMobile, setSidebarOpen]);
+
+  useEffect(() => {
+    sessionApi.list().then(setSavedSessions).catch(() => setSavedSessions([]));
+  }, [setSavedSessions]);
+
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+      if (event.key === 'g') setWorkspaceMode('table');
+      if (event.key === 'c') setWorkspaceMode('compare');
+      if (event.key === 'b') setWorkspaceMode('builder');
+      if (event.key === 'r') setWorkspaceMode('reactions');
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [setWorkspaceMode]);
+
+  const query = searchQuery.toLowerCase();
+  const filteredElements = useMemo(() => elements.filter((element) => {
+    const matchesFilter = activeFilter === 'all' || element.category === activeFilter;
+    const matchesQuery = !query || element.name.toLowerCase().includes(query) || element.symbol.toLowerCase().includes(query) || String(element.atomicNumber).includes(query);
+    return matchesFilter && matchesQuery;
+  }), [activeFilter, query]);
+
+  const filteredMolecules = useMemo(() => molecules.filter((molecule) => (
+    !query || molecule.name.toLowerCase().includes(query) || molecule.formula.toLowerCase().includes(query) || molecule.description.toLowerCase().includes(query)
+  )), [query]);
+
+  const compareElement1 = useMemo(() => elements.find(element => element.atomicNumber === comparisonBasket[0]) || null, [comparisonBasket]);
+  const compareElement2 = useMemo(() => elements.find(element => element.atomicNumber === comparisonBasket[1]) || null, [comparisonBasket]);
+
+  const selectElement = useCallback((element: ChemicalElement) => {
+    setSelectedElement(element);
+    setSelectedMolecule(null);
+    setViewMode('atoms');
+    addRecentItem(`element:${element.atomicNumber}`);
+    sendProductEvent({ type: 'presence', workspaceMode });
+  }, [addRecentItem, setSelectedElement, setSelectedMolecule, setViewMode, workspaceMode]);
+
+  const selectMolecule = useCallback((molecule: Molecule) => {
+    setSelectedMolecule(molecule);
+    setSelectedElement(null);
+    setViewMode('molecules');
+    addRecentItem(`molecule:${molecule.formula}`);
+    sendProductEvent({ type: 'molecule_selected', formula: molecule.formula });
+  }, [addRecentItem, setSelectedElement, setSelectedMolecule, setViewMode]);
+
+  const addCompare = (element: ChemicalElement) => {
+    addToComparisonBasket(element.atomicNumber);
+    setWorkspaceMode('compare');
+    setMainViewMode('compare');
+    sendProductEvent({ type: 'compare_updated', compareElements: [element.atomicNumber, ...comparisonBasket].slice(0, 2) });
+  };
+
+  const saveSession = useCallback(async () => {
+    setSaveState('saving');
+    try {
+      const session = await sessionApi.create({
+        title: selectedElement ? `${selectedElement.name} exploration` : selectedMolecule ? `${selectedMolecule.name} molecule` : `${workspaceMode} workspace`,
+        selectedElement: selectedElement?.atomicNumber || null,
+        selectedMolecule: selectedMolecule?.formula || null,
+        workspaceMode,
+        compareElements: comparisonBasket,
+        builderAtoms: [],
+        builderBonds: [],
+        notes: '',
+        tags: [workspaceMode, viewMode],
+      });
+      addSavedSession(session);
+      sendProductEvent({ type: 'session_opened', sessionId: session.id });
+      setSaveState('saved');
+      window.setTimeout(() => setSaveState('idle'), 1500);
+    } catch {
+      setSaveState('error');
+      window.setTimeout(() => setSaveState('idle'), 1500);
+    }
+  }, [addSavedSession, comparisonBasket, selectedElement, selectedMolecule, viewMode, workspaceMode]);
+
+  const openSession = (session: SavedSession) => {
+    const element = elements.find(item => item.atomicNumber === session.selectedElement) || null;
+    const molecule = molecules.find(item => item.formula === session.selectedMolecule) || null;
+    setSelectedElement(element);
+    setSelectedMolecule(molecule);
+    setComparisonBasket(session.compareElements || []);
+    setWorkspaceMode((session.workspaceMode as WorkspaceMode) || 'explore');
+    setViewMode(molecule ? 'molecules' : 'atoms');
+    sendProductEvent({ type: 'session_opened', sessionId: session.id });
+  };
+
+  const deleteSession = async (session: SavedSession) => {
+    await sessionApi.delete(session.id).catch(() => undefined);
+    removeSavedSession(session.id);
+  };
+
+  const handleGestureDetected = useCallback((gesture: string) => {
+    isHandControlled.current = gesture === 'open';
+    isFrozen.current = gesture === 'fist';
+  }, []);
+
+  const handleHandPosition = useCallback((x: number, y: number) => {
+    handPositionX.current = x;
+    handPositionY.current = y;
+    isHandControlled.current = true;
+  }, []);
+
+  const handleSwipe = useCallback((direction: 'left' | 'right') => {
+    const list = viewMode === 'atoms' ? filteredElements : [];
+    if (!selectedElement || list.length === 0) return;
+    const current = list.findIndex(element => element.atomicNumber === selectedElement.atomicNumber);
+    const nextIndex = direction === 'right' ? (current + 1) % list.length : (current <= 0 ? list.length - 1 : current - 1);
+    selectElement(list[nextIndex]);
+  }, [filteredElements, selectElement, selectedElement, viewMode]);
+
+  const workspaceContent = () => {
+    if (workspaceMode === 'table' || mainViewMode === 'grid') {
+      return (
+        <PeriodicTableGrid
+          selectedElement={selectedElement}
+          onSelectElement={(element) => {
+            selectElement(element);
+            setWorkspaceMode('explore');
+            setMainViewMode('3d');
+          }}
+          categoryColors={categoryColors}
+          onChangeViewMode={(mode) => {
+            const map: Record<string, WorkspaceMode> = { '3d': 'explore', grid: 'table', compare: 'compare', reaction: 'reactions', builder: 'builder' };
+            setWorkspaceMode(map[mode] || 'explore');
+            setMainViewMode(mode);
+          }}
+        />
+      );
+    }
+    if (workspaceMode === 'compare') {
+      return <ComparisonMode element1={compareElement1} element2={compareElement2} onRemoveElement={(slot) => setComparisonBasket(slot === 1 ? comparisonBasket.slice(1) : comparisonBasket.slice(0, 1))} categoryColors={categoryColors} />;
+    }
+    if (workspaceMode === 'reactions') return <ReactionSimulator onClose={() => setWorkspaceMode('explore')} />;
+    if (workspaceMode === 'builder') return <MoleculeBuilder onClose={() => setWorkspaceMode('explore')} />;
+    if (workspaceMode === 'library') return <LibraryView sessions={savedSessions} onOpen={openSession} onDelete={deleteSession} />;
+    return (
+      <VisualStage
+        selectedElement={selectedElement}
+        selectedMolecule={selectedMolecule}
+        handPositionX={handPositionX}
+        handPositionY={handPositionY}
+        isHandControlled={isHandControlled}
+        isFrozen={isFrozen}
+      />
+    );
+  };
+
+  return (
+    <WorkbenchFrame>
+      <TopBar onSave={saveSession} saveState={saveState} />
+      <WorkspaceNav />
+
+      <CommandPalette
+        filteredElements={filteredElements}
+        filteredMolecules={filteredMolecules}
+        onSelectElement={selectElement}
+        onSelectMolecule={selectMolecule}
+        onSave={saveSession}
+      />
+
+      <div className={cn('workbench-layout', isMobile && 'is-mobile')}>
+        {!isMobile && (
+          <DiscoveryRail
+            filteredElements={filteredElements}
+            filteredMolecules={filteredMolecules}
+            onSelectElement={selectElement}
+            onSelectMolecule={selectMolecule}
+          />
+        )}
+
+        <main className="workbench-main">
+          {workspaceContent()}
+        </main>
+
+        {!isMobile && (
+          <Inspector
+            selectedElement={selectedElement}
+            selectedMolecule={selectedMolecule}
+            onCompare={addCompare}
+            onSave={saveSession}
+          />
+        )}
+      </div>
+
+      {isMobile && (
+        <div className="mobile-dock">
+          <button onClick={() => setCommandOpen(true)}><Search className="h-4 w-4" />Search</button>
+          <button onClick={() => setWorkspaceMode('table')}><Grid3X3 className="h-4 w-4" />Table</button>
+          <button onClick={() => selectedElement && addCompare(selectedElement)}><Plus className="h-4 w-4" />Compare</button>
+          <button onClick={saveSession}><Save className="h-4 w-4" />Save</button>
+        </div>
+      )}
+
+      <BottomStatus selectedElement={selectedElement} selectedMolecule={selectedMolecule} />
       <HandTracker
-        onZoomChange={handleZoomChange}
+        onZoomChange={setZoomLevel}
         onGestureDetected={handleGestureDetected}
         onSwipe={handleSwipe}
         onHandPosition={handleHandPosition}
       />
-    </div>
+    </WorkbenchFrame>
   );
-};
-
-export default Index;
+}

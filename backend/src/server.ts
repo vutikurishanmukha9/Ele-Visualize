@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
 import elementRoutes from './routes/element.routes.js';
+import sessionRoutes from './routes/session.routes.js';
 import { initWebSocket, getConnectedClients } from './services/websocket.service.js';
 
 const app = express();
@@ -20,6 +21,7 @@ app.use(express.json());
 
 // Routes
 app.use(elementRoutes);
+app.use(sessionRoutes);
 
 // Status endpoint with WebSocket info
 app.get('/api/status', (req, res) => {
@@ -30,7 +32,9 @@ app.get('/api/status', (req, res) => {
         features: {
             gestureRecognition: true,
             elementVisualization: true,
-            handTracking: true
+            handTracking: true,
+            sessions: true,
+            collaborationEvents: true
         }
     });
 });
@@ -44,5 +48,5 @@ initWebSocket(server);
 server.listen(PORT, () => {
     console.log(`Backend running on http://localhost:${PORT}`);
     console.log(`WebSocket at ws://localhost:${PORT}/ws`);
-    console.log('Features: Gesture Recognition, Hand Tracking, Element API');
+    console.log('Features: Gesture Recognition, Hand Tracking, Element API, Sessions');
 });
