@@ -1,47 +1,54 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* Premium workbench dark theme */
-    --background: 226 26% 5%;
-    --foreground: 214 24% 94%;
+    /* Premium product-workbench theme: Linear depth + Apple restraint + Stripe-tinted lift */
+    --background: 240 33% 1%;
+    --foreground: 210 20% 96%;
 
     /* Surfaces */
-    --card: 224 22% 9%;
+    --card: 228 12% 6%;
     --card-foreground: 200 20% 95%;
-    --popover: 224 24% 7%;
+    --popover: 228 12% 7%;
     --popover-foreground: 200 20% 95%;
 
-    /* Primary - lab cyan */
-    --primary: 178 72% 58%;
-    --primary-foreground: 220 20% 4%;
+    /* Primary - Linear-inspired lavender, used sparingly */
+    --primary: 236 58% 60%;
+    --primary-foreground: 0 0% 100%;
 
-    /* Secondary - graphite blue */
-    --secondary: 222 18% 14%;
-    --secondary-foreground: 205 18% 86%;
+    /* Secondary - charcoal lift */
+    --secondary: 220 8% 10%;
+    --secondary-foreground: 215 16% 88%;
 
     /* Muted elements */
-    --muted: 222 16% 16%;
-    --muted-foreground: 210 12% 64%;
+    --muted: 220 7% 13%;
+    --muted-foreground: 218 9% 60%;
 
     /* Accent - Soft teal glow */
-    --accent: 153 56% 52%;
-    --accent-foreground: 220 20% 4%;
+    --accent: 204 100% 50%;
+    --accent-foreground: 0 0% 100%;
 
     /* Status colors */
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
 
     /* Borders & inputs */
-    --border: 220 14% 18%;
-    --input: 222 17% 12%;
+    --border: 230 10% 16%;
+    --input: 228 10% 8%;
     --ring: 185 100% 50%;
 
     --radius: 0.5rem;
+
+    /* Design reference accents */
+    --linear-lavender: 236 58% 60%;
+    --framer-blue: 204 100% 50%;
+    --stripe-shadow: 240 30% 28%;
+    --apple-ink: 240 1% 86%;
+    --spotlight-magenta: 290 84% 62%;
+    --spotlight-coral: 347 100% 67%;
+    --spotlight-orange: 17 100% 62%;
 
     /* Custom glow effects */
     --glow-primary: 185 100% 50%;
@@ -84,11 +91,11 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-feature-settings: "liga", "cv11", "ss03";
     letter-spacing: 0;
     background:
-      radial-gradient(circle at 12% 0%, hsl(178 72% 58% / 0.12), transparent 28rem),
-      radial-gradient(circle at 88% 8%, hsl(153 56% 52% / 0.08), transparent 24rem),
+      linear-gradient(180deg, hsl(240 33% 1%), hsl(228 18% 4%) 42%, hsl(240 33% 1%)),
       hsl(var(--background));
   }
 
@@ -99,7 +106,7 @@
 
   button:focus-visible,
   input:focus-visible {
-    outline: 2px solid hsl(var(--primary) / 0.72);
+    outline: 2px solid hsl(var(--accent) / 0.75);
     outline-offset: 2px;
   }
 
@@ -126,51 +133,53 @@
 @layer components {
   .workbench-topbar {
     @apply fixed left-0 right-0 top-0 z-40 grid h-16 grid-cols-[minmax(0,1fr)_minmax(220px,520px)_auto] items-center gap-3 border-b border-white/10 px-3 backdrop-blur-xl md:px-5;
-    background: linear-gradient(180deg, hsl(var(--background) / 0.96), hsl(var(--background) / 0.86));
-    box-shadow: 0 1px 0 hsl(var(--foreground) / 0.04), 0 18px 40px -32px hsl(var(--primary) / 0.42);
+    background: hsl(var(--background) / 0.86);
+    box-shadow: 0 0 0 1px hsl(var(--foreground) / 0.055), 0 18px 42px -38px hsl(var(--stripe-shadow) / 0.72);
   }
 
   .brand-mark {
-    @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary;
-    box-shadow: inset 0 1px 0 hsl(var(--foreground) / 0.08), 0 12px 26px -18px hsl(var(--primary) / 0.9);
+    @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-primary;
+    background: hsl(var(--primary) / 0.1);
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.22), inset 0 1px 0 hsl(var(--foreground) / 0.08);
   }
 
   .command-trigger {
-    @apply flex h-10 min-w-0 items-center gap-2 rounded-lg border border-white/10 px-3 text-left text-sm text-muted-foreground transition duration-200 hover:border-primary/35 hover:text-foreground;
-    background: linear-gradient(180deg, hsl(var(--card) / 0.94), hsl(var(--secondary) / 0.58));
-    box-shadow: inset 0 1px 0 hsl(var(--foreground) / 0.05);
+    @apply flex h-10 min-w-0 items-center gap-2 rounded-full px-4 text-left text-sm text-muted-foreground transition duration-200 hover:text-foreground;
+    background: hsl(var(--card) / 0.86);
+    box-shadow: 0 0 0 1px hsl(var(--foreground) / 0.075), inset 0 1px 0 hsl(var(--foreground) / 0.045);
   }
 
   .icon-button {
-    @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 text-muted-foreground transition duration-200 hover:-translate-y-px hover:border-primary/35 hover:text-primary disabled:translate-y-0 disabled:opacity-50;
-    background: linear-gradient(180deg, hsl(var(--card) / 0.92), hsl(var(--secondary) / 0.62));
-    box-shadow: inset 0 1px 0 hsl(var(--foreground) / 0.055), 0 10px 24px -22px hsl(var(--primary) / 0.7);
+    @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition duration-200 hover:-translate-y-px hover:text-foreground disabled:translate-y-0 disabled:opacity-50;
+    background: hsl(var(--secondary) / 0.78);
+    box-shadow: 0 0 0 1px hsl(var(--foreground) / 0.07), inset 0 1px 0 hsl(var(--foreground) / 0.045);
   }
 
   .icon-button.is-active {
-    @apply border-primary/45 text-primary;
-    background: linear-gradient(180deg, hsl(var(--primary) / 0.18), hsl(var(--primary) / 0.08));
-    box-shadow: inset 0 1px 0 hsl(var(--foreground) / 0.08), 0 0 0 1px hsl(var(--primary) / 0.1), 0 12px 28px -20px hsl(var(--primary) / 0.95);
+    @apply text-primary;
+    background: hsl(var(--primary) / 0.16);
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.36), 0 0 0 4px hsl(var(--primary) / 0.06);
   }
 
   .premium-button {
-    @apply inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg border border-primary/35 px-3 text-sm font-semibold text-primary-foreground transition duration-200 hover:-translate-y-px disabled:translate-y-0 disabled:cursor-wait disabled:opacity-70;
-    background: linear-gradient(180deg, hsl(var(--primary)), hsl(178 68% 47%));
-    box-shadow: inset 0 1px 0 hsl(var(--foreground) / 0.25), 0 16px 32px -24px hsl(var(--primary) / 0.95);
+    @apply inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full px-4 text-sm font-medium text-primary-foreground transition duration-200 hover:-translate-y-px disabled:translate-y-0 disabled:cursor-wait disabled:opacity-70;
+    background: hsl(var(--primary));
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.52), 0 16px 34px -25px hsl(var(--primary) / 0.95);
   }
 
   .workspace-nav {
     @apply fixed left-0 right-0 top-16 z-30 flex h-12 items-center gap-1 overflow-x-auto border-b border-white/10 px-3 backdrop-blur-xl md:px-5;
-    background: hsl(var(--card) / 0.54);
+    background: hsl(var(--background) / 0.72);
   }
 
   .workspace-tab {
-    @apply inline-flex h-8 shrink-0 items-center gap-2 rounded-lg px-3 text-xs font-medium text-muted-foreground transition duration-200 hover:bg-white/[0.045] hover:text-foreground;
+    @apply inline-flex h-8 shrink-0 items-center gap-2 rounded-full px-3 text-xs font-medium text-muted-foreground transition duration-200 hover:bg-white/[0.045] hover:text-foreground;
   }
 
   .workspace-tab.is-active {
-    @apply text-primary ring-1 ring-primary/25;
-    background: linear-gradient(180deg, hsl(var(--primary) / 0.16), hsl(var(--primary) / 0.07));
+    @apply text-foreground;
+    background: hsl(var(--secondary));
+    box-shadow: 0 0 0 1px hsl(var(--foreground) / 0.08);
   }
 
   .workbench-layout {
@@ -183,39 +192,47 @@
 
   .workbench-main {
     @apply min-h-0 overflow-hidden rounded-lg border border-white/10 shadow-2xl;
-    background: linear-gradient(180deg, hsl(var(--card) / 0.72), hsl(var(--background) / 0.58));
-    box-shadow: inset 0 1px 0 hsl(var(--foreground) / 0.045), 0 24px 60px -44px hsl(0 0% 0% / 0.85);
+    background: hsl(var(--card) / 0.72);
+    box-shadow: 0 0 0 1px hsl(var(--foreground) / 0.065), 0 28px 70px -44px hsl(var(--stripe-shadow) / 0.58), inset 0 1px 0 hsl(var(--foreground) / 0.04);
   }
 
   .discovery-rail,
   .inspector-panel {
     @apply min-h-0 overflow-hidden rounded-lg border border-white/10 shadow-2xl backdrop-blur-xl;
-    background: linear-gradient(180deg, hsl(var(--card) / 0.9), hsl(var(--background) / 0.72));
-    box-shadow: inset 0 1px 0 hsl(var(--foreground) / 0.045), 0 22px 54px -42px hsl(0 0% 0% / 0.9);
+    background: hsl(var(--card) / 0.88);
+    box-shadow: 0 0 0 1px hsl(var(--foreground) / 0.065), 0 22px 54px -42px hsl(var(--stripe-shadow) / 0.52), inset 0 1px 0 hsl(var(--foreground) / 0.04);
   }
 
   .rail-header {
     @apply flex items-center justify-between gap-3 border-b border-white/10 p-3;
   }
 
+  .rail-header .text-lg,
+  .surface-heading h2,
+  .empty-stage h2,
+  .hero-element h3 {
+    letter-spacing: -0.03em;
+  }
+
   .segmented {
-    @apply inline-flex rounded-lg border border-white/10 p-1;
-    background: hsl(var(--background) / 0.54);
+    @apply inline-flex rounded-full p-1;
+    background: hsl(var(--background) / 0.72);
+    box-shadow: 0 0 0 1px hsl(var(--foreground) / 0.07);
   }
 
   .segmented button {
-    @apply rounded-md px-2 py-1 text-xs text-muted-foreground transition hover:text-foreground;
+    @apply rounded-full px-2.5 py-1 text-xs text-muted-foreground transition hover:text-foreground;
   }
 
   .segmented button.is-active {
     @apply text-primary;
-    background: hsl(var(--primary) / 0.13);
+    background: hsl(var(--primary) / 0.14);
   }
 
   .search-field {
-    @apply m-3 flex h-10 items-center gap-2 rounded-lg border border-white/10 px-3 text-muted-foreground transition focus-within:border-primary/40;
-    background: hsl(var(--background) / 0.5);
-    box-shadow: inset 0 1px 0 hsl(var(--foreground) / 0.035);
+    @apply m-3 flex h-11 items-center gap-2 rounded-full px-4 text-muted-foreground transition;
+    background: hsl(var(--background) / 0.66);
+    box-shadow: 0 0 0 1px hsl(var(--foreground) / 0.07), inset 0 1px 0 hsl(var(--foreground) / 0.035);
   }
 
   .search-field input {
@@ -227,7 +244,8 @@
   }
 
   .category-strip button {
-    @apply rounded-md border border-white/10 px-2 py-1 text-[11px] text-muted-foreground transition duration-200 hover:border-white/20 hover:text-foreground;
+    @apply rounded-full px-2.5 py-1 text-[11px] text-muted-foreground transition duration-200 hover:text-foreground;
+    box-shadow: 0 0 0 1px hsl(var(--foreground) / 0.06);
   }
 
   .category-strip button.is-active {
@@ -239,14 +257,18 @@
   }
 
   .result-card {
-    @apply flex w-full items-center gap-3 rounded-lg border border-white/10 p-2 text-left transition duration-200 hover:-translate-y-px hover:border-primary/30;
-    background: linear-gradient(180deg, hsl(var(--background) / 0.48), hsl(var(--secondary) / 0.34));
-    box-shadow: inset 0 1px 0 hsl(var(--foreground) / 0.035);
+    @apply flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition duration-200 hover:-translate-y-px;
+    background: hsl(var(--background) / 0.42);
+    box-shadow: 0 0 0 1px hsl(var(--foreground) / 0.06), inset 0 1px 0 hsl(var(--foreground) / 0.035);
+  }
+
+  .result-card:hover {
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.28), 0 14px 26px -24px hsl(var(--primary) / 0.55), inset 0 1px 0 hsl(var(--foreground) / 0.04);
   }
 
   .periodic-tile {
     @apply flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-lg border bg-white/[0.035] text-base font-bold;
-    box-shadow: inset 0 1px 0 hsl(var(--foreground) / 0.05);
+    box-shadow: inset 0 1px 0 hsl(var(--foreground) / 0.05), 0 12px 24px -22px currentColor;
   }
 
   .periodic-tile small {
@@ -254,16 +276,17 @@
   }
 
   .molecule-tile {
-    @apply flex h-12 w-16 shrink-0 items-center justify-center rounded-lg border border-primary/25 px-2 text-center text-sm font-bold text-primary;
-    background: linear-gradient(180deg, hsl(var(--primary) / 0.13), hsl(var(--primary) / 0.06));
+    @apply flex h-12 w-16 shrink-0 items-center justify-center rounded-lg px-2 text-center text-sm font-bold text-primary;
+    background: hsl(var(--primary) / 0.1);
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.24), inset 0 1px 0 hsl(var(--foreground) / 0.05);
   }
 
   .visual-stage {
     @apply relative flex h-full min-h-0 flex-col overflow-hidden;
     background:
-      radial-gradient(circle at 50% 8%, hsl(var(--primary) / 0.14), transparent 30%),
-      radial-gradient(circle at 12% 82%, hsl(var(--accent) / 0.07), transparent 26%),
-      linear-gradient(180deg, hsl(var(--foreground) / 0.035), hsl(var(--background) / 0.14));
+      linear-gradient(135deg, hsl(var(--primary) / 0.12), transparent 28%),
+      linear-gradient(315deg, hsl(var(--spotlight-coral) / 0.06), transparent 24%),
+      hsl(var(--background) / 0.18);
   }
 
   .visual-stage.is-fullscreen {
@@ -272,7 +295,7 @@
 
   .stage-toolbar {
     @apply relative z-10 flex min-h-16 items-center justify-between gap-3 border-b border-white/10 px-4 backdrop-blur;
-    background: hsl(var(--background) / 0.46);
+    background: hsl(var(--background) / 0.58);
   }
 
   .stage-canvas {
@@ -290,7 +313,7 @@
 
   .stage-status {
     @apply relative z-10 flex min-h-12 flex-wrap items-center gap-3 border-t border-white/10 px-4 text-xs text-muted-foreground backdrop-blur;
-    background: hsl(var(--background) / 0.55);
+    background: hsl(var(--background) / 0.62);
   }
 
   .stage-status input {
@@ -314,11 +337,12 @@
   }
 
   .inspector-tabs button {
-    @apply truncate rounded-md px-2 py-1.5 text-[11px] capitalize text-muted-foreground transition hover:bg-white/5 hover:text-foreground;
+    @apply truncate rounded-full px-2 py-1.5 text-[11px] capitalize text-muted-foreground transition hover:bg-white/5 hover:text-foreground;
   }
 
   .inspector-tabs button.is-active {
     @apply bg-primary/15 text-primary;
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.18);
   }
 
   .inspector-content {
@@ -326,9 +350,9 @@
   }
 
   .hero-element {
-    @apply flex items-center gap-3 rounded-lg border border-white/10 p-3;
-    background: linear-gradient(180deg, hsl(var(--background) / 0.56), hsl(var(--secondary) / 0.32));
-    box-shadow: inset 0 1px 0 hsl(var(--foreground) / 0.04);
+    @apply flex items-center gap-3 rounded-xl p-3;
+    background: hsl(var(--background) / 0.5);
+    box-shadow: 0 0 0 1px hsl(var(--foreground) / 0.07), inset 0 1px 0 hsl(var(--foreground) / 0.04);
   }
 
   .hero-element > span {
@@ -351,8 +375,9 @@
   .metric-grid div,
   .learning-card,
   .empty-inspector {
-    @apply rounded-lg border border-white/10 p-3;
-    background: linear-gradient(180deg, hsl(var(--background) / 0.52), hsl(var(--secondary) / 0.3));
+    @apply rounded-xl p-3;
+    background: hsl(var(--background) / 0.46);
+    box-shadow: 0 0 0 1px hsl(var(--foreground) / 0.06), inset 0 1px 0 hsl(var(--foreground) / 0.035);
   }
 
   .metric-grid small {
@@ -361,6 +386,7 @@
 
   .metric-grid strong {
     @apply mt-1 block break-words text-sm font-semibold;
+    font-variant-numeric: tabular-nums;
   }
 
   .detail-list {
@@ -368,8 +394,9 @@
   }
 
   .detail-list div {
-    @apply rounded-lg border border-white/10 p-3;
-    background: linear-gradient(180deg, hsl(var(--background) / 0.52), hsl(var(--secondary) / 0.3));
+    @apply rounded-xl p-3;
+    background: hsl(var(--background) / 0.46);
+    box-shadow: 0 0 0 1px hsl(var(--foreground) / 0.06), inset 0 1px 0 hsl(var(--foreground) / 0.035);
   }
 
   .detail-list span {
@@ -378,6 +405,7 @@
 
   .detail-list strong {
     @apply mt-1 block break-words text-sm font-semibold;
+    font-variant-numeric: tabular-nums;
   }
 
   .learning-card {
@@ -389,8 +417,9 @@
   }
 
   .action-stack button {
-    @apply flex h-10 w-full items-center gap-2 rounded-lg border border-white/10 px-3 text-left text-sm transition duration-200 hover:-translate-y-px hover:border-primary/30 hover:text-primary;
-    background: linear-gradient(180deg, hsl(var(--background) / 0.5), hsl(var(--secondary) / 0.32));
+    @apply flex h-11 w-full items-center gap-2 rounded-full px-3.5 text-left text-sm transition duration-200 hover:-translate-y-px hover:text-primary;
+    background: hsl(var(--secondary) / 0.72);
+    box-shadow: 0 0 0 1px hsl(var(--foreground) / 0.065), inset 0 1px 0 hsl(var(--foreground) / 0.035);
   }
 
   .empty-inspector {
@@ -398,9 +427,9 @@
   }
 
   .command-panel {
-    @apply mx-auto mt-20 w-full max-w-2xl overflow-hidden rounded-lg border border-white/10 shadow-2xl;
-    background: linear-gradient(180deg, hsl(var(--card) / 0.98), hsl(var(--background) / 0.96));
-    box-shadow: inset 0 1px 0 hsl(var(--foreground) / 0.06), 0 32px 90px -46px hsl(0 0% 0% / 1);
+    @apply mx-auto mt-20 w-full max-w-2xl overflow-hidden rounded-2xl shadow-2xl;
+    background: hsl(var(--card) / 0.98);
+    box-shadow: 0 0 0 1px hsl(var(--foreground) / 0.08), 0 32px 90px -46px hsl(var(--stripe-shadow) / 0.72), inset 0 1px 0 hsl(var(--foreground) / 0.055);
   }
 
   .command-section {
@@ -408,7 +437,7 @@
   }
 
   .command-item {
-    @apply flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition duration-200 hover:bg-white/[0.045] hover:text-primary;
+    @apply flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition duration-200 hover:bg-white/[0.045] hover:text-primary;
   }
 
   .element-dot {
@@ -420,8 +449,9 @@
   }
 
   .surface-heading {
-    @apply mb-4 flex items-center justify-between rounded-lg border border-white/10 p-4;
-    background: linear-gradient(180deg, hsl(var(--background) / 0.52), hsl(var(--secondary) / 0.3));
+    @apply mb-4 flex items-center justify-between rounded-xl p-4;
+    background: hsl(var(--background) / 0.5);
+    box-shadow: 0 0 0 1px hsl(var(--foreground) / 0.065), inset 0 1px 0 hsl(var(--foreground) / 0.035);
   }
 
   .surface-heading h2 {
@@ -433,9 +463,9 @@
   }
 
   .session-card {
-    @apply flex min-h-44 flex-col justify-between gap-4 rounded-lg border border-white/10 p-4 transition duration-200 hover:-translate-y-1 hover:border-primary/25;
-    background: linear-gradient(180deg, hsl(var(--background) / 0.56), hsl(var(--secondary) / 0.34));
-    box-shadow: inset 0 1px 0 hsl(var(--foreground) / 0.045), 0 18px 42px -36px hsl(0 0% 0% / 0.9);
+    @apply flex min-h-44 flex-col justify-between gap-4 rounded-xl p-4 transition duration-200 hover:-translate-y-1;
+    background: hsl(var(--background) / 0.5);
+    box-shadow: 0 0 0 1px hsl(var(--foreground) / 0.065), 0 18px 42px -36px hsl(var(--stripe-shadow) / 0.56), inset 0 1px 0 hsl(var(--foreground) / 0.04);
   }
 
   .session-card h3 {
@@ -454,6 +484,7 @@
   .bottom-status {
     @apply fixed bottom-0 left-0 right-0 z-30 flex h-8 items-center gap-4 border-t border-white/10 px-3 text-[11px] text-muted-foreground backdrop-blur md:px-5;
     background: hsl(var(--background) / 0.9);
+    font-variant-numeric: tabular-nums;
   }
 
   .mobile-dock {
