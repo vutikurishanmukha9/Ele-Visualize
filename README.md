@@ -1,244 +1,337 @@
 # Ele-Visualize
 
-> A futuristic 3D atomic and molecular visualization platform with real-time hand gesture controls, WebXR AR, and physics-based molecule building
+> A premium dark-mode scientific workbench for exploring atoms, molecules, reactions, AR, and gesture-driven chemistry learning.
 
-![Status](https://img.shields.io/badge/Status-Active-brightgreen) ![React](https://img.shields.io/badge/React-18-blue) ![Three.js](https://img.shields.io/badge/Three.js-R3F-orange) ![MediaPipe](https://img.shields.io/badge/MediaPipe-Hand%20Tracking-purple) ![WebXR](https://img.shields.io/badge/WebXR-AR-ff69b4) ![Zustand](https://img.shields.io/badge/State-Zustand-yellow)
+![Status](https://img.shields.io/badge/Status-Active-brightgreen)
+![React](https://img.shields.io/badge/React-18-blue)
+![Three.js](https://img.shields.io/badge/Three.js-R3F-orange)
+![MediaPipe](https://img.shields.io/badge/MediaPipe-Hand%20Tracking-purple)
+![WebXR](https://img.shields.io/badge/WebXR-AR-ff69b4)
+![Zustand](https://img.shields.io/badge/State-Zustand-yellow)
 
 ---
 
-## What is Ele-Visualize?
+## Overview
 
-Ele-Visualize transforms chemistry education by bringing the periodic table to life. Instead of memorizing static diagrams, users can:
+Ele-Visualize turns chemistry into an interactive product-grade workspace. The app combines a premium dark scientific UI with 3D atom and molecule rendering, hand gesture controls, WebXR AR placement, reaction simulation, comparison tools, and saved exploration sessions.
 
-- **Explore 3D atoms** with orbiting electrons and detailed nuclei
-- **Visualize molecules** with accurate 3D bond structures
-- **Build molecules in 3D** using a physics-based builder with auto-bonding
-- **Simulate chemical reactions** to understand bonding
-- **See orbital shapes** (s, p, d) as probability clouds
-- **View atoms in Augmented Reality** on WebXR-compatible devices
-- **Control everything with hand gestures** — no mouse needed!
+The current UI is organized as a productivity workbench:
+
+- **Top command bar** for fast search, actions, and session saving
+- **Workspace navigation** for Explore, Table, Compare, Reactions, Builder, AR Lab, and Library
+- **Discovery rail** for quick atom and molecule selection
+- **Central visual stage** for 3D atoms and molecules
+- **Inspector panel** for properties, learning notes, and quick actions
+- **Library** for saved local exploration sessions
+
+The product is dark-mode only by design.
 
 ---
 
 ## Features
 
+### Premium Workbench UI
+
+- Dark-only scientific product interface
+- Command/search palette for elements, molecules, and app actions
+- Responsive desktop workbench, tablet layout, and mobile dock
+- Inspector tabs for overview, properties, learning notes, and actions
+- Design language inspired by polished product systems: precise dark surfaces, quiet chrome, pill CTAs, shadow-as-border cards, and restrained lavender/blue accents
+
 ### Atom Visualization
-- True 3D atomic models using React Three Fiber
-- Orbiting electrons on proper shells
-- Zoom into nucleus to see individual protons/neutrons
-- Accurate electron configuration (aufbau principle)
-- Toggle orbital probability clouds (s/p/d shapes)
-- Element comparison (side-by-side view)
+
+- 3D atomic models using React Three Fiber and Three.js
+- Orbiting electrons across proper shells
+- Nucleus detail at higher zoom levels
+- Electron configuration display
+- Optional orbital probability clouds
+- Animation speed, pause/play, zoom, and fullscreen controls
 
 ### Molecule Visualization
-- **20+ pre-built molecules**: H₂O, CO₂, CH₄, NH₃, O₂, C₆H₆, C₂H₅OH, and more
-- Accurate molecular geometry with single, double, and triple bonds
-- Atom labels and descriptions
 
-### 3D Physics Molecule Builder
-- **Rapier Physics Engine**: Atoms are rigid bodies with gravity, damping, and colliders
-- **Element Palette**: H, C, N, O, S, P, F, Cl with correct valence rules
-- **Auto-Bonding**: Atoms within proximity threshold automatically form single bonds (valence-aware)
-- **Visual Feedback**: Proximity glow, selection rings, bond cylinders, symbol labels
-- **Responsive toolbar** that scrolls horizontally on mobile
+- 20+ prebuilt molecule structures
+- Accurate 3D atom positions and single, double, and triple bonds
+- Molecule descriptions, atom counts, bond counts, and element summaries
 
-### Reaction Simulator
-- Interactive reactions: combine elements to see how they react (e.g., Na + Cl → NaCl)
-- Visual feedback with reaction equations and product visualization
+### Compare, Reactions, and Builder
 
-### WebXR Augmented Reality
-- **Auto-detection**: AR button only appears on WebXR-compatible devices
-- **Surface anchoring**: Pulsing reticle for placing atoms on real-world surfaces
-- **Hand input mapping**: MediaPipe gestures translate to 3D AR interactions:
-  - Open hand → 3D rotation
-  - Pinch → scale model up/down
-  - Fist → freeze transforms
-  - Point → visible pointer ray
+- Side-by-side element comparison
+- Interactive reaction simulator
+- 2D molecule builder with valence-aware bonding
+- 3D physics molecule builder components remain available in the codebase
 
-### Hand Gesture Controls
+### Hand Gestures and AR
 
-| Gesture | Action |
-|---------|--------|
-| Open Hand | Rotate atom/molecule in 3D |
-| Pinch | Zoom in/out (fingers apart = zoom in) |
-| Point | Highlight / pointer ray (AR) |
-| Fist | Freeze current state |
-| Swipe | Navigate between elements |
+- MediaPipe hand tracking with Kalman-style smoothing
+- Gesture state machine for stable recognition
+- Open hand rotates the model
+- Pinch controls zoom
+- Fist freezes transforms
+- Swipe navigates between elements
+- WebXR AR support with compatible browsers/devices
 
-**Powered by:**
-- MediaPipe Hand Tracking (21 landmarks, npm package)
-- Kalman filtering for ultra-smooth tracking
-- Gesture state machine for stability
-- Velocity-based swipe detection
+### Saved Sessions
 
-### Responsive Design
-- **Mobile**: Collapsible sidebar, compact toolbars, horizontally scrolling palettes, icon-only buttons
-- **Tablet**: Balanced layout with touch-optimized controls
-- **Desktop**: Full experience with all decorative elements and detailed status bars
-- Dark/Light mode toggle
-- Gesture tutorial for first-time users
+The backend provides local JSON-backed session storage for saving and reopening explorations.
+
+Session data includes:
+
+- title
+- selected element
+- selected molecule
+- workspace mode
+- compared elements
+- builder atoms and bonds
+- notes
+- tags
+- created and updated timestamps
 
 ---
 
 ## Tech Stack
 
-| Category | Technologies |
-|----------|--------------|
-| **Frontend** | React 18, TypeScript, Vite |
-| **3D Graphics** | Three.js, React Three Fiber, Drei, Postprocessing (Bloom) |
-| **Physics** | Rapier (`@react-three/rapier`) |
-| **WebXR / AR** | `@react-three/xr` v6 |
-| **State Management** | Zustand (centralized store) |
-| **Hand Tracking** | `@mediapipe/tasks-vision` (npm, not CDN) |
-| **Styling** | Tailwind CSS, Framer Motion |
-| **Backend** | Node.js, Express, WebSocket (Socket.IO) |
-| **Icons** | Lucide React |
+| Area | Technologies |
+| --- | --- |
+| Frontend | React 18, TypeScript, Vite |
+| Styling | Tailwind CSS, Framer Motion, Lucide React |
+| 3D | Three.js, React Three Fiber, Drei, Postprocessing |
+| Physics | `@react-three/rapier` |
+| AR/XR | `@react-three/xr` |
+| State | Zustand |
+| Hand Tracking | `@mediapipe/tasks-vision` |
+| Backend | Node.js, Express |
+| Realtime | `ws` WebSocket server |
+| Persistence | Local JSON session store |
 
 ---
 
-## Architecture
+## Project Structure
 
-```
+```text
 Ele-Visualize/
+├── package.json                         # Root workspace scripts
 ├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── Atom3D.tsx            # 3D atom renderer (useRef for 60fps perf)
-│   │   │   ├── Molecule3D.tsx        # 3D molecule renderer
-│   │   │   ├── MoleculeBuilder3D.tsx  # Physics-based 3D builder (Rapier)
-│   │   │   ├── MoleculeBuilder.tsx    # 2D canvas builder
-│   │   │   ├── HandTracker.tsx        # MediaPipe gesture detection
-│   │   │   ├── VisualizerCanvas.tsx   # R3F Canvas with XR + hand bridge
-│   │   │   ├── ARButton.tsx           # WebXR AR session toggle
-│   │   │   ├── ARPlacement.tsx        # AR surface reticle
-│   │   │   ├── ReactionSimulator.tsx  # Chemical reaction sim
-│   │   │   ├── PeriodicTableGrid.tsx  # Responsive periodic table
-│   │   │   └── ...
-│   │   ├── hooks/
-│   │   │   ├── useXRHandBridge.tsx    # Maps MediaPipe → XR 3D transforms
-│   │   │   └── useGestureReceiver.ts  # WebSocket gesture relay
-│   │   ├── store/
-│   │   │   └── useAppStore.ts         # Zustand centralized state
-│   │   ├── data/
-│   │   │   ├── elements.ts            # Periodic table data
-│   │   │   ├── molecules.ts           # Molecule structures
-│   │   │   └── reactions.ts           # Reaction definitions
-│   │   └── pages/
-│   │       └── Index.tsx              # Main app page
-│   └── index.html
-├── backend/
-│   ├── src/
-│   │   ├── server.ts                  # Express + CORS (env-configurable)
-│   │   └── services/
-│   │       ├── websocket.service.ts   # WebSocket relay (crypto.randomUUID)
-│   │       └── gesture.service.ts     # Type definitions only
-│   └── .env.example                   # PORT, ALLOWED_ORIGINS
-└── README.md
+│   ├── package.json
+│   └── src/
+│       ├── pages/
+│       │   └── Index.tsx                # Premium workbench shell
+│       ├── components/
+│       │   ├── Atom3D.tsx               # 3D atom renderer
+│       │   ├── Molecule3D.tsx           # 3D molecule renderer
+│       │   ├── HandTracker.tsx          # MediaPipe gesture panel
+│       │   ├── PeriodicTableGrid.tsx    # Periodic table workspace
+│       │   ├── ComparisonMode.tsx       # Element comparison
+│       │   ├── ReactionSimulator.tsx    # Reaction simulator
+│       │   ├── MoleculeBuilder.tsx      # 2D molecule builder
+│       │   └── ui/                      # shadcn/Radix primitives
+│       ├── data/
+│       │   ├── elements.ts
+│       │   ├── elementProperties.ts
+│       │   ├── molecules.ts
+│       │   └── reactions.ts
+│       ├── lib/
+│       │   ├── sessions.ts              # Frontend session API helper
+│       │   └── productSocket.ts         # Product event WebSocket helper
+│       ├── store/
+│       │   └── useAppStore.ts           # Zustand app state
+│       └── index.css                    # Design system and workbench styles
+└── backend/
+    ├── package.json
+    └── src/
+        ├── server.ts                    # Express app and WebSocket server
+        ├── routes/
+        │   ├── element.routes.ts
+        │   └── session.routes.ts
+        ├── controllers/
+        │   ├── element.controller.ts
+        │   └── session.controller.ts
+        └── services/
+            ├── session.service.ts       # JSON-backed session persistence
+            ├── websocket.service.ts     # Gesture/product event relay
+            └── gesture.service.ts
 ```
-
-### Key Architecture Decisions
-
-| Decision | Rationale |
-|----------|-----------|
-| `useRef` for hand tracking | Prevents 60fps React re-renders — refs update silently |
-| Frontend-only gesture detection | MediaPipe + Kalman filters run client-side; backend just relays landmarks |
-| Zustand store | Replaces 15+ `useState` hooks in Index.tsx for centralized state |
-| `@mediapipe/tasks-vision` npm | Eliminates CDN race conditions, provides TypeScript types |
-| `crypto.randomUUID()` | Replaces insecure `Math.random()` for WebSocket client IDs |
-| Env-based CORS | `ALLOWED_ORIGINS` configurable via `.env`, falls back to localhost |
 
 ---
 
 ## Getting Started
 
 ### Prerequisites
-- Node.js 18+
-- npm or yarn
-- Webcam (for hand tracking)
-- WebXR-compatible browser/device (optional, for AR)
 
-### Installation
+- Node.js 18+
+- npm
+- Webcam for hand tracking
+- WebXR-compatible browser/device for AR features
+
+### Install Dependencies
+
+Install frontend and backend dependencies separately:
 
 ```bash
-# Clone the repository
-git clone https://github.com/vutikurishanmukha9/Ele-Visualize.git
-cd Ele-Visualize
-
-# Install frontend dependencies
 cd frontend
 npm install --legacy-peer-deps
 
-# Start development server
+cd ../backend
+npm install
+```
+
+### Run From The Repo Root
+
+From `Ele-Visualize/`:
+
+```bash
 npm run dev
 ```
 
-The app will open at `http://localhost:8080`
+This starts:
 
-#### Backend (optional — for WebSocket relay)
+- backend API on `http://localhost:3001`
+- frontend app on `http://127.0.0.1:8080`
+
+### Run Apps Separately
 
 ```bash
-cd backend
-cp .env.example .env   # Configure PORT and ALLOWED_ORIGINS
-npm install
-npm run dev
+npm run dev:backend
+npm run dev:frontend
+```
+
+### Build Everything
+
+```bash
+npm run build
+```
+
+You can also build one side at a time:
+
+```bash
+npm run build:frontend
+npm run build:backend
 ```
 
 ---
 
-## How to Use
+## API
 
-1. **Select Mode** — Choose from Atoms, Grid, Compare, Reaction, or Builder
-2. **Periodic Table** — Use category filters to browse elements
-3. **Start Hand Tracking** — Click the Hand Tracker panel → "Start Tracking"
-4. **Use Gestures**:
-   - Open hand to rotate
-   - Pinch fingers to zoom
-   - Fist to freeze
-   - Swipe to navigate
-5. **3D Builder** — Spawn atoms from the element palette, watch them auto-bond
-6. **AR Mode** — Tap the "View in AR" button on compatible devices
+### Health and Element APIs
+
+| Method | Route | Description |
+| --- | --- | --- |
+| `GET` | `/api/health` | Basic health check |
+| `GET` | `/api/status` | Server status, connected clients, enabled features |
+| `GET` | `/api/elements` | List elements |
+| `GET` | `/api/elements?category=nonmetal` | Filter elements by category |
+| `GET` | `/api/elements/:atomicNumber` | Get one element |
+| `GET` | `/api/categories` | List element categories |
+
+### Session APIs
+
+| Method | Route | Description |
+| --- | --- | --- |
+| `GET` | `/api/sessions` | List saved sessions |
+| `POST` | `/api/sessions` | Create a session |
+| `GET` | `/api/sessions/:id` | Get a session |
+| `PUT` | `/api/sessions/:id` | Update a session |
+| `DELETE` | `/api/sessions/:id` | Delete a session |
+
+Sessions are stored locally in `backend/data/sessions.json` by default.
+
+### WebSocket
+
+The WebSocket server runs at:
+
+```text
+ws://localhost:3001/ws
+```
+
+Supported event groups include:
+
+- client registration
+- hand landmark relay
+- element selection
+- direct control events
+- session opened
+- molecule selected
+- comparison updates
+- builder updates
+- presence heartbeat
 
 ---
 
 ## Environment Variables
 
-### Backend (`.env`)
+### Backend `.env`
+
+Create `backend/.env` from `backend/.env.example` if you need custom values.
 
 | Variable | Description | Default |
-|----------|-------------|---------|
-| `PORT` | Server port | `3001` |
-| `ALLOWED_ORIGINS` | Comma-separated CORS origins | `http://localhost:8080,http://localhost:5173` |
+| --- | --- | --- |
+| `PORT` | Backend server port | `3001` |
+| `ALLOWED_ORIGINS` | Comma-separated CORS origins | `http://localhost:8080,http://localhost:5173,http://localhost:3000` |
+| `SESSIONS_FILE` | Optional custom path for saved sessions JSON | `backend/data/sessions.json` via process cwd |
 
 ---
 
-## Future Roadmap
+## Usage
 
-- [x] Element comparison (side-by-side view)
-- [x] 2D Molecule Builder
-- [x] Mobile-optimized layout
-- [x] 3D Physics Molecule Builder (Rapier)
-- [x] WebXR AR Mode
+1. Open the app at `http://127.0.0.1:8080`.
+2. Use the command/search bar to jump to an element, molecule, or workspace.
+3. Browse atoms and molecules from the discovery rail.
+4. Use the central visual stage for 3D exploration.
+5. Open the inspector to review properties, learning notes, and quick actions.
+6. Use Compare, Reactions, Builder, AR Lab, or Library from the workspace navigation.
+7. Save a session to reopen it later from Library.
+
+### Gesture Controls
+
+| Gesture | Action |
+| --- | --- |
+| Open hand | Rotate atom or molecule |
+| Pinch | Zoom in/out |
+| Fist | Freeze transforms |
+| Point | Pointer/highlight behavior |
+| Swipe | Navigate between elements |
+
+---
+
+## Design Direction
+
+Ele-Visualize uses a dark-only product UI. The design system favors:
+
+- deep near-black canvas surfaces
+- restrained lavender and blue interaction accents
+- quiet chrome that lets the 3D model lead
+- precise cards with shadow-as-border treatment
+- pill-shaped primary actions
+- compact, readable scientific data
+- responsive layouts with stable controls and no text overlap
+
+---
+
+## Roadmap
+
+- [x] Premium productivity workbench UI
+- [x] Dark-only design system
+- [x] Command/search experience
+- [x] Element comparison
+- [x] Reaction simulator
+- [x] Molecule builder
+- [x] WebXR AR mode
 - [x] Zustand state management
 - [x] Hand-to-XR input mapping
-- [ ] Voice commands ("Show Carbon")
-- [ ] Quiz mode for learning
+- [x] Local saved sessions API
+- [ ] Voice commands
+- [ ] Quiz/lesson mode
 - [ ] PWA offline support
-- [ ] Multi-user collaborative building via WebSocket
+- [ ] Multi-user collaborative sessions
+- [ ] Code-splitting for large 3D/AR bundles
 
 ---
 
 ## Author
 
-**V Shanmukha** — [GitHub](https://github.com/vutikurishanmukha9)
+**V Shanmukha** - [GitHub](https://github.com/vutikurishanmukha9)
 
 ---
 
 ## License
 
 This project is open source and available under the [MIT License](LICENSE).
-
----
-
-<p align="center">
-  Made with love for science education
-</p>
