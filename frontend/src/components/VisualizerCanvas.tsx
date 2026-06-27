@@ -4,11 +4,12 @@ import { Box, Maximize2, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
 import { ChemicalElement } from '@/data/elements';
 import { cn } from '@/lib/utils';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Stars } from '@react-three/drei';
-import { EffectComposer, Bloom } from '@react-three/postprocessing';
+import { OrbitControls, Stars, Environment, ContactShadows } from '@react-three/drei';
+import { EffectComposer, Bloom, DepthOfField } from '@react-three/postprocessing';
 import { createXRStore, XR } from '@react-three/xr';
 import { Atom } from './Atom';
 import { ARPlacement } from './ARPlacement';
+import { AnimatedNumber } from './AnimatedNumber';
 import { useXRHandBridge, XRHandPointer } from '@/hooks/useXRHandBridge';
 import * as THREE from 'three';
 
@@ -150,13 +151,15 @@ export function VisualizerCanvas({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="w-full h-full relative"
+            className="w-full h-full relative grab-cursor-canvas"
           >
             {/* 3D Canvas */}
             <Canvas camera={{ position: [0, 0, 15], fov: 45 }}>
               <XR store={xrStore}>
-                <ambientLight intensity={0.5} />
-                <pointLight position={[10, 10, 10]} intensity={1} />
+                <ambientLight intensity={0.3} />
+                <Environment preset="city" />
+                <ContactShadows resolution={1024} scale={50} blur={2} opacity={0.3} far={20} position={[0, -5, 0]} />
+                <pointLight position={[10, 10, 10]} intensity={0.5} />
                 <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
 
                 <OrbitControls
@@ -186,13 +189,14 @@ export function VisualizerCanvas({
                 <ARPlacement />
 
                 <EffectComposer>
-                  <Bloom luminanceThreshold={0.5} luminanceSmoothing={0.9} height={300} intensity={1.5} />
+                  <Bloom luminanceThreshold={0.2} luminanceSmoothing={0.9} intensity={1.5} />
+                  <DepthOfField target={[0, 0, 0]} focalLength={0.05} bokehScale={3} height={700} />
                 </EffectComposer>
               </XR>
             </Canvas>
 
             {/* Overlay Info (HTML) */}
-            <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-end pb-32">
+            <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-end pb-32 sm:pb-8">
               {/* Element symbol with glow */}
               <div className="relative mb-4">
                 <span className="text-4xl sm:text-6xl font-bold text-primary text-glow-lg tracking-tight">
@@ -212,7 +216,7 @@ export function VisualizerCanvas({
                 </h2>
                 <div className="flex gap-2 sm:gap-4 justify-center text-xs sm:text-sm text-muted-foreground flex-wrap">
                   <p>Atomic Number: <span className="text-primary">{selectedElement.atomicNumber}</span></p>
-                  <p>Mass: <span className="text-primary">{selectedElement.atomicMass.toFixed(2)}</span></p>
+                  <p>Mass: <span className="text-primary"><AnimatedNumber value={selectedElement.atomicMass} format={(v) => v.toFixed(2)} /></span></p>
                 </div>
                 <div className="flex gap-2 justify-center mt-2">
                   {selectedElement.shells.map((s, i) => (

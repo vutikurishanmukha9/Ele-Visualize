@@ -233,7 +233,7 @@ export const ReactionSimulator = memo(function ReactionSimulator({ onClose }: Re
             {selectedElements.length > 0 && (
                 <div className="mb-4 p-3 bg-black/40 rounded-lg">
                     <div className="text-sm text-muted-foreground mb-1">Selected:</div>
-                    <div className="flex items-center gap-2 text-xl font-bold">
+                    <div className="flex flex-wrap items-center gap-2 text-xl font-bold">
                         {selectedElements.map((el, i) => (
                             <span key={el}>
                                 {i > 0 && <span className="text-muted-foreground mx-1">+</span>}
@@ -274,7 +274,7 @@ export const ReactionSimulator = memo(function ReactionSimulator({ onClose }: Re
                     animate={{ opacity: 1, y: 0 }}
                     className="flex-1 flex flex-col items-center justify-center text-center"
                 >
-                    <div className="text-4xl mb-4" style={{ color: activeReaction.color }}>
+                    <div className="text-2xl sm:text-4xl font-bold mb-4 px-2 break-words max-w-full text-balance" style={{ color: activeReaction.color }}>
                         {activeReaction.equation}
                     </div>
                     <div className="text-xl font-semibold mb-2">{activeReaction.name}</div>

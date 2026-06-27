@@ -532,9 +532,11 @@ export function HandTracker({ onZoomChange, onGestureDetected, onSwipe, onHandPo
             </AnimatePresence>
 
             <motion.div
+                drag
+                dragMomentum={false}
                 className={cn(
-                    "fixed bottom-2 right-2 sm:bottom-4 sm:right-4 z-50 rounded-xl overflow-hidden",
-                    "bg-black/80 backdrop-blur-xl border border-white/20 shadow-2xl"
+                    "fixed bottom-20 left-4 sm:bottom-6 sm:left-[320px] z-40 rounded-xl overflow-hidden cursor-move",
+                    "bg-black/40 backdrop-blur-xl border border-white/10 shadow-2xl"
                 )}
                 animate={{ width: isExpanded ? (window.innerWidth < 640 ? 220 : 280) : (window.innerWidth < 640 ? 140 : 180) }}
             >
@@ -543,8 +545,8 @@ export function HandTracker({ onZoomChange, onGestureDetected, onSwipe, onHandPo
                     className="w-full px-3 py-2 flex items-center justify-between hover:bg-white/5"
                 >
                     <div className="flex items-center gap-2">
-                        <Hand className="w-4 h-4 text-primary" />
-                        <span className="text-xs sm:text-sm font-medium">HAND TRACKER</span>
+                        <Hand className="w-4 h-4 text-white" />
+                        <span className="text-[10px] tracking-widest text-white uppercase font-bold">Hand Tracker</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <span className={cn("w-2 h-2 rounded-full", isTracking ? "bg-green-500 animate-pulse" : "bg-gray-500")} />

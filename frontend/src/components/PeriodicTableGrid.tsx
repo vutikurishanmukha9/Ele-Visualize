@@ -1,13 +1,13 @@
 import { memo, useMemo, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
 import { elements, ChemicalElement } from '../data/elements';
 import { cn } from '@/lib/utils';
 import { X, ExternalLink, Atom, Grid3X3, GitCompare, Zap, Wrench } from 'lucide-react';
+import { AnimatedNumber } from './AnimatedNumber';
 
 interface PeriodicTableGridProps {
     selectedElement: ChemicalElement | null;
     onSelectElement: (element: ChemicalElement) => void;
-    categoryColors: Record<string, string>;
     onChangeViewMode?: (mode: '3d' | 'grid' | 'compare' | 'reaction' | 'builder') => void;
 }
 
@@ -65,35 +65,37 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 // Element popup
 const ElementPopup = memo(function ElementPopup({
-    element, color, onClose, onSelect,
-}: { element: ChemicalElement; color: string; onClose: () => void; onSelect: () => void; }) {
+    element, onClose, onSelect,
+}: { element: ChemicalElement; onClose: () => void; onSelect: () => void; }) {
     return (
         <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
             onClick={onClose}
         >
             <motion.div
                 initial={{ y: 20 }}
                 animate={{ y: 0 }}
-                className="bg-slate-900 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-white/10"
+                className="bg-slate-900 rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex items-start justify-between mb-4">
-                    <div className="w-20 h-20 rounded-2xl flex flex-col items-center justify-center text-white shadow-lg" style={{ backgroundColor: color }}>
-                        <span className="text-xs opacity-70">{element.atomicNumber}</span>
-                        <span className="text-3xl font-bold">{element.symbol}</span>
+                    <div className="w-20 h-20 rounded-2xl flex flex-col items-center justify-center font-bold" style={{ backgroundColor: 'var(--color-surface-1)', color: 'var(--color-ink)', boxShadow: 'var(--shadow-border)' }}>
+                        <span className="text-xs opacity-70 font-normal">{element.atomicNumber}</span>
+                        <span className="text-3xl">{element.symbol}</span>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg"><X className="w-5 h-5 text-slate-400" /></button>
                 </div>
                 <h3 className="text-2xl font-bold text-white mb-1">{element.name}</h3>
-                <p className="text-sm capitalize mb-4" style={{ color }}>{element.category.replace('-', ' ')}</p>
+                <p className="text-sm capitalize mb-4 text-slate-400">{element.category.replace('-', ' ')}</p>
                 <div className="space-y-2 text-sm mb-4">
                     <div className="flex justify-between py-2 border-b border-white/10">
                         <span className="text-slate-400">Atomic Mass</span>
-                        <span className="text-white font-medium">{element.atomicMass.toFixed(4)} u</span>
+                        <span className="text-white font-medium">
+                            <AnimatedNumber value={element.atomicMass} format={(v) => v.toFixed(4)} suffix=" u" />
+                        </span>
                     </div>
                     <div className="flex justify-between py-2">
                         <span className="text-slate-400">Electron Shells</span>
@@ -101,7 +103,7 @@ const ElementPopup = memo(function ElementPopup({
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <button onClick={onSelect} className="flex-1 py-3 rounded-xl font-medium text-white" style={{ backgroundColor: color }}>View 3D Model</button>
+                    <button onClick={onSelect} className="flex-1 py-3 rounded-xl font-bold text-black" style={{ backgroundColor: 'var(--color-accent)' }}>View 3D Model</button>
                     <a href={`https://en.wikipedia.org/wiki/${element.name}`} target="_blank" rel="noopener noreferrer" className="p-3 bg-white/10 hover:bg-white/20 rounded-xl">
                         <ExternalLink className="w-5 h-5" />
                     </a>
@@ -113,18 +115,18 @@ const ElementPopup = memo(function ElementPopup({
 
 // Mobile element card
 const MobileElementCard = memo(function MobileElementCard({
-    element, color, onTap,
-}: { element: ChemicalElement; color: string; onTap: () => void; }) {
+    element, onTap,
+}: { element: ChemicalElement; onTap: () => void; }) {
     return (
         <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={onTap}
             className="flex items-center gap-3 p-3 rounded-xl w-full text-left"
-            style={{ backgroundColor: `${color}20`, borderLeft: `4px solid ${color}` }}
+            style={{ backgroundColor: 'var(--color-surface-1)', boxShadow: 'var(--shadow-border)' }}
         >
             <div
-                className="w-12 h-12 rounded-lg flex flex-col items-center justify-center text-white font-bold flex-shrink-0"
-                style={{ backgroundColor: color }}
+                className="w-12 h-12 rounded-lg flex flex-col items-center justify-center font-bold flex-shrink-0"
+                style={{ backgroundColor: 'var(--color-surface-2)', color: 'var(--color-ink)' }}
             >
                 <span className="text-[10px] opacity-70">{element.atomicNumber}</span>
                 <span className="text-lg">{element.symbol}</span>
@@ -142,20 +144,49 @@ const MobileElementCard = memo(function MobileElementCard({
 
 // Desktop element cell
 const DesktopElementCell = memo(function DesktopElementCell({
-    element, isSelected, color, onQuickView,
-}: { element: ChemicalElement; isSelected: boolean; color: string; onQuickView: () => void; }) {
+    element, isSelected, onQuickView,
+}: { element: ChemicalElement; isSelected: boolean; onQuickView: () => void; }) {
+    const x = useMotionValue(0);
+    const y = useMotionValue(0);
+    const rotateX = useTransform(y, [-20, 20], [15, -15]);
+    const rotateY = useTransform(x, [-20, 20], [-15, 15]);
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement>) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        x.set(e.clientX - rect.left - rect.width / 2);
+        y.set(e.clientY - rect.top - rect.height / 2);
+    };
+
+    const handleMouseLeave = () => {
+        x.set(0);
+        y.set(0);
+    };
+
     return (
         <motion.button
+            variants={{
+                hidden: { opacity: 0, scale: 0.5 },
+                visible: { opacity: 1, scale: 1, transition: { type: "spring", stiffness: 300, damping: 20 } }
+            }}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
             whileHover={{ scale: 1.1, zIndex: 20 }}
             whileTap={{ scale: 0.95 }}
             onClick={onQuickView}
             className={cn(
-                "w-full aspect-square rounded transition-all text-white relative overflow-hidden",
-                isSelected && "ring-2 ring-white"
+                "w-full aspect-square rounded transition-colors relative overflow-hidden",
+                isSelected ? "ring-2 ring-primary z-10" : ""
             )}
-            style={{ backgroundColor: color, boxShadow: isSelected ? `0 0 15px ${color}` : undefined }}
+            style={{ 
+                rotateX,
+                rotateY,
+                transformStyle: "preserve-3d",
+                backgroundColor: isSelected ? 'var(--color-surface-2)' : 'var(--color-surface-1)', 
+                color: 'var(--color-ink)',
+                boxShadow: 'var(--shadow-border)'
+            }}
         >
-            <div className="h-full flex flex-col items-center justify-center">
+            <div className="h-full flex flex-col items-center justify-center pointer-events-none" style={{ transform: "translateZ(10px)" }}>
                 <span className="text-[8px] opacity-60">{element.atomicNumber}</span>
                 <span className="text-xs font-bold">{element.symbol}</span>
             </div>
@@ -164,7 +195,7 @@ const DesktopElementCell = memo(function DesktopElementCell({
 });
 
 export const PeriodicTableGrid = memo(function PeriodicTableGrid({
-    selectedElement, onSelectElement, categoryColors, onChangeViewMode,
+    selectedElement, onSelectElement, onChangeViewMode,
 }: PeriodicTableGridProps) {
     const [quickViewElement, setQuickViewElement] = useState<ChemicalElement | null>(null);
     const [mobileCategory, setMobileCategory] = useState('all');
@@ -234,7 +265,7 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                                 )}
                                 style={
                                     mobileCategory === cat && cat !== 'all'
-                                        ? { backgroundColor: categoryColors[cat] || undefined }
+                                        ? { backgroundColor: 'var(--color-surface-2)' }
                                         : undefined
                                 }
                             >
@@ -256,7 +287,6 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                             <MobileElementCard
                                 key={element.atomicNumber}
                                 element={element}
-                                color={categoryColors[element.category] || '#666'}
                                 onTap={() => handleQuickView(element)}
                             />
                         ))}
@@ -272,7 +302,13 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
 
                 <div className="max-w-5xl mx-auto">
                     {/* Main table */}
-                    <div className="grid gap-1" style={{ gridTemplateColumns: 'repeat(18, minmax(32px, 1fr))' }}>
+                    <motion.div 
+                        initial="hidden"
+                        animate="visible"
+                        variants={{ visible: { transition: { staggerChildren: 0.015 } } }}
+                        className="grid gap-1" 
+                        style={{ gridTemplateColumns: 'repeat(18, minmax(32px, 1fr))', perspective: 1000 }}
+                    >
                         {grid.slice(1, 8).map((row, rowIndex) =>
                             row.slice(1).map((element, colIndex) => (
                                 <div key={`${rowIndex}-${colIndex}`} className="aspect-square">
@@ -280,14 +316,14 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                                         <DesktopElementCell
                                             element={element}
                                             isSelected={selectedElement?.atomicNumber === element.atomicNumber}
-                                            color={categoryColors[element.category] || '#666'}
+
                                             onQuickView={() => handleQuickView(element)}
                                         />
                                     ) : <div className="w-full h-full" />}
                                 </div>
                             ))
                         )}
-                    </div>
+                    </motion.div>
 
                     {/* Gap */}
                     <div className="h-4" />
@@ -295,50 +331,54 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                     {/* Lanthanides */}
                     <div className="flex items-center gap-2 mb-1">
                         <span className="text-xs text-slate-500 w-14">La-Lu</span>
-                        <div className="flex-1 grid gap-1" style={{ gridTemplateColumns: 'repeat(15, minmax(32px, 1fr))' }}>
+                        <motion.div 
+                            initial="hidden"
+                            animate="visible"
+                            variants={{ visible: { transition: { staggerChildren: 0.015, delayChildren: 0.5 } } }}
+                            className="flex-1 grid gap-1" 
+                            style={{ gridTemplateColumns: 'repeat(15, minmax(32px, 1fr))', perspective: 1000 }}
+                        >
                             {grid[9].slice(3, 18).map((element, i) => (
                                 <div key={`la-${i}`} className="aspect-square">
                                     {element ? (
                                         <DesktopElementCell
                                             element={element}
                                             isSelected={selectedElement?.atomicNumber === element.atomicNumber}
-                                            color={categoryColors[element.category] || '#666'}
+
                                             onQuickView={() => handleQuickView(element)}
                                         />
                                     ) : <div />}
                                 </div>
                             ))}
-                        </div>
+                        </motion.div>
                     </div>
 
                     {/* Actinides */}
                     <div className="flex items-center gap-2">
                         <span className="text-xs text-slate-500 w-14">Ac-Lr</span>
-                        <div className="flex-1 grid gap-1" style={{ gridTemplateColumns: 'repeat(15, minmax(32px, 1fr))' }}>
+                        <motion.div 
+                            initial="hidden"
+                            animate="visible"
+                            variants={{ visible: { transition: { staggerChildren: 0.015, delayChildren: 0.8 } } }}
+                            className="flex-1 grid gap-1" 
+                            style={{ gridTemplateColumns: 'repeat(15, minmax(32px, 1fr))', perspective: 1000 }}
+                        >
                             {grid[10].slice(3, 18).map((element, i) => (
                                 <div key={`ac-${i}`} className="aspect-square">
                                     {element ? (
                                         <DesktopElementCell
                                             element={element}
                                             isSelected={selectedElement?.atomicNumber === element.atomicNumber}
-                                            color={categoryColors[element.category] || '#666'}
+
                                             onQuickView={() => handleQuickView(element)}
                                         />
                                     ) : <div />}
                                 </div>
                             ))}
-                        </div>
+                        </motion.div>
                     </div>
 
-                    {/* Legend */}
-                    <div className="mt-6 flex flex-wrap gap-3 justify-center">
-                        {Object.entries(categoryColors).slice(0, 10).map(([category, color]) => (
-                            <div key={category} className="flex items-center gap-1.5 text-xs">
-                                <div className="w-3 h-3 rounded" style={{ backgroundColor: color }} />
-                                <span className="text-slate-400 capitalize">{category.replace('-', ' ')}</span>
-                            </div>
-                        ))}
-                    </div>
+
                 </div>
             </div>
 
@@ -347,7 +387,6 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                 {quickViewElement && (
                     <ElementPopup
                         element={quickViewElement}
-                        color={categoryColors[quickViewElement.category] || '#666'}
                         onClose={() => setQuickViewElement(null)}
                         onSelect={handleSelect}
                     />

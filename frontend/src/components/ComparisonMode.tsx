@@ -8,7 +8,6 @@ interface ComparisonModeProps {
     element1: ChemicalElement | null;
     element2: ChemicalElement | null;
     onRemoveElement: (slot: 1 | 2) => void;
-    categoryColors: Record<string, string>;
 }
 
 const PropertyBar = memo(function PropertyBar({
@@ -159,7 +158,6 @@ export const ComparisonMode = memo(function ComparisonMode({
     element1,
     element2,
     onRemoveElement,
-    categoryColors,
 }: ComparisonModeProps) {
     const props1 = element1 ? elementProperties[element1.atomicNumber] : null;
     const props2 = element2 ? elementProperties[element2.atomicNumber] : null;
@@ -186,7 +184,7 @@ export const ComparisonMode = memo(function ComparisonMode({
                 <ElementCard
                     element={element1}
                     slot={1}
-                    color={element1 ? categoryColors[element1.category] || '#666' : '#666'}
+                    color="#f7f8f8"
                     onRemove={() => onRemoveElement(1)}
                 />
                 <div className="hidden sm:flex items-center">
@@ -198,7 +196,7 @@ export const ComparisonMode = memo(function ComparisonMode({
                 <ElementCard
                     element={element2}
                     slot={2}
-                    color={element2 ? categoryColors[element2.category] || '#666' : '#666'}
+                    color="#f7f8f8"
                     onRemove={() => onRemoveElement(2)}
                 />
             </div>

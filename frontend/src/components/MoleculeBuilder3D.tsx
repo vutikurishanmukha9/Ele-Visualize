@@ -10,7 +10,7 @@
 
 import { useState, useRef, useMemo, useCallback, memo, MutableRefObject, Suspense } from 'react';
 import { Canvas, useFrame, useThree, ThreeEvent } from '@react-three/fiber';
-import { OrbitControls, Stars, Sphere, Cylinder, Float, Html, Text } from '@react-three/drei';
+import { OrbitControls, Stars, Sphere, Cylinder, Float, Html, Text, Environment, ContactShadows } from '@react-three/drei';
 import { Physics, RigidBody, RapierRigidBody } from '@react-three/rapier';
 import * as THREE from 'three';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -77,7 +77,7 @@ function PhysicsAtom({ atom, isSelected, canBond, onSelect, positionRef }: Physi
         glowIntensity.current = THREE.MathUtils.lerp(glowIntensity.current, targetGlow, delta * 5);
 
         if (meshRef.current) {
-            const mat = meshRef.current.material as THREE.MeshStandardMaterial;
+            const mat = meshRef.current.material as THREE.MeshPhysicalMaterial;
             mat.emissiveIntensity = glowIntensity.current;
         }
     });
@@ -100,12 +100,19 @@ function PhysicsAtom({ atom, isSelected, canBond, onSelect, positionRef }: Physi
                     onSelect(atom.id);
                 }}
             >
-                <meshStandardMaterial
+                <meshPhysicalMaterial
                     color={atom.color}
                     emissive={canBond ? '#00ff88' : atom.color}
                     emissiveIntensity={0}
-                    metalness={0.3}
-                    roughness={0.4}
+                    transmission={0.9}
+                    opacity={1}
+                    metalness={0.2}
+                    roughness={0.1}
+                    ior={1.5}
+                    thickness={2}
+                    clearcoat={1}
+                    iridescence={0.5}
+                    iridescenceIOR={1.3}
                 />
             </Sphere>
 
@@ -159,12 +166,13 @@ function BondLine({ from, to, type }: { from: THREE.Vector3; to: THREE.Vector3; 
         <group position={midpoint} quaternion={quaternion}>
             {offsets.map((offset, i) => (
                 <Cylinder key={i} args={[0.04, 0.04, length, 8]} position={[offset, 0, 0]}>
-                    <meshStandardMaterial
-                        color="#888888"
-                        emissive="#444444"
-                        emissiveIntensity={0.3}
-                        metalness={0.5}
+                    <meshPhysicalMaterial
+                        color="#222222"
+                        emissive="#000000"
+                        emissiveIntensity={0}
+                        metalness={0.9}
                         roughness={0.3}
+                        clearcoat={1}
                     />
                 </Cylinder>
             ))}
@@ -178,11 +186,12 @@ interface BuilderSceneProps {
     atoms: AtomData[];
     bonds: BondData[];
     selectedAtomId: string | null;
+    particleBursts: { id: string, pos: THREE.Vector3 }[];
     onSelectAtom: (id: string) => void;
     positionRef: MutableRefObject<Map<string, THREE.Vector3>>;
 }
 
-function BuilderScene({ atoms, bonds, selectedAtomId, onSelectAtom, positionRef }: BuilderSceneProps) {
+function BuilderScene({ atoms, bonds, selectedAtomId, particleBursts, onSelectAtom, positionRef }: BuilderSceneProps) {
     // Determine which atoms can bond (within proximity of another atom with available valence)
     const bondableAtoms = useMemo(() => {
         const set = new Set<string>();
@@ -204,8 +213,10 @@ function BuilderScene({ atoms, bonds, selectedAtomId, onSelectAtom, positionRef 
 
     return (
         <>
-            <ambientLight intensity={0.4} />
-            <directionalLight position={[5, 8, 5]} intensity={0.6} />
+            <ambientLight intensity={0.3} />
+            <Environment preset="city" />
+            <ContactShadows resolution={1024} scale={50} blur={2} opacity={0.3} far={20} position={[0, -4.9, 0]} />
+            <directionalLight position={[5, 8, 5]} intensity={0.4} />
             <directionalLight position={[-3, -2, -5]} intensity={0.2} color="#4488ff" />
             <Stars radius={50} depth={30} count={300} factor={3} saturation={0} fade speed={0.3} />
 
@@ -239,10 +250,45 @@ function BuilderScene({ atoms, bonds, selectedAtomId, onSelectAtom, positionRef 
                 return <BondLine key={bond.id} from={fromPos} to={toPos} type={bond.type} />;
             })}
 
+            {/* Particle bursts */}
+            {particleBursts.map(burst => (
+                <ParticleBurst key={burst.id} position={burst.pos} />
+            ))}
+
             <OrbitControls enablePan enableZoom minDistance={3} maxDistance={20} />
         </>
     );
 }
+
+const ParticleBurst = ({ position }: { position: THREE.Vector3 }) => {
+    const groupRef = useRef<THREE.Group>(null);
+    useFrame((_, delta) => {
+        if (groupRef.current) {
+            groupRef.current.children.forEach(child => {
+                child.position.add((child.userData.velocity as THREE.Vector3).clone().multiplyScalar(delta));
+                const mat = (child as THREE.Mesh).material as THREE.MeshBasicMaterial;
+                mat.opacity = Math.max(0, mat.opacity - delta * 2);
+                if (child.scale.x > 0.01) child.scale.subScalar(delta * 2);
+            });
+        }
+    });
+
+    const particles = useMemo(() => Array.from({ length: 15 }).map(() => ({
+        pos: new THREE.Vector3(0, 0, 0),
+        vel: new THREE.Vector3((Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5)
+    })), []);
+
+    return (
+        <group ref={groupRef} position={position}>
+            {particles.map((p, i) => (
+                <mesh key={i} userData={{ velocity: p.vel }}>
+                    <sphereGeometry args={[0.08, 4, 4]} />
+                    <meshBasicMaterial color="#ffffff" transparent opacity={1} />
+                </mesh>
+            ))}
+        </group>
+    );
+};
 
 // ============== MAIN COMPONENT ==============
 
@@ -253,8 +299,9 @@ interface MoleculeBuilder3DProps {
 export function MoleculeBuilder3D({ className }: MoleculeBuilder3DProps) {
     const [atoms, setAtoms] = useState<AtomData[]>([]);
     const [bonds, setBonds] = useState<BondData[]>([]);
-    const [selectedElement, setSelectedElement] = useState(ELEMENT_PALETTE[1]); // Carbon default
+    const [selectedElement, setSelectedElement] = useState<typeof ELEMENT_PALETTE[number]>(ELEMENT_PALETTE[1]); // Carbon default
     const [selectedAtomId, setSelectedAtomId] = useState<string | null>(null);
+    const [particleBursts, setParticleBursts] = useState<{ id: string, pos: THREE.Vector3 }[]>([]);
     const positionRef = useRef(new Map<string, THREE.Vector3>());
     const nextIdRef = useRef(0);
 
@@ -280,6 +327,17 @@ export function MoleculeBuilder3D({ className }: MoleculeBuilder3DProps) {
 
     const removeSelected = useCallback(() => {
         if (!selectedAtomId) return;
+
+        // Trigger particle burst
+        const pos = positionRef.current.get(selectedAtomId);
+        if (pos) {
+            const burstId = `burst_${Date.now()}`;
+            setParticleBursts(prev => [...prev, { id: burstId, pos: pos.clone() }]);
+            setTimeout(() => {
+                setParticleBursts(prev => prev.filter(b => b.id !== burstId));
+            }, 1000);
+        }
+
         setAtoms(prev => prev.filter(a => a.id !== selectedAtomId));
         setBonds(prev => prev.filter(b => b.from !== selectedAtomId && b.to !== selectedAtomId));
         positionRef.current.delete(selectedAtomId);
@@ -349,9 +407,9 @@ export function MoleculeBuilder3D({ className }: MoleculeBuilder3DProps) {
     return (
         <div className={cn("w-full h-full flex flex-col", className)}>
             {/* Toolbar */}
-            <div className="flex items-center gap-1.5 sm:gap-2 p-2 sm:p-3 bg-black/40 backdrop-blur-md border-b border-white/10 overflow-x-auto">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-[var(--color-paper-2)] border-b border-[var(--color-rule)]">
                 {/* Element palette */}
-                <div className="flex gap-0.5 sm:gap-1 flex-shrink-0">
+                <div className="flex flex-wrap gap-1 flex-shrink-0">
                     {ELEMENT_PALETTE.map(el => (
                         <button
                             key={el.symbol}
@@ -362,7 +420,7 @@ export function MoleculeBuilder3D({ className }: MoleculeBuilder3DProps) {
                                     ? "border-primary scale-110 shadow-lg shadow-primary/20"
                                     : "border-white/10 hover:border-white/30"
                             )}
-                            style={{ backgroundColor: el.color + '33', color: el.color }}
+                            style={{ color: el.color }}
                             title={el.name}
                         >
                             {el.symbol}
@@ -370,7 +428,7 @@ export function MoleculeBuilder3D({ className }: MoleculeBuilder3DProps) {
                     ))}
                 </div>
 
-                <div className="w-px h-6 sm:h-8 bg-white/10 mx-0.5 sm:mx-1 flex-shrink-0" />
+                <div className="hidden sm:block w-px h-8 bg-white/10 mx-1 flex-shrink-0" />
 
                 {/* Actions */}
                 <button
@@ -410,13 +468,14 @@ export function MoleculeBuilder3D({ className }: MoleculeBuilder3DProps) {
             </div>
 
             {/* 3D Canvas */}
-            <div className="flex-1 relative">
+            <div className="flex-1 relative grab-cursor-canvas">
                 <Canvas camera={{ position: [0, 2, 8], fov: 50 }}>
                     <Suspense fallback={null}>
                         <BuilderScene
                             atoms={atoms}
                             bonds={bonds}
                             selectedAtomId={selectedAtomId}
+                            particleBursts={particleBursts}
                             onSelectAtom={setSelectedAtomId}
                             positionRef={positionRef}
                         />

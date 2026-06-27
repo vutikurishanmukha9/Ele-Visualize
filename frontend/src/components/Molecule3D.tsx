@@ -18,12 +18,16 @@ function AtomSphere({ atom }: { atom: Atom }) {
         <Float speed={1} rotationIntensity={0.05} floatIntensity={0.1}>
             <group position={atom.position}>
                 <Sphere args={[atom.radius, 32, 32]}>
-                    <meshStandardMaterial
+                    <meshPhysicalMaterial
                         color={atom.color}
                         emissive={atom.color}
                         emissiveIntensity={0.3}
-                        metalness={0.2}
-                        roughness={0.6}
+                        metalness={0.4}
+                        roughness={0.2}
+                        clearcoat={1}
+                        clearcoatRoughness={0.1}
+                        iridescence={0.5}
+                        iridescenceIOR={1.3}
                     />
                 </Sphere>
                 <Html center distanceFactor={5}>
@@ -87,12 +91,13 @@ function BondCylinder({
             {offsets.map(([offsetX, offsetZ], i) => (
                 <group key={i} position={[midpoint.x + offsetX, midpoint.y, midpoint.z + offsetZ]} rotation={rotation}>
                     <Cylinder args={[bondRadius, bondRadius, length * 0.7, 12]}>
-                        <meshStandardMaterial
-                            color="#888888"
-                            emissive="#444444"
-                            emissiveIntensity={0.2}
-                            metalness={0.4}
-                            roughness={0.6}
+                        <meshPhysicalMaterial
+                            color="#222222"
+                            emissive="#000000"
+                            emissiveIntensity={0}
+                            metalness={0.9}
+                            roughness={0.3}
+                            clearcoat={1}
                         />
                     </Cylinder>
                 </group>

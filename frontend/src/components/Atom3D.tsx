@@ -1,6 +1,6 @@
 import { useRef, useMemo, memo, MutableRefObject } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Sphere, Line, Html, Float, Stars, Instances, Instance } from '@react-three/drei';
+import { OrbitControls, Sphere, Line, Html, Float, Stars, Instances, Instance, Trail } from '@react-three/drei';
 import * as THREE from 'three';
 
 interface Atom3DProps {
@@ -29,12 +29,14 @@ const GlowingSphere = memo(function GlowingSphere({
 }: { color: string; size: number; emissiveIntensity?: number; position?: [number, number, number] }) {
     return (
         <Sphere args={[size, SPHERE_SEGMENTS, SPHERE_SEGMENTS]} position={position}>
-            <meshStandardMaterial
+            <meshPhysicalMaterial
                 color={color}
                 emissive={color}
                 emissiveIntensity={emissiveIntensity}
-                metalness={0.2}
-                roughness={0.5}
+                metalness={0.4}
+                roughness={0.2}
+                clearcoat={1}
+                clearcoatRoughness={0.1}
             />
         </Sphere>
     );
@@ -44,12 +46,16 @@ const GlowingSphere = memo(function GlowingSphere({
 const SOrbital = memo(function SOrbital({ radius, color }: { radius: number; color: string }) {
     return (
         <Sphere args={[radius, SPHERE_SEGMENTS, SPHERE_SEGMENTS]}>
-            <meshStandardMaterial
+            <meshPhysicalMaterial
                 color={color}
-                transparent
-                opacity={0.15}
+                transparent={true}
+                opacity={0.2}
+                metalness={0.1}
+                roughness={0.1}
+                clearcoat={1}
                 side={THREE.DoubleSide}
                 depthWrite={false}
+                blending={THREE.AdditiveBlending}
             />
         </Sphere>
     );
@@ -65,10 +71,10 @@ const POrbital = memo(function POrbital({ radius, color, axis }: { radius: numbe
     return (
         <group rotation={rotation}>
             <Sphere args={[radius * 0.6, 12, 12]} position={[0, radius * 0.8, 0]}>
-                <meshStandardMaterial color={color} transparent opacity={0.12} side={THREE.DoubleSide} depthWrite={false} />
+                <meshPhysicalMaterial color={color} transparent opacity={0.2} metalness={0.1} roughness={0.1} clearcoat={1} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} />
             </Sphere>
             <Sphere args={[radius * 0.6, 12, 12]} position={[0, -radius * 0.8, 0]}>
-                <meshStandardMaterial color={color} transparent opacity={0.12} side={THREE.DoubleSide} depthWrite={false} />
+                <meshPhysicalMaterial color={color} transparent opacity={0.2} metalness={0.1} roughness={0.1} clearcoat={1} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} />
             </Sphere>
         </group>
     );
@@ -87,16 +93,16 @@ const DOrbital = memo(function DOrbital({ radius, color, type }: { radius: numbe
     return (
         <group rotation={rotation}>
             <Sphere args={[lobeSize, 8, 8]} position={[lobeOffset, lobeOffset, 0]}>
-                <meshStandardMaterial color={color} transparent opacity={0.1} side={THREE.DoubleSide} depthWrite={false} />
+                <meshPhysicalMaterial color={color} transparent opacity={0.15} metalness={0.1} roughness={0.1} clearcoat={1} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} />
             </Sphere>
             <Sphere args={[lobeSize, 8, 8]} position={[-lobeOffset, lobeOffset, 0]}>
-                <meshStandardMaterial color={color} transparent opacity={0.1} side={THREE.DoubleSide} depthWrite={false} />
+                <meshPhysicalMaterial color={color} transparent opacity={0.15} metalness={0.1} roughness={0.1} clearcoat={1} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} />
             </Sphere>
             <Sphere args={[lobeSize, 8, 8]} position={[lobeOffset, -lobeOffset, 0]}>
-                <meshStandardMaterial color={color} transparent opacity={0.1} side={THREE.DoubleSide} depthWrite={false} />
+                <meshPhysicalMaterial color={color} transparent opacity={0.15} metalness={0.1} roughness={0.1} clearcoat={1} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} />
             </Sphere>
             <Sphere args={[lobeSize, 8, 8]} position={[-lobeOffset, -lobeOffset, 0]}>
-                <meshStandardMaterial color={color} transparent opacity={0.1} side={THREE.DoubleSide} depthWrite={false} />
+                <meshPhysicalMaterial color={color} transparent opacity={0.15} metalness={0.1} roughness={0.1} clearcoat={1} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} />
             </Sphere>
         </group>
     );
@@ -201,7 +207,7 @@ const Electron = memo(function Electron({ radius, startAngle, speed, color, isPa
     isPaused?: boolean;
     speedMultiplier?: number;
 }) {
-    const ref = useRef<THREE.Mesh>(null);
+    const ref = useRef<THREE.Group>(null);
     const angleRef = useRef(startAngle);
 
     useFrame((_, delta) => {
@@ -214,9 +220,18 @@ const Electron = memo(function Electron({ radius, startAngle, speed, color, isPa
     });
 
     return (
-        <Sphere ref={ref} args={[0.08, 8, 8]} position={[radius, 0, 0]}>
-            <meshStandardMaterial color="#ffffff" emissive={color} emissiveIntensity={1} />
-        </Sphere>
+        <group ref={ref}>
+            <Trail
+                width={0.5}
+                length={8}
+                color={color}
+                attenuation={(t) => t * t}
+            >
+                <Sphere args={[0.08, 8, 8]} position={[0, 0, 0]}>
+                    <meshPhysicalMaterial color="#ffffff" emissive={color} emissiveIntensity={1.2} metalness={0.8} roughness={0.2} clearcoat={1} />
+                </Sphere>
+            </Trail>
+        </group>
     );
 });
 
@@ -292,10 +307,16 @@ const AtomScene = memo(function AtomScene({
         } else {
             groupRef.current.rotation.y += 0.004 * animationSpeed;
         }
+
+        // Entrance animation
+        const targetScale = zoom * 0.85;
+        if (groupRef.current.scale.x < targetScale - 0.01) {
+            groupRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.05);
+        }
     });
 
     return (
-        <group ref={groupRef} scale={zoom * 0.85}>
+        <group ref={groupRef} scale={0}>
             <pointLight position={[0, 0, 0]} intensity={1.5} color={color} distance={10} />
 
             {showOrbitals && <OrbitalClouds electrons={electrons} />}
