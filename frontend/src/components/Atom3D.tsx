@@ -1,7 +1,10 @@
-import { useRef, useMemo, memo, MutableRefObject } from 'react';
+import { useRef, useMemo, memo, MutableRefObject, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Sphere, Line, Html, Float, Stars, Instances, Instance, Trail } from '@react-three/drei';
+import { OrbitControls, Sphere, Line, Html, Float, Stars, Trail } from '@react-three/drei';
 import * as THREE from 'three';
+import gsap from 'gsap';
+import { createFresnelMaterial } from '@/shaders/fresnelShader';
+import { createVolumetricOrbitalMaterial } from '@/shaders/orbitalShader';
 
 interface Atom3DProps {
     protons: number;
@@ -19,68 +22,75 @@ interface Atom3DProps {
     isPaused?: boolean; // Pause all animations
 }
 
-// Optimized: Reduced segments from 32 to 16
-const SPHERE_SEGMENTS = 16;
-const ORBIT_POINTS = 50; // Reduced from 100
+// Optimized segment resolution
+const SPHERE_SEGMENTS = 20;
+const ORBIT_POINTS = 60;
 
-// Memoized glowing sphere
+// Glowing sphere using custom GLSL Fresnel Shader Material
 const GlowingSphere = memo(function GlowingSphere({
-    color, size, emissiveIntensity = 0.5, position
-}: { color: string; size: number; emissiveIntensity?: number; position?: [number, number, number] }) {
+    color, size, position, glowColor = '#818cf8', emissiveIntensity = 0.5
+}: { color: string; size: number; position?: [number, number, number]; glowColor?: string; emissiveIntensity?: number }) {
+    const material = useMemo(() => createFresnelMaterial(color, glowColor), [color, glowColor]);
+    const meshRef = useRef<THREE.Mesh>(null);
+
+    useFrame((state, delta) => {
+        if (meshRef.current && (meshRef.current.material as THREE.ShaderMaterial).uniforms?.uTime) {
+            (meshRef.current.material as THREE.ShaderMaterial).uniforms.uTime.value += delta;
+        }
+    });
+
     return (
-        <Sphere args={[size, SPHERE_SEGMENTS, SPHERE_SEGMENTS]} position={position}>
-            <meshPhysicalMaterial
-                color={color}
-                emissive={color}
-                emissiveIntensity={emissiveIntensity}
-                metalness={0.4}
-                roughness={0.2}
-                clearcoat={1}
-                clearcoatRoughness={0.1}
-            />
-        </Sphere>
+        <Sphere ref={meshRef} args={[size, SPHERE_SEGMENTS, SPHERE_SEGMENTS]} position={position} material={material} />
     );
 });
 
-// Memoized S orbital
+// Volumetric S orbital using custom Volumetric GLSL Shader Material
 const SOrbital = memo(function SOrbital({ radius, color }: { radius: number; color: string }) {
+    const material = useMemo(() => createVolumetricOrbitalMaterial(color, 0.3), [color]);
+    const meshRef = useRef<THREE.Mesh>(null);
+
+    useFrame((state, delta) => {
+        if (meshRef.current && (meshRef.current.material as THREE.ShaderMaterial).uniforms?.uTime) {
+            (meshRef.current.material as THREE.ShaderMaterial).uniforms.uTime.value += delta;
+        }
+    });
+
     return (
-        <Sphere args={[radius, SPHERE_SEGMENTS, SPHERE_SEGMENTS]}>
-            <meshPhysicalMaterial
-                color={color}
-                transparent={true}
-                opacity={0.2}
-                metalness={0.1}
-                roughness={0.1}
-                clearcoat={1}
-                side={THREE.DoubleSide}
-                depthWrite={false}
-                blending={THREE.AdditiveBlending}
-            />
-        </Sphere>
+        <Sphere ref={meshRef} args={[radius, SPHERE_SEGMENTS, SPHERE_SEGMENTS]} material={material} />
     );
 });
 
-// Memoized P orbital
+// Volumetric P orbital
 const POrbital = memo(function POrbital({ radius, color, axis }: { radius: number; color: string; axis: 'x' | 'y' | 'z' }) {
     const rotation: [number, number, number] =
         axis === 'x' ? [0, 0, Math.PI / 2] :
             axis === 'y' ? [0, 0, 0] :
                 [Math.PI / 2, 0, 0];
 
+    const mat1 = useMemo(() => createVolumetricOrbitalMaterial(color, 0.25), [color]);
+    const mat2 = useMemo(() => createVolumetricOrbitalMaterial(color, 0.25), [color]);
+
+    const m1Ref = useRef<THREE.Mesh>(null);
+    const m2Ref = useRef<THREE.Mesh>(null);
+
+    useFrame((_, delta) => {
+        if (m1Ref.current && (m1Ref.current.material as THREE.ShaderMaterial).uniforms?.uTime) {
+            (m1Ref.current.material as THREE.ShaderMaterial).uniforms.uTime.value += delta;
+        }
+        if (m2Ref.current && (m2Ref.current.material as THREE.ShaderMaterial).uniforms?.uTime) {
+            (m2Ref.current.material as THREE.ShaderMaterial).uniforms.uTime.value += delta;
+        }
+    });
+
     return (
         <group rotation={rotation}>
-            <Sphere args={[radius * 0.6, 12, 12]} position={[0, radius * 0.8, 0]}>
-                <meshPhysicalMaterial color={color} transparent opacity={0.2} metalness={0.1} roughness={0.1} clearcoat={1} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} />
-            </Sphere>
-            <Sphere args={[radius * 0.6, 12, 12]} position={[0, -radius * 0.8, 0]}>
-                <meshPhysicalMaterial color={color} transparent opacity={0.2} metalness={0.1} roughness={0.1} clearcoat={1} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} />
-            </Sphere>
+            <Sphere ref={m1Ref} args={[radius * 0.6, 16, 16]} position={[0, radius * 0.8, 0]} material={mat1} />
+            <Sphere ref={m2Ref} args={[radius * 0.6, 16, 16]} position={[0, -radius * 0.8, 0]} material={mat2} />
         </group>
     );
 });
 
-// Memoized D orbital
+// Volumetric D orbital
 const DOrbital = memo(function DOrbital({ radius, color, type }: { radius: number; color: string; type: 'xy' | 'xz' | 'yz' }) {
     const rotation: [number, number, number] =
         type === 'xy' ? [0, 0, 0] :
@@ -89,21 +99,14 @@ const DOrbital = memo(function DOrbital({ radius, color, type }: { radius: numbe
 
     const lobeSize = radius * 0.45;
     const lobeOffset = radius * 0.65;
+    const mat = useMemo(() => createVolumetricOrbitalMaterial(color, 0.2), [color]);
 
     return (
         <group rotation={rotation}>
-            <Sphere args={[lobeSize, 8, 8]} position={[lobeOffset, lobeOffset, 0]}>
-                <meshPhysicalMaterial color={color} transparent opacity={0.15} metalness={0.1} roughness={0.1} clearcoat={1} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} />
-            </Sphere>
-            <Sphere args={[lobeSize, 8, 8]} position={[-lobeOffset, lobeOffset, 0]}>
-                <meshPhysicalMaterial color={color} transparent opacity={0.15} metalness={0.1} roughness={0.1} clearcoat={1} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} />
-            </Sphere>
-            <Sphere args={[lobeSize, 8, 8]} position={[lobeOffset, -lobeOffset, 0]}>
-                <meshPhysicalMaterial color={color} transparent opacity={0.15} metalness={0.1} roughness={0.1} clearcoat={1} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} />
-            </Sphere>
-            <Sphere args={[lobeSize, 8, 8]} position={[-lobeOffset, -lobeOffset, 0]}>
-                <meshPhysicalMaterial color={color} transparent opacity={0.15} metalness={0.1} roughness={0.1} clearcoat={1} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} />
-            </Sphere>
+            <Sphere args={[lobeSize, 12, 12]} position={[lobeOffset, lobeOffset, 0]} material={mat} />
+            <Sphere args={[lobeSize, 12, 12]} position={[-lobeOffset, lobeOffset, 0]} material={mat} />
+            <Sphere args={[lobeSize, 12, 12]} position={[lobeOffset, -lobeOffset, 0]} material={mat} />
+            <Sphere args={[lobeSize, 12, 12]} position={[-lobeOffset, -lobeOffset, 0]} material={mat} />
         </group>
     );
 });
@@ -293,6 +296,17 @@ const AtomScene = memo(function AtomScene({
         { x: Math.PI / 2.5, z: Math.PI / 4 },
     ], []);
 
+    useEffect(() => {
+        if (groupRef.current) {
+            const targetScale = zoom * 0.85;
+            gsap.fromTo(
+                groupRef.current.scale,
+                { x: 0.1, y: 0.1, z: 0.1 },
+                { x: targetScale, y: targetScale, z: targetScale, duration: 0.8, ease: 'back.out(1.2)', overwrite: true }
+            );
+        }
+    }, [protons, symbol, zoom]);
+
     useFrame(() => {
         if (!groupRef.current || isPaused) return;
         const frozen = isFrozenRef?.current ?? false;
@@ -306,12 +320,6 @@ const AtomScene = memo(function AtomScene({
             groupRef.current.rotation.x = THREE.MathUtils.lerp(groupRef.current.rotation.x, (rotX - 0.5) * Math.PI, 0.1);
         } else {
             groupRef.current.rotation.y += 0.004 * animationSpeed;
-        }
-
-        // Entrance animation
-        const targetScale = zoom * 0.85;
-        if (groupRef.current.scale.x < targetScale - 0.01) {
-            groupRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.05);
         }
     });
 

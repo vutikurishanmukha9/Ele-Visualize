@@ -1,16 +1,18 @@
-import { MutableRefObject, useSyncExternalStore, useRef } from 'react';
+import { MutableRefObject, useSyncExternalStore, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Box, Maximize2, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
 import { ChemicalElement } from '@/data/elements';
 import { cn } from '@/lib/utils';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Stars, Environment, ContactShadows } from '@react-three/drei';
 import { EffectComposer, Bloom, DepthOfField } from '@react-three/postprocessing';
 import { createXRStore, XR } from '@react-three/xr';
+import gsap from 'gsap';
 import { Atom } from './Atom';
 import { ARPlacement } from './ARPlacement';
 import { AnimatedNumber } from './AnimatedNumber';
 import { useXRHandBridge, XRHandPointer } from '@/hooks/useXRHandBridge';
+import { createQuantumBackgroundMaterial } from '@/shaders/quantumBackgroundShader';
 import * as THREE from 'three';
 
 // XR store — shared across the app so ARButton can trigger sessions
@@ -18,6 +20,44 @@ export const xrStore = createXRStore({
   depthSensing: true,
   hitTest: true,
 });
+
+// Ambient Quantum WebGL Background Mesh
+function QuantumBackground() {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const material = useRef(createQuantumBackgroundMaterial());
+
+  useFrame((state, delta) => {
+    if (material.current) {
+      material.current.uniforms.uTime.value += delta;
+    }
+  });
+
+  return (
+    <mesh ref={meshRef} material={material.current}>
+      <sphereGeometry args={[80, 32, 32]} />
+    </mesh>
+  );
+}
+
+// Camera Lerp Controller with GSAP
+function CameraMotionController({ selectedElement }: { selectedElement: ChemicalElement | null }) {
+  const { camera } = useThree();
+
+  useEffect(() => {
+    if (selectedElement) {
+      gsap.to(camera.position, {
+        x: 0,
+        y: 0,
+        z: 15,
+        duration: 1.2,
+        ease: 'power3.out',
+        overwrite: 'auto',
+      });
+    }
+  }, [selectedElement, camera]);
+
+  return null;
+}
 
 interface VisualizerCanvasProps {
   selectedElement: ChemicalElement | null;
@@ -156,6 +196,8 @@ export function VisualizerCanvas({
             {/* 3D Canvas */}
             <Canvas camera={{ position: [0, 0, 15], fov: 45 }}>
               <XR store={xrStore}>
+                <QuantumBackground />
+                <CameraMotionController selectedElement={selectedElement} />
                 <ambientLight intensity={0.3} />
                 <Environment preset="city" />
                 <ContactShadows resolution={1024} scale={50} blur={2} opacity={0.3} far={20} position={[0, -5, 0]} />

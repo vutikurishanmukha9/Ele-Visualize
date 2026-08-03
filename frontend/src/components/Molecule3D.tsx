@@ -1,7 +1,8 @@
-import { useRef, useMemo, MutableRefObject } from 'react';
+import { useRef, useMemo, useEffect, MutableRefObject } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Sphere, Cylinder, Html, Float, Stars } from '@react-three/drei';
 import * as THREE from 'three';
+import gsap from 'gsap';
 import { Molecule, Atom, Bond } from '@/data/molecules';
 
 interface Molecule3DProps {
@@ -32,11 +33,12 @@ function AtomSphere({ atom }: { atom: Atom }) {
                 </Sphere>
                 <Html center distanceFactor={5}>
                     <div
-                        className="text-xs font-bold pointer-events-none select-none px-1 rounded"
+                        className="text-xs font-bold pointer-events-none select-none px-1 rounded backdrop-blur-md"
                         style={{
                             color: atom.color,
                             textShadow: '0 0 5px rgba(0,0,0,0.8)',
-                            backgroundColor: 'rgba(0,0,0,0.5)'
+                            backgroundColor: 'rgba(0,0,0,0.6)',
+                            border: '1px solid rgba(255,255,255,0.1)'
                         }}
                     >
                         {atom.symbol}
@@ -92,9 +94,9 @@ function BondCylinder({
                 <group key={i} position={[midpoint.x + offsetX, midpoint.y, midpoint.z + offsetZ]} rotation={rotation}>
                     <Cylinder args={[bondRadius, bondRadius, length * 0.7, 12]}>
                         <meshPhysicalMaterial
-                            color="#222222"
-                            emissive="#000000"
-                            emissiveIntensity={0}
+                            color="#334155"
+                            emissive="#1e293b"
+                            emissiveIntensity={0.2}
                             metalness={0.9}
                             roughness={0.3}
                             clearcoat={1}
@@ -115,6 +117,16 @@ function MoleculeScene({
     zoom = 1
 }: Molecule3DProps) {
     const groupRef = useRef<THREE.Group>(null);
+
+    useEffect(() => {
+        if (groupRef.current) {
+            gsap.fromTo(
+                groupRef.current.scale,
+                { x: 0.1, y: 0.1, z: 0.1 },
+                { x: zoom, y: zoom, z: zoom, duration: 0.9, ease: 'back.out(1.3)', overwrite: true }
+            );
+        }
+    }, [molecule, zoom]);
 
     // Hand-controlled or auto rotation
     useFrame(() => {
