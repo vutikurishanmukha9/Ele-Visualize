@@ -473,11 +473,14 @@ export function HandTracker({ onZoomChange, onGestureDetected, onSwipe, onHandPo
             const detect = () => {
                 if (!isTrackingRef.current || !videoRef.current || !handLandmarkerRef.current) return;
 
-                try {
-                    const results = handLandmarkerRef.current.detectForVideo(videoRef.current, performance.now());
-                    processLandmarks(results);
-                } catch (e) {
-                    console.error('Detection error:', e);
+                // Ensure video is actively playing and has rendered frames before feeding to MediaPipe
+                if (videoRef.current.readyState >= 2 && videoRef.current.videoWidth > 0) {
+                    try {
+                        const results = handLandmarkerRef.current.detectForVideo(videoRef.current, performance.now());
+                        processLandmarks(results);
+                    } catch (e) {
+                        console.warn('MediaPipe detection frame skipped:', e);
+                    }
                 }
 
                 animationFrameRef.current = requestAnimationFrame(detect);
@@ -496,9 +499,22 @@ export function HandTracker({ onZoomChange, onGestureDetected, onSwipe, onHandPo
         setIsTracking(false);
         if (animationFrameRef.current) {
             cancelAnimationFrame(animationFrameRef.current);
+            animationFrameRef.current = 0;
         }
         if (streamRef.current) {
             streamRef.current.getTracks().forEach(t => t.stop());
+            streamRef.current = null;
+        }
+        if (videoRef.current) {
+            videoRef.current.srcObject = null;
+        }
+        if (handLandmarkerRef.current) {
+            try {
+                handLandmarkerRef.current.close();
+            } catch {
+                // Ignore cleanup errors
+            }
+            handLandmarkerRef.current = null;
         }
         landmarkSmootherRef.current.reset();
         gestureStateMachineRef.current.reset();

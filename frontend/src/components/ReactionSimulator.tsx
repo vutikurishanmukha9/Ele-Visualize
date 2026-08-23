@@ -1,7 +1,7 @@
-import { useState, useCallback, useMemo, memo } from 'react';
+import { useState, useCallback, useMemo, memo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { reactions, Reaction, findReaction, getReactiveElements } from '@/data/reactions';
-import { elements } from '@/data/elements';
+import { elements, getCategoryColor } from '@/data/elements';
 import { cn } from '@/lib/utils';
 import { Zap, Flame, Snowflake, Sparkles, Play, RotateCcw, X } from 'lucide-react';
 
@@ -58,13 +58,17 @@ const ReactionAnimation = memo(function ReactionAnimation({
         })), []
     );
 
+    useEffect(() => {
+        const timer = setTimeout(onComplete, 2500);
+        return () => clearTimeout(timer);
+    }, [onComplete]);
+
     return (
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="absolute inset-0 flex items-center justify-center overflow-hidden"
-            onAnimationComplete={() => setTimeout(onComplete, 2000)}
         >
             {/* Background flash */}
             <motion.div
@@ -309,20 +313,3 @@ export const ReactionSimulator = memo(function ReactionSimulator({ onClose }: Re
         </div>
     );
 });
-
-// Helper to get category color
-function getCategoryColor(category: string): string {
-    const colors: Record<string, string> = {
-        'alkali-metal': '#FF3366',
-        'alkaline-earth': '#FF9933',
-        'transition-metal': '#FFCC33',
-        'post-transition': '#33CC99',
-        'metalloid': '#33CCCC',
-        'nonmetal': '#3399FF',
-        'halogen': '#9933FF',
-        'noble-gas': '#CC33FF',
-        'lanthanide': '#FF66CC',
-        'actinide': '#FF3333',
-    };
-    return colors[category] || '#666666';
-}

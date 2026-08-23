@@ -10,10 +10,17 @@ export type ProductEvent =
 export function sendProductEvent(event: ProductEvent) {
     try {
         const ws = new WebSocket(WS_URL);
+        ws.onerror = () => {
+            // Silently swallow connection errors when backend is offline
+        };
         ws.onopen = () => {
-            ws.send(JSON.stringify({ type: 'register', role: 'visualizer' }));
-            ws.send(JSON.stringify(event));
-            ws.close();
+            try {
+                ws.send(JSON.stringify({ type: 'register', role: 'visualizer' }));
+                ws.send(JSON.stringify(event));
+                ws.close();
+            } catch {
+                // Ignore send errors
+            }
         };
     } catch {
         // Collaboration events are opportunistic; the UI should remain local-first.

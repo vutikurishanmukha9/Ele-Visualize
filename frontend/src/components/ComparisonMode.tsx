@@ -1,14 +1,17 @@
 import { memo, useMemo } from 'react';
-import { ChemicalElement } from '../data/elements';
+import { ChemicalElement, elements, categoryColors } from '../data/elements';
 import { elementProperties } from '../data/elementProperties';
-import { X, ArrowRight } from 'lucide-react';
+import { X, ArrowRight, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAppStore } from '@/store/useAppStore';
 
 interface ComparisonModeProps {
     element1: ChemicalElement | null;
     element2: ChemicalElement | null;
     onRemoveElement: (slot: 1 | 2) => void;
 }
+
+const QUICK_PICKS = ['H', 'He', 'C', 'N', 'O', 'Na', 'Fe', 'Cu', 'Au', 'U'];
 
 const PropertyBar = memo(function PropertyBar({
     label,
@@ -48,7 +51,7 @@ const PropertyBar = memo(function PropertyBar({
                         style={{ width: `${percent1}%` }}
                     />
                 </div>
-                <div className="w-20 text-center text-xs">
+                <div className="min-w-[80px] sm:w-24 text-center text-xs">
                     <span className={winner === 1 ? "text-green-400 font-bold" : ""}>
                         {value1 ?? '-'}{unit}
                     </span>
@@ -77,19 +80,44 @@ const ElementCard = memo(function ElementCard({
     slot,
     color,
     onRemove,
+    onSelect,
 }: {
     element: ChemicalElement | null;
     slot: 1 | 2;
     color: string;
     onRemove: () => void;
+    onSelect?: (element: ChemicalElement) => void;
 }) {
     if (!element) {
         return (
-            <div className="flex-1 border-2 border-dashed border-border/50 rounded-xl p-6 flex items-center justify-center">
-                <div className="text-center text-muted-foreground">
-                    <div className="text-4xl mb-2">?</div>
-                    <div className="text-sm">Select element {slot}</div>
-                    <div className="text-xs">from the sidebar</div>
+            <div className="flex-1 border-2 border-dashed border-border/50 rounded-xl p-4 sm:p-6 flex flex-col items-center justify-center text-center bg-slate-950/40">
+                <div className="text-muted-foreground mb-3">
+                    <div className="text-2xl sm:text-3xl mb-1">?</div>
+                    <div className="text-xs sm:text-sm font-semibold text-white">Select Element {slot}</div>
+                    <div className="text-[11px] text-muted-foreground">Pick from list or quick chips:</div>
+                </div>
+
+                {/* Quick Pick Buttons */}
+                <div className="flex flex-wrap items-center justify-center gap-1.5 max-w-xs">
+                    {QUICK_PICKS.map((sym) => {
+                        const el = elements.find(e => e.symbol === sym);
+                        if (!el) return null;
+                        const elColor = categoryColors[el.category] || '#38bdf8';
+                        return (
+                            <button
+                                key={sym}
+                                onClick={() => onSelect?.(el)}
+                                className="px-2 py-1 rounded text-xs font-mono font-bold transition-all hover:scale-105 border"
+                                style={{
+                                    backgroundColor: `${elColor}18`,
+                                    borderColor: `${elColor}50`,
+                                    color: elColor
+                                }}
+                            >
+                                {sym}
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
         );
@@ -159,6 +187,7 @@ export const ComparisonMode = memo(function ComparisonMode({
     element2,
     onRemoveElement,
 }: ComparisonModeProps) {
+    const { addToComparisonBasket } = useAppStore();
     const props1 = element1 ? elementProperties[element1.atomicNumber] : null;
     const props2 = element2 ? elementProperties[element2.atomicNumber] : null;
 
@@ -184,8 +213,9 @@ export const ComparisonMode = memo(function ComparisonMode({
                 <ElementCard
                     element={element1}
                     slot={1}
-                    color="#f7f8f8"
+                    color={element1 ? (categoryColors[element1.category] || '#38bdf8') : '#94a3b8'}
                     onRemove={() => onRemoveElement(1)}
+                    onSelect={(el) => addToComparisonBasket(el.atomicNumber)}
                 />
                 <div className="hidden sm:flex items-center">
                     <ArrowRight className="w-6 h-6 text-muted-foreground" />
@@ -196,8 +226,9 @@ export const ComparisonMode = memo(function ComparisonMode({
                 <ElementCard
                     element={element2}
                     slot={2}
-                    color="#f7f8f8"
+                    color={element2 ? (categoryColors[element2.category] || '#38bdf8') : '#94a3b8'}
                     onRemove={() => onRemoveElement(2)}
+                    onSelect={(el) => addToComparisonBasket(el.atomicNumber)}
                 />
             </div>
 

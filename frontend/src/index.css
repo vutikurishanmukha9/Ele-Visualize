@@ -120,18 +120,28 @@
 @layer components {
   /* Layout */
   .workbench-layout {
-    @apply grid h-screen grid-cols-[300px_minmax(0,1fr)_320px] gap-0 px-0 pt-16 md:px-0;
+    @apply grid h-screen grid-cols-[280px_minmax(0,1fr)_300px] xl:grid-cols-[300px_minmax(0,1fr)_340px] gap-0 px-0 pt-16 md:px-0;
     background-color: var(--color-canvas);
   }
 
+  .workbench-layout.is-tablet {
+    @apply grid-cols-[260px_minmax(0,1fr)];
+  }
+
   .workbench-layout.is-mobile {
-    @apply block px-0 pb-24;
+    @apply block px-0 pb-20;
+    height: 100dvh;
+  }
+
+  .workbench-layout.is-zen {
+    @apply grid-cols-[1fr];
   }
 
   .workspace-nav {
-    @apply flex-none flex items-center justify-start gap-4 px-4 h-12 border-b overflow-x-auto hide-scrollbar backdrop-blur-xl;
+    @apply flex-none flex items-center justify-start gap-2 sm:gap-4 px-2 sm:px-4 h-12 border-b overflow-x-auto hide-scrollbar backdrop-blur-xl touch-pan-x;
     background-color: rgba(13, 13, 13, 0.7);
     border-color: var(--color-hairline);
+    -webkit-overflow-scrolling: touch;
   }
 
   .hide-scrollbar::-webkit-scrollbar {
@@ -362,7 +372,7 @@
     box-shadow: 0px 1px 0px 0px var(--color-hairline);
   }
   .stage-canvas {
-    @apply relative flex-1 items-center justify-center;
+    @apply relative flex-1 flex items-center justify-center w-full h-full overflow-hidden;
   }
   .stage-status {
     @apply flex h-10 items-center gap-4 px-4 text-xs;

@@ -5,7 +5,23 @@ export interface ElementProperties {
     density: number | null; // g/cm³
     state: 'solid' | 'liquid' | 'gas';
     discoveryYear: number | null;
+    electronegativity?: number | null; // Pauling scale
+    ionizationEnergy?: number | null; // kJ/mol
+    atomicRadius?: number | null; // pm
+    trivia?: string;
+    summary?: string;
+    electronConfiguration?: string;
 }
+
+export const getElementStateAtTemp = (atomicNumber: number, tempKelvin: number): 'solid' | 'liquid' | 'gas' | 'unknown' => {
+    const props = elementProperties[atomicNumber];
+    if (!props) return 'unknown';
+    if (props.meltingPoint != null && tempKelvin < props.meltingPoint) return 'solid';
+    if (props.boilingPoint != null && tempKelvin >= props.boilingPoint) return 'gas';
+    if (props.meltingPoint != null && props.boilingPoint != null && tempKelvin >= props.meltingPoint && tempKelvin < props.boilingPoint) return 'liquid';
+    if (props.meltingPoint != null && tempKelvin >= props.meltingPoint && props.boilingPoint == null) return 'liquid';
+    return props.state || 'unknown';
+};
 
 export const elementProperties: Record<number, ElementProperties> = {
     1: { meltingPoint: 14, boilingPoint: 20, density: 0.00009, state: 'gas', discoveryYear: 1766 },

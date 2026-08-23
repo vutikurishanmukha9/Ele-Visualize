@@ -58,6 +58,7 @@ interface AppState {
     showTutorial: boolean;
     sidebarOpen: boolean;
     isMobile: boolean;
+    zenMode: boolean;
 
     // Animation
     zoomLevel: number;
@@ -93,6 +94,9 @@ interface AppState {
     setShowTutorial: (v: boolean) => void;
     setSidebarOpen: (v: boolean) => void;
     setIsMobile: (v: boolean) => void;
+    setZenMode: (v: boolean) => void;
+    toggleZenMode: () => void;
+    setMobileDrawer: (drawer: 'none' | 'discovery' | 'inspector') => void;
 
     // Actions — animation
     setZoomLevel: (v: number | ((prev: number) => number)) => void;
@@ -126,6 +130,8 @@ export const useAppStore = create<AppState>((set) => ({
     showTutorial: false,
     sidebarOpen: false,
     isMobile: false,
+    zenMode: false,
+    mobileDrawer: 'none',
 
     zoomLevel: 1,
     animationSpeed: 1,
@@ -166,6 +172,9 @@ export const useAppStore = create<AppState>((set) => ({
     setShowTutorial: (v) => set({ showTutorial: v }),
     setSidebarOpen: (v) => set({ sidebarOpen: v }),
     setIsMobile: (v) => set({ isMobile: v }),
+    setZenMode: (v) => set({ zenMode: v }),
+    toggleZenMode: () => set((s) => ({ zenMode: !s.zenMode })),
+    setMobileDrawer: (drawer) => set({ mobileDrawer: drawer }),
 
     setZoomLevel: (v) =>
         set((s) => ({

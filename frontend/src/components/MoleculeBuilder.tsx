@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo, memo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { elements } from '@/data/elements';
 import { cn } from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
 import { Trash2, Save, RotateCcw, Link2, X, Check, AlertTriangle, Atom, Plus, Minus } from 'lucide-react';
 
 interface MoleculeBuilderProps {
@@ -109,13 +110,38 @@ const CanvasAtom = memo(function CanvasAtom({
         document.addEventListener('mouseup', handleUp);
     };
 
+    const handleTouchStart = (e: React.TouchEvent) => {
+        if (e.touches.length !== 1) return;
+        const touch = e.touches[0];
+        const startX = touch.clientX;
+        const startY = touch.clientY;
+        const startAtomX = atom.x;
+        const startAtomY = atom.y;
+
+        const handleTouchMove = (moveEvent: TouchEvent) => {
+            if (moveEvent.touches.length !== 1) return;
+            const t = moveEvent.touches[0];
+            const dx = t.clientX - startX;
+            const dy = t.clientY - startY;
+            onDrag(startAtomX + dx, startAtomY + dy);
+        };
+
+        const handleTouchEnd = () => {
+            document.removeEventListener('touchmove', handleTouchMove);
+            document.removeEventListener('touchend', handleTouchEnd);
+        };
+
+        document.addEventListener('touchmove', handleTouchMove, { passive: true });
+        document.addEventListener('touchend', handleTouchEnd);
+    };
+
     return (
         <motion.div
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             className={cn(
-                "absolute w-12 h-12 rounded-full flex flex-col items-center justify-center cursor-pointer font-bold transition-all select-none",
+                "absolute w-12 h-12 rounded-full flex flex-col items-center justify-center cursor-pointer font-bold transition-all select-none touch-none",
                 isSelected && "ring-4 ring-cyan-400 z-10",
                 !isValidBonds && atom.bonds > 0 && "ring-2 ring-yellow-500",
                 atom.bonds === atom.maxBonds && "ring-2 ring-green-500"
@@ -136,6 +162,10 @@ const CanvasAtom = memo(function CanvasAtom({
             onMouseDown={(e) => {
                 e.stopPropagation(); // Prevent canvas click
                 handleDrag(e);
+            }}
+            onTouchStart={(e) => {
+                e.stopPropagation();
+                handleTouchStart(e);
             }}
         >
             <span className="text-lg leading-none">{atom.symbol}</span>
@@ -241,14 +271,13 @@ export const MoleculeBuilder = memo(function MoleculeBuilder({ onClose }: Molecu
 
     const deleteAtom = useCallback((atomId: string) => {
         const connectedBonds = bonds.filter(b => b.from === atomId || b.to === atomId);
-        connectedBonds.forEach(bond => {
-            const otherId = bond.from === atomId ? bond.to : bond.from;
-            setAtoms(prev => prev.map(a =>
-                a.id === otherId ? { ...a, bonds: Math.max(0, a.bonds - 1) } : a
-            ));
-        });
+        const disconnectedIds = connectedBonds.map(b => b.from === atomId ? b.to : b.from);
+        
+        setAtoms(prev => prev
+            .filter(a => a.id !== atomId)
+            .map(a => disconnectedIds.includes(a.id) ? { ...a, bonds: Math.max(0, a.bonds - 1) } : a)
+        );
         setBonds(prev => prev.filter(b => b.from !== atomId && b.to !== atomId));
-        setAtoms(prev => prev.filter(a => a.id !== atomId));
         setSelectedAtom(null);
     }, [bonds]);
 
@@ -260,11 +289,22 @@ export const MoleculeBuilder = memo(function MoleculeBuilder({ onClose }: Molecu
 
     const saveMolecule = useCallback(() => {
         if (!isValid) return;
-        const saved = JSON.parse(localStorage.getItem('savedMolecules') || '[]');
-        saved.push({ id: Date.now(), formula, atoms: atoms.length, date: new Date().toISOString() });
-        localStorage.setItem('savedMolecules', JSON.stringify(saved));
-        alert(`Saved: ${formula}`);
-    }, [isValid, atoms, formula]);
+        try {
+            const saved = JSON.parse(localStorage.getItem('savedMolecules') || '[]');
+            saved.push({ id: Date.now(), formula, atoms: atoms.length, date: new Date().toISOString() });
+            localStorage.setItem('savedMolecules', JSON.stringify(saved));
+            toast({
+                title: 'Molecule Saved',
+                description: `Successfully stored ${formula} in your molecular database.`,
+            });
+        } catch {
+            toast({
+                title: 'Save Failed',
+                description: 'Could not store molecule to local storage.',
+                variant: 'destructive',
+            });
+        }
+    }, [isValid, atoms.length, formula]);
 
     return (
         <div className="h-full flex flex-col bg-gradient-to-b from-slate-900 to-slate-950">

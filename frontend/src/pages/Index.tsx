@@ -5,29 +5,36 @@ import {
   Beaker,
   BookOpen,
   Boxes,
+  Camera,
   Check,
   ChevronRight,
   Command,
+  Compass,
+  Eye,
+  Flame,
   FlaskConical,
   Gauge,
   GitCompare,
   Grid3X3,
   Hand,
+  Info,
   Library,
   Maximize2,
   Minimize2,
   Pause,
   Play,
   Plus,
+  RotateCcw,
   Save,
   Search,
   SlidersHorizontal,
   Sparkles,
+  Thermometer,
   Trash2,
   X,
   Zap,
 } from 'lucide-react';
-import { Atom3D } from '@/components/Atom3D';
+import { Atom3D, CameraPreset } from '@/components/Atom3D';
 import { ARButton } from '@/components/ARButton';
 import { ComparisonMode } from '@/components/ComparisonMode';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -38,14 +45,12 @@ import { PeriodicTableGrid } from '@/components/PeriodicTableGrid';
 import { ReactionSimulator } from '@/components/ReactionSimulator';
 import { xrStore } from '@/components/VisualizerCanvas';
 import { elementProperties } from '@/data/elementProperties';
-import { categoryLabels, ChemicalElement, ElementCategory, elements } from '@/data/elements';
+import { categoryLabels, categoryColors, categoryGlows, getElementColor, getElementBlock, ChemicalElement, ElementCategory, elements } from '@/data/elements';
 import { Molecule, molecules } from '@/data/molecules';
 import { cn } from '@/lib/utils';
 import { sendProductEvent } from '@/lib/productSocket';
 import { sessionApi } from '@/lib/sessions';
 import { SavedSession, WorkspaceMode, useAppStore } from '@/store/useAppStore';
-
-// Removed category colors for strict monochrome design
 
 const workspaces: { id: WorkspaceMode; label: string; icon: typeof Atom }[] = [
   { id: 'explore', label: 'Explore', icon: Atom },
@@ -66,21 +71,61 @@ function getElectronConfig(atomicNumber: number) {
   const config: React.ReactNode[] = [];
   for (let i = 0; i < orbitals.length && remaining > 0; i++) {
     const count = Math.min(remaining, maxElectrons[i]);
-    config.push(<span key={orbitals[i]} className="mr-[2px]">{orbitals[i]}<sup className="text-[10px] opacity-80">{count}</sup></span>);
+    config.push(<span key={orbitals[i]} className="mr-[2px]">{orbitals[i]}<sup className="text-[10px] text-primary font-semibold">{count}</sup></span>);
     remaining -= count;
   }
   return <>{config}</>;
 }
 
-const formatTemp = (kelvin: number | null | undefined) => {
+const formatTemp = (kelvin: number | null | undefined, unit: 'C' | 'K' | 'F' = 'C') => {
   if (kelvin == null) return 'Not available';
+  if (unit === 'K') return `${kelvin} K`;
+  if (unit === 'F') return `${Math.round((kelvin - 273.15) * 9/5 + 32)} °F`;
   return `${Math.round(kelvin - 273.15)} °C`;
 };
 
+// Animated 2D Bohr Model SVG Widget
+function BohrModel2D({ shells, color, symbol }: { shells: number[]; color: string; symbol: string }) {
+  const size = 150;
+  const center = size / 2;
+  return (
+    <div className="flex flex-col items-center justify-center p-3 bg-slate-950/70 rounded-xl border border-white/10 relative overflow-hidden select-none">
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="overflow-visible">
+        {/* Core Nucleus glow */}
+        <circle cx={center} cy={center} r={16} fill={color} opacity={0.25} />
+        <circle cx={center} cy={center} r={12} fill={color} opacity={0.8} />
+        <text x={center} y={center + 4} textAnchor="middle" fill="#ffffff" fontSize="11" fontWeight="bold" fontFamily="monospace">
+          {symbol}
+        </text>
+        {/* Orbiting Shells */}
+        {shells.map((count, shellIdx) => {
+          const radius = 22 + shellIdx * (48 / Math.max(shells.length, 1));
+          return (
+            <g key={shellIdx}>
+              <circle cx={center} cy={center} r={radius} fill="none" stroke={color} strokeWidth="1" strokeDasharray="3 3" opacity={0.35} />
+              {Array.from({ length: Math.min(count, 12) }).map((_, electronIdx) => {
+                const angle = (electronIdx / Math.min(count, 12)) * Math.PI * 2;
+                const ex = center + Math.cos(angle) * radius;
+                const ey = center + Math.sin(angle) * radius;
+                return (
+                  <circle key={electronIdx} cx={ex} cy={ey} r={2.5} fill="#ffffff" stroke={color} strokeWidth="1" opacity={0.9} />
+                );
+              })}
+            </g>
+          );
+        })}
+      </svg>
+      <div className="text-[10px] font-mono text-muted-foreground mt-2 text-center">
+        Bohr Configuration: <span className="text-white font-bold">{shells.join(' • ')}</span>
+      </div>
+    </div>
+  );
+}
+
 const Loader = () => (
-  <div className="flex h-[420px] items-center justify-center text-sm text-muted-foreground">
-    <Sparkles className="mr-2 h-4 w-4 animate-pulse text-primary" />
-    Preparing visual stage
+  <div className="flex h-full min-h-[300px] items-center justify-center text-sm text-muted-foreground">
+    <Sparkles className="mr-2 h-5 w-5 animate-spin text-primary" />
+    <span>Loading high-fidelity quantum scene...</span>
   </div>
 );
 
@@ -119,24 +164,41 @@ function TopBar({
     setSearchQuery('');
   };
 
+  const activeColor = selectedElement ? getElementColor(selectedElement) : '#38bdf8';
+
   return (
     <header className="workbench-topbar">
-      <button className="flex min-w-0 items-center gap-3 text-left transition-colors hover:opacity-80" onClick={handleHome}>
-        <div className="brand-mark">
+      <button className="flex min-w-0 items-center gap-3 text-left transition-colors hover:opacity-85" onClick={handleHome}>
+        <div
+          className="brand-mark shadow-glow"
+          style={{ backgroundColor: `${activeColor}20`, borderColor: activeColor, color: activeColor }}
+        >
           <Atom className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <div className="truncate text-sm font-semibold tracking-wide text-foreground">Ele-Visualize</div>
+          <div className="truncate text-sm font-bold tracking-wide text-white flex items-center gap-2">
+            Ele-Visualize
+            <span className="text-[10px] px-1.5 py-0.2 rounded bg-white/10 text-primary font-mono font-normal">v2.0 Pro</span>
+          </div>
           <div className="hidden truncate text-xs text-muted-foreground sm:block">
             Scientific workbench for atoms, molecules, reactions, and AR
           </div>
         </div>
       </button>
 
-      <button className="command-trigger" onClick={() => setCommandOpen(!commandOpen)}>
-        <Command className="h-4 w-4 text-primary" />
+      <button className="command-trigger group" onClick={() => setCommandOpen(!commandOpen)}>
+        <Command className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
         <span className="truncate">
-          {selectedElement ? `${selectedElement.symbol} ${selectedElement.name}` : selectedMolecule ? selectedMolecule.name : 'Search or run command'}
+          {selectedElement ? (
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: getElementColor(selectedElement) }} />
+              <strong className="text-white">{selectedElement.symbol}</strong> {selectedElement.name}
+            </span>
+          ) : selectedMolecule ? (
+            <span className="text-white">{selectedMolecule.name}</span>
+          ) : (
+            'Search elements, molecules, or commands'
+          )}
         </span>
         <span className="hidden rounded border border-white/10 px-1.5 py-0.5 text-[10px] text-muted-foreground md:inline">/</span>
       </button>
@@ -145,8 +207,13 @@ function TopBar({
         <button className="icon-button hidden sm:inline-flex" onClick={() => setUiDensity(uiDensity === 'comfortable' ? 'compact' : 'comfortable')} title="Toggle density">
           <SlidersHorizontal className="h-4 w-4" />
         </button>
-        <button className="px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition-colors" onClick={onSave} disabled={saveState === 'saving'}>
-          {saveState === 'saving' ? 'Saving...' : saveState === 'saved' ? 'Saved ✓' : 'Save'}
+        <button
+          className="px-3.5 py-1.5 text-xs font-semibold text-white bg-primary/20 hover:bg-primary/30 border border-primary/40 rounded-md transition-all shadow-sm flex items-center gap-1.5"
+          onClick={onSave}
+          disabled={saveState === 'saving'}
+        >
+          <Save className="h-3.5 w-3.5 text-primary" />
+          {saveState === 'saving' ? 'Saving...' : saveState === 'saved' ? 'Saved ✓' : 'Save Session'}
         </button>
       </div>
     </header>
@@ -235,11 +302,11 @@ function CommandPalette({
   if (!commandOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[80] bg-black/50 p-3" onMouseDown={() => setCommandOpen(false)}>
+    <div className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm p-3 flex items-start justify-center" onMouseDown={() => setCommandOpen(false)}>
       <motion.div
-        initial={{ y: -18, opacity: 0, scale: 0.98 }}
+        initial={{ y: -20, opacity: 0, scale: 0.98 }}
         animate={{ y: 0, opacity: 1, scale: 1 }}
-        className="command-panel"
+        className="command-panel bg-slate-950 border border-white/10"
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
@@ -248,8 +315,8 @@ function CommandPalette({
             autoFocus
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
-            className="min-w-0 flex-1 bg-transparent text-sm outline-none"
-            placeholder="Search elements, molecules, or commands"
+            className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none"
+            placeholder="Search elements, molecules, or commands (e.g. Au, Oxygen, Table)"
           />
           <button className="icon-button" onClick={() => setCommandOpen(false)}>
             <X className="h-4 w-4" />
@@ -273,34 +340,43 @@ function CommandPalette({
           ))}
 
           <div className="command-section">Elements</div>
-          {filteredElements.slice(0, 8).map((element) => (
-            <button
-              key={element.atomicNumber}
-              className="command-item"
-              onClick={() => {
-                onSelectElement(element);
-                setCommandOpen(false);
-              }}
-            >
-              <span className="element-dot">{element.symbol}</span>
-              <span>{element.name}</span>
-              <span className="ml-auto text-xs text-muted-foreground">#{element.atomicNumber}</span>
-            </button>
-          ))}
+          {filteredElements.slice(0, 8).map((element) => {
+            const color = getElementColor(element);
+            return (
+              <button
+                key={element.atomicNumber}
+                className="command-item hover:bg-slate-900"
+                onClick={() => {
+                  onSelectElement(element);
+                  setCommandOpen(false);
+                }}
+              >
+                <span
+                  className="element-dot"
+                  style={{ backgroundColor: `${color}25`, color: color, borderColor: `${color}55` }}
+                >
+                  {element.symbol}
+                </span>
+                <span className="font-medium text-white">{element.name}</span>
+                <span className="text-xs text-muted-foreground ml-2 capitalize">({categoryLabels[element.category]})</span>
+                <span className="ml-auto text-xs font-mono text-muted-foreground">#{element.atomicNumber}</span>
+              </button>
+            );
+          })}
 
           <div className="command-section">Molecules</div>
           {filteredMolecules.slice(0, 6).map((molecule) => (
             <button
               key={molecule.formula}
-              className="command-item"
+              className="command-item hover:bg-slate-900"
               onClick={() => {
                 onSelectMolecule(molecule);
                 setCommandOpen(false);
               }}
             >
               <FlaskConical className="h-4 w-4 text-primary" />
-              <span>{molecule.name}</span>
-              <span className="ml-auto text-xs text-muted-foreground">{molecule.formula}</span>
+              <span className="font-medium text-white">{molecule.name}</span>
+              <span className="ml-auto text-xs font-mono text-muted-foreground">{molecule.formula}</span>
             </button>
           ))}
         </div>
@@ -320,14 +396,14 @@ function DiscoveryRail({
   onSelectElement: (element: ChemicalElement) => void;
   onSelectMolecule: (molecule: Molecule) => void;
 }) {
-  const { activeFilter, searchQuery, viewMode, setActiveFilter, setSearchQuery, setViewMode } = useAppStore();
+  const { activeFilter, searchQuery, viewMode, setActiveFilter, setSearchQuery, setViewMode, selectedElement } = useAppStore();
 
   return (
     <aside className="discovery-rail">
       <div className="rail-header">
         <div>
           <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Discovery</div>
-          <div className="text-lg font-semibold">Find faster</div>
+          <div className="text-lg font-bold text-white">Elements & Molecules</div>
         </div>
         <div className="segmented">
           <button className={cn(viewMode === 'atoms' && 'is-active')} onClick={() => setViewMode('atoms')}>Atoms</button>
@@ -336,46 +412,78 @@ function DiscoveryRail({
       </div>
 
       <label className="search-field">
-        <Search className="h-4 w-4" />
+        <Search className="h-4 w-4 text-muted-foreground" />
         <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Symbol, name, mass, formula" />
       </label>
 
       {viewMode === 'atoms' && (
-        <div className="category-strip">
-          <button className={cn(activeFilter === 'all' && 'is-active')} onClick={() => setActiveFilter('all')}>All</button>
-          {categories.map((category) => (
-            <button
-              key={category}
-              className={cn(activeFilter === category && 'is-active')}
-              onClick={() => setActiveFilter(category)}
-            >
-              {categoryLabels[category].replace(' Metals', '').replace(' Earth', '')}
-            </button>
-          ))}
+        <div className="category-strip flex flex-wrap gap-1 p-2.5 overflow-x-auto hide-scrollbar">
+          <button
+            className={cn("px-2 py-0.5 rounded text-[11px] font-medium transition-all", activeFilter === 'all' && 'is-active font-semibold')}
+            onClick={() => setActiveFilter('all')}
+          >
+            All
+          </button>
+          {categories.map((category) => {
+            const color = categoryColors[category];
+            const isActive = activeFilter === category;
+            return (
+              <button
+                key={category}
+                className={cn("px-2 py-0.5 rounded text-[11px] font-medium transition-all flex items-center gap-1", isActive && 'is-active font-semibold')}
+                onClick={() => setActiveFilter(category)}
+                style={{
+                  color: isActive ? color : undefined,
+                  borderColor: isActive ? `${color}66` : undefined
+                }}
+              >
+                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
+                {categoryLabels[category].replace(' Metals', '').replace(' Earth', '')}
+              </button>
+            );
+          })}
         </div>
       )}
 
       <div className="rail-list">
         {viewMode === 'atoms'
-          ? filteredElements.map((element) => (
-            <button key={element.atomicNumber} className="result-card" onClick={() => onSelectElement(element)}>
-              <span className="periodic-tile">
-                <small>{element.atomicNumber}</small>
-                {element.symbol}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-semibold">{element.name}</span>
-                <span className="block truncate text-xs text-muted-foreground">{categoryLabels[element.category]} / {element.atomicMass.toFixed(2)} u</span>
-              </span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </button>
-          ))
+          ? filteredElements.map((element) => {
+            const color = getElementColor(element);
+            const isSelected = selectedElement?.atomicNumber === element.atomicNumber;
+            return (
+              <button
+                key={element.atomicNumber}
+                className={cn("result-card transition-all", isSelected && "bg-slate-900/90 border-primary/40")}
+                onClick={() => onSelectElement(element)}
+                style={{ borderLeftColor: isSelected ? color : 'transparent', borderLeftWidth: isSelected ? '3px' : '1px' }}
+              >
+                <span
+                  className="periodic-tile font-bold"
+                  style={{
+                    backgroundColor: `${color}18`,
+                    color: color,
+                    borderColor: `${color}40`
+                  }}
+                >
+                  <small style={{ color: color }}>{element.atomicNumber}</small>
+                  {element.symbol}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold text-white">{element.name}</span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    <span style={{ color: color }}>{categoryLabels[element.category]}</span> • {element.atomicMass.toFixed(2)} u
+                  </span>
+                </span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </button>
+            );
+          })
           : filteredMolecules.map((molecule) => (
             <button key={molecule.formula} className="result-card" onClick={() => onSelectMolecule(molecule)}>
               <span className="molecule-tile">{molecule.formula}</span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-semibold">{molecule.name}</span>
-                <span className="block truncate text-xs text-muted-foreground">{molecule.atoms.length} atoms / {molecule.bonds.length} bonds</span>
+                <span className="block truncate text-sm font-semibold text-white">{molecule.name}</span>
+                <span className="block truncate text-xs text-muted-foreground">{molecule.atoms.length} atoms • {molecule.bonds.length} bonds</span>
               </span>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </button>
@@ -392,6 +500,7 @@ function VisualStage({
   handPositionY,
   isHandControlled,
   isFrozen,
+  onSelectElement,
 }: {
   selectedElement: ChemicalElement | null;
   selectedMolecule: Molecule | null;
@@ -399,6 +508,7 @@ function VisualStage({
   handPositionY: React.MutableRefObject<number>;
   isHandControlled: React.MutableRefObject<boolean>;
   isFrozen: React.MutableRefObject<boolean>;
+  onSelectElement: (element: ChemicalElement) => void;
 }) {
   const {
     animationSpeed,
@@ -408,57 +518,221 @@ function VisualStage({
     viewMode,
     workspaceMode,
     zoomLevel,
+    zenMode,
+    isMobile,
     setIsFullscreen,
     setShowOrbitals,
     setWorkspaceMode,
     togglePaused,
     setAnimationSpeed,
+    toggleZenMode,
+    setMobileDrawer,
   } = useAppStore();
 
-  const stageTitle = selectedElement ? `${selectedElement.name} atomic model` : selectedMolecule ? `${selectedMolecule.name} molecule` : 'Ready to explore';
+  const [cameraPreset, setCameraPreset] = useState<CameraPreset>('3d');
+  const [showNucleusDetail, setShowNucleusDetail] = useState(false);
+  const [selectedShellIdx, setSelectedShellIdx] = useState<number | null>(null);
+  const [autoRotate, setAutoRotate] = useState(false);
+  const [enableBloom, setEnableBloom] = useState(true);
+  const [spaceFilling, setSpaceFilling] = useState(false);
+
+  const stageColor = selectedElement ? getElementColor(selectedElement) : '#38bdf8';
+  const stageTitle = selectedElement
+    ? `${selectedElement.name} (${selectedElement.symbol}) • #${selectedElement.atomicNumber}`
+    : selectedMolecule
+    ? `${selectedMolecule.name} (${selectedMolecule.formula})`
+    : 'Interactive 3D Visualizer Stage';
+
+  // Quick picks for immediate exploration
+  const featuredQuickPicks = useMemo(() => [
+    elements.find(e => e.symbol === 'H'),
+    elements.find(e => e.symbol === 'C'),
+    elements.find(e => e.symbol === 'O'),
+    elements.find(e => e.symbol === 'Ne'),
+    elements.find(e => e.symbol === 'Fe'),
+    elements.find(e => e.symbol === 'Cu'),
+    elements.find(e => e.symbol === 'Au'),
+    elements.find(e => e.symbol === 'U'),
+  ].filter(Boolean) as ChemicalElement[], []);
 
   return (
-    <section className={cn('visual-stage', isFullscreen && 'is-fullscreen')}>
-      <div className="stage-toolbar">
-        <div className="min-w-0">
-          <div className="truncate text-xs uppercase tracking-[0.18em] text-muted-foreground">{workspaceMode === 'lab' ? 'AR and gesture lab' : 'Visual stage'}</div>
-          <div className="truncate text-base font-semibold">{stageTitle}</div>
+    <section className={cn('visual-stage relative', isFullscreen && 'is-fullscreen')}>
+      {/* Top Stage Toolbar */}
+      <div className="stage-toolbar flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2 bg-slate-950/80 backdrop-blur-md border-b border-white/10">
+        <div className="min-w-0 flex items-center gap-2">
+          {selectedElement && (
+            <span
+              className="w-2.5 h-2.5 rounded-full animate-pulse"
+              style={{ backgroundColor: stageColor, boxShadow: `0 0 10px ${stageColor}` }}
+            />
+          )}
+          <div className="min-w-0">
+            <div className="truncate text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-mono flex items-center gap-2">
+              <span>{workspaceMode === 'lab' ? 'AR & Gesture Lab' : 'Quantum Visual Stage'}</span>
+              {zenMode && (
+                <span className="bg-primary/20 text-primary px-1.5 py-0.2 rounded text-[9px] font-bold">MAX 3D</span>
+              )}
+            </div>
+            <div className="truncate text-sm font-bold text-white flex items-center gap-2">
+              {stageTitle}
+              {selectedElement && (
+                <span
+                  className="hidden md:inline text-[10px] font-mono px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: `${stageColor}20`, color: stageColor }}
+                >
+                  {categoryLabels[selectedElement.category]}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
+
+        {/* Action controls */}
         <div className="flex items-center gap-1.5">
+          {/* Camera Presets (3D / Top / Side / Reset) */}
+          <div className="hidden sm:flex items-center gap-1 bg-slate-900/80 p-0.5 rounded-lg border border-white/10 mr-1">
+            <button
+              onClick={() => setCameraPreset('3d')}
+              className={cn("px-2 py-1 text-[10px] font-mono rounded transition-colors", cameraPreset === '3d' ? "bg-white/20 text-white font-bold" : "text-slate-400 hover:text-white")}
+              title="Perspective 3D Angle"
+            >
+              3D
+            </button>
+            <button
+              onClick={() => setCameraPreset('top')}
+              className={cn("px-2 py-1 text-[10px] font-mono rounded transition-colors", cameraPreset === 'top' ? "bg-white/20 text-white font-bold" : "text-slate-400 hover:text-white")}
+              title="Top / Polar View"
+            >
+              Top
+            </button>
+            <button
+              onClick={() => setCameraPreset('side')}
+              className={cn("px-2 py-1 text-[10px] font-mono rounded transition-colors", cameraPreset === 'side' ? "bg-white/20 text-white font-bold" : "text-slate-400 hover:text-white")}
+              title="Equator / Side View"
+            >
+              Side
+            </button>
+          </div>
+
           <ARButton xrStore={xrStore} />
-          <button className="icon-button" onClick={togglePaused} title={isPaused ? 'Play animation' : 'Pause animation'}>
-            {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+
+          {/* Auto-Orbit Rotation Toggle */}
+          <button
+            className={cn('icon-button', autoRotate && 'is-active bg-primary/20 text-primary')}
+            onClick={() => setAutoRotate(!autoRotate)}
+            title={autoRotate ? "Disable Auto-Rotation" : "Enable Cinematic Auto-Orbit"}
+          >
+            <RotateCcw className={cn("h-4 w-4", autoRotate && "animate-spin text-primary")} />
           </button>
-          <button className={cn('icon-button', showOrbitals && 'is-active')} onClick={() => setShowOrbitals(!showOrbitals)} title="Toggle orbitals">
+
+          {/* Bloom Postprocessing Glow Toggle */}
+          <button
+            className={cn('icon-button', enableBloom && 'is-active bg-yellow-500/20 text-yellow-400')}
+            onClick={() => setEnableBloom(!enableBloom)}
+            title={enableBloom ? "Disable Bloom Glow" : "Enable Quantum Bloom Glow"}
+          >
             <Sparkles className="h-4 w-4" />
           </button>
+
+          {/* Nucleus Particles Detail Toggle */}
+          {selectedElement && (
+            <button
+              className={cn('icon-button', showNucleusDetail && 'is-active bg-primary/20 text-primary')}
+              onClick={() => setShowNucleusDetail(!showNucleusDetail)}
+              title={showNucleusDetail ? "Switch to Glowing Symbol" : "Zoom into Protons & Neutrons"}
+            >
+              <Compass className="h-4 w-4" />
+            </button>
+          )}
+
+          {/* Molecule Style Toggle (Ball-Stick vs Space-Filling CPK) */}
+          {viewMode === 'molecules' && (
+            <button
+              className={cn('icon-button', spaceFilling && 'is-active bg-emerald-500/20 text-emerald-400')}
+              onClick={() => setSpaceFilling(!spaceFilling)}
+              title={spaceFilling ? "Switch to Ball-and-Stick Bonds" : "Switch to Space-Filling CPK Radii"}
+            >
+              <Boxes className="h-4 w-4" />
+            </button>
+          )}
+
+          {/* Orbitals Toggle */}
+          {viewMode === 'atoms' && (
+            <button
+              className={cn('icon-button', showOrbitals && 'is-active bg-sky-500/20 text-sky-400')}
+              onClick={() => setShowOrbitals(!showOrbitals)}
+              title="Toggle Quantum Probability Clouds (s, p, d orbitals)"
+            >
+              <Atom className="h-4 w-4" />
+            </button>
+          )}
+
+          {/* Pause / Play */}
+          <button className="icon-button" onClick={togglePaused} title={isPaused ? 'Play animation' : 'Pause animation'}>
+            {isPaused ? <Play className="h-4 w-4 text-emerald-400" /> : <Pause className="h-4 w-4" />}
+          </button>
+
+          {/* Mobile Details Drawer Button */}
+          {isMobile && (selectedElement || selectedMolecule) && (
+            <button
+              className="icon-button bg-primary/20 text-primary border border-primary/30"
+              onClick={() => setMobileDrawer('inspector')}
+              title="Open Detailed Inspector & Bohr Model"
+            >
+              <Info className="h-4 w-4" />
+            </button>
+          )}
+
+          {/* Zen Mode / Maximize Stage Toggle */}
+          <button
+            className={cn("icon-button hidden md:inline-flex", zenMode && "is-active bg-primary/30 text-white font-bold")}
+            onClick={toggleZenMode}
+            title={zenMode ? "Restore Sidebars" : "Maximize Three.js Stage (Zen Mode)"}
+          >
+            {zenMode ? <Minimize2 className="h-4 w-4 text-primary" /> : <Maximize2 className="h-4 w-4" />}
+          </button>
+
+          {/* Fullscreen */}
           <button className="icon-button" onClick={() => setIsFullscreen(!isFullscreen)} title="Toggle fullscreen">
             {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </button>
         </div>
       </div>
 
-      <div className="stage-canvas">
-        <div className="stage-grid" />
+      {/* Main Full-Viewport Canvas Stage */}
+      <div className="stage-canvas w-full h-full flex-1 relative flex items-center justify-center overflow-hidden">
+        <div className="stage-grid opacity-30 pointer-events-none" />
+
         <AnimatePresence mode="wait">
           {viewMode === 'atoms' && selectedElement && (
-            <motion.div key={selectedElement.atomicNumber} initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="w-full max-w-3xl">
+            <motion.div
+              key={selectedElement.atomicNumber}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              className="w-full h-full relative"
+            >
               <ErrorBoundary>
                 <Suspense fallback={<Loader />}>
                   <Atom3D
                     protons={selectedElement.atomicNumber}
                     neutrons={Math.round(selectedElement.atomicMass) - selectedElement.atomicNumber}
                     electrons={selectedElement.shells}
-                    color="#f7f8f8"
+                    color={stageColor}
                     symbol={selectedElement.symbol}
                     handRotationXRef={handPositionY}
                     handRotationYRef={handPositionX}
                     isHandControlledRef={isHandControlled}
                     zoom={zoomLevel}
                     showOrbitals={showOrbitals}
+                    showNucleusDetail={showNucleusDetail}
                     isFrozenRef={isFrozen}
                     animationSpeed={animationSpeed}
                     isPaused={isPaused}
+                    autoRotate={autoRotate}
+                    enableBloom={enableBloom}
+                    cameraPreset={cameraPreset}
+                    onSelectShell={setSelectedShellIdx}
                   />
                 </Suspense>
               </ErrorBoundary>
@@ -466,7 +740,13 @@ function VisualStage({
           )}
 
           {viewMode === 'molecules' && selectedMolecule && (
-            <motion.div key={selectedMolecule.formula} initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="w-full max-w-3xl">
+            <motion.div
+              key={selectedMolecule.formula}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              className="w-full h-full relative"
+            >
               <ErrorBoundary>
                 <Suspense fallback={<Loader />}>
                   <Molecule3D
@@ -475,6 +755,9 @@ function VisualStage({
                     handRotationYRef={handPositionX}
                     isHandControlledRef={isHandControlled}
                     zoom={zoomLevel}
+                    autoRotate={autoRotate}
+                    enableBloom={enableBloom}
+                    spaceFilling={spaceFilling}
                   />
                 </Suspense>
               </ErrorBoundary>
@@ -482,34 +765,87 @@ function VisualStage({
           )}
 
           {((viewMode === 'atoms' && !selectedElement) || (viewMode === 'molecules' && !selectedMolecule)) && (
-            <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="empty-stage">
-              <div className="brand-mark mx-auto h-14 w-14">
-                <Atom className="h-7 w-7" />
+            <motion.div key="empty" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="empty-stage max-w-lg mx-auto text-center p-6 z-10">
+              <div className="brand-mark mx-auto h-16 w-16 mb-4 shadow-glow" style={{ backgroundColor: 'rgba(56, 189, 248, 0.15)', borderColor: '#38bdf8' }}>
+                <Atom className="h-8 w-8 text-sky-400" />
               </div>
-              <h2>Choose a starting point</h2>
-              <p>Search an element, open a molecule, compare two discoveries, or run a reaction from the workbench.</p>
-              <button className="premium-button mx-auto" onClick={() => setWorkspaceMode('table')}>
-                <Grid3X3 className="h-4 w-4" />
-                Open periodic table
-              </button>
+              <h2 className="text-2xl font-bold text-white mb-2">Explore the Elements</h2>
+              <p className="text-sm text-slate-400 mb-6 leading-relaxed">
+                Select an atom from the discovery rail, open the full periodic table, or launch a featured element below.
+              </p>
+
+              {/* Quick Launch Chips */}
+              <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
+                {featuredQuickPicks.map((el) => {
+                  const color = getElementColor(el);
+                  return (
+                    <button
+                      key={el.symbol}
+                      onClick={() => onSelectElement(el)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all hover:scale-105 border"
+                      style={{
+                        backgroundColor: `${color}18`,
+                        borderColor: `${color}44`,
+                        color: color
+                      }}
+                    >
+                      <span>{el.symbol}</span>
+                      <span className="text-[10px] text-slate-300 font-normal">{el.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex justify-center gap-3">
+                <button className="premium-button shadow-lg flex items-center gap-2" onClick={() => setWorkspaceMode('table')}>
+                  <Grid3X3 className="h-4 w-4" />
+                  Open Periodic Table Grid
+                </button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      <div className="stage-status">
-        <span>Zoom {zoomLevel.toFixed(1)}x</span>
-        <span>Speed {animationSpeed.toFixed(1)}x</span>
-        <input
-          aria-label="Animation speed"
-          type="range"
-          min="0.1"
-          max="3"
-          step="0.1"
-          value={animationSpeed}
-          onChange={(event) => setAnimationSpeed(Number(event.target.value))}
-        />
-        <span>{showOrbitals ? 'Orbitals on' : 'Orbitals off'}</span>
+      {/* Bottom Stage Status & Controls Bar */}
+      <div className="stage-status flex items-center justify-between px-4 py-2 bg-slate-950/90 border-t border-white/10 text-xs font-mono text-slate-400">
+        <div className="flex items-center gap-3">
+          <span>Zoom: <strong className="text-white">{zoomLevel.toFixed(1)}x</strong></span>
+          <span className="hidden sm:inline text-slate-600">|</span>
+          <div className="flex items-center gap-1.5">
+            <span className="hidden sm:inline">Speed:</span>
+            <input
+              aria-label="Animation speed"
+              type="range"
+              min="0.1"
+              max="3"
+              step="0.1"
+              value={animationSpeed}
+              onChange={(event) => setAnimationSpeed(Number(event.target.value))}
+              className="w-20 sm:w-28 accent-primary cursor-pointer"
+            />
+            <span className="text-white font-bold">{animationSpeed.toFixed(1)}x</span>
+          </div>
+        </div>
+
+        {/* Active Shell Indicator */}
+        {selectedElement && (
+          <div className="flex items-center gap-1 text-[11px]">
+            <span className="text-slate-500 hidden md:inline">Shells:</span>
+            {selectedElement.shells.map((count, idx) => (
+              <span
+                key={idx}
+                className={cn(
+                  "px-1.5 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer hover:scale-110",
+                  selectedShellIdx === idx ? "bg-white text-black shadow-md scale-110" : "bg-white/10 text-slate-300"
+                )}
+                onClick={() => setSelectedShellIdx(selectedShellIdx === idx ? null : idx)}
+              >
+                {['K', 'L', 'M', 'N', 'O', 'P', 'Q'][idx]}:{count}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
@@ -527,100 +863,232 @@ function Inspector({
   onSave: () => void;
 }) {
   const { inspectorTab, setInspectorTab, setWorkspaceMode } = useAppStore();
+  const [tempUnit, setTempUnit] = useState<'C' | 'K' | 'F'>('C');
   const props = selectedElement ? elementProperties[selectedElement.atomicNumber] : null;
+  const elementColor = selectedElement ? getElementColor(selectedElement) : '#38bdf8';
 
   return (
     <aside className="inspector-panel">
-      <div className="rail-header">
+      <div className="rail-header flex items-center justify-between p-4 border-b border-white/10">
         <div>
-          <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Inspector</div>
-          <div className="text-lg font-semibold">{selectedElement?.name || selectedMolecule?.name || 'No selection'}</div>
+          <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground font-mono">Scientific Inspector</div>
+          <div className="text-lg font-bold text-white truncate max-w-[200px]">
+            {selectedElement?.name || selectedMolecule?.name || 'No selection'}
+          </div>
         </div>
-        <button className="icon-button" onClick={onSave} title="Save session">
+        <button className="icon-button hover:text-white" onClick={onSave} title="Save exploration session">
           <Save className="h-4 w-4" />
         </button>
       </div>
 
-      <div className="inspector-tabs">
+      <div className="inspector-tabs flex items-center gap-1 p-1 mx-3 mt-3 mb-2 rounded-lg bg-slate-900 border border-white/10">
         {(['overview', 'properties', 'learning', 'actions'] as const).map((tab) => (
-          <button key={tab} className={cn(inspectorTab === tab && 'is-active')} onClick={() => setInspectorTab(tab)}>
+          <button key={tab} className={cn('flex-1 py-1.5 text-[10px] font-semibold uppercase tracking-wider rounded transition-all', inspectorTab === tab && 'is-active bg-white/15 text-white shadow-sm')} onClick={() => setInspectorTab(tab)}>
             {tab}
           </button>
         ))}
       </div>
 
       {!selectedElement && !selectedMolecule && (
-        <div className="empty-inspector">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-1 shadow-inner-glow">
+        <div className="empty-inspector flex flex-col items-center justify-center h-full p-6 text-center">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-900 border border-white/10 shadow-inner-glow">
             <BookOpen className="h-8 w-8 text-primary opacity-80" />
           </div>
-          <p>Select an atom or molecule to reveal properties, learning notes, and quick actions.</p>
+          <p className="text-sm text-slate-400 leading-relaxed">
+            Select an atom or molecule to reveal atomic shells, physical metrics, thermal states, and learning notes.
+          </p>
         </div>
       )}
 
       {selectedElement && (
-        <div className="inspector-content">
-          <div className="hero-element">
-            <span>{selectedElement.symbol}</span>
-            <div>
-              <h3>{selectedElement.name}</h3>
-              <p>{categoryLabels[selectedElement.category]} / Atomic #{selectedElement.atomicNumber}</p>
+        <div className="inspector-content p-4 space-y-4 overflow-y-auto">
+          {/* Hero Header Card */}
+          <div
+            className="hero-element p-3.5 rounded-xl border flex items-center gap-3.5 relative overflow-hidden"
+            style={{
+              backgroundColor: `${elementColor}12`,
+              borderColor: `${elementColor}44`,
+              boxShadow: `0 0 20px ${elementColor}15`
+            }}
+          >
+            <span
+              className="flex h-14 w-14 items-center justify-center text-2xl font-extrabold rounded-xl border font-mono shadow-md"
+              style={{
+                backgroundColor: `${elementColor}25`,
+                color: elementColor,
+                borderColor: `${elementColor}66`
+              }}
+            >
+              {selectedElement.symbol}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <h3 className="text-xl font-bold text-white truncate">{selectedElement.name}</h3>
+                <span className="text-xs font-mono font-bold text-slate-400">#{selectedElement.atomicNumber}</span>
+              </div>
+              <p className="text-xs font-semibold" style={{ color: elementColor }}>
+                {categoryLabels[selectedElement.category]} • Block-{getElementBlock(selectedElement.atomicNumber).toUpperCase()}
+              </p>
             </div>
           </div>
 
+          {/* Overview Tab with 2D Bohr Diagram */}
           {inspectorTab === 'overview' && (
-            <div className="metric-grid">
-              <div><small>Mass</small><strong>{selectedElement.atomicMass.toFixed(2)} u</strong></div>
-              <div><small>Shells</small><strong>{selectedElement.shells.join(' - ')}</strong></div>
-              <div><small>State</small><strong>{props?.state || 'Unknown'}</strong></div>
-              <div><small>Density</small><strong>{props?.density || 'N/A'}</strong></div>
+            <div className="space-y-4">
+              <BohrModel2D shells={selectedElement.shells} color={elementColor} symbol={selectedElement.symbol} />
+
+              <div className="metric-grid grid grid-cols-2 gap-2">
+                <div className="p-3 bg-slate-900/80 rounded-xl border border-white/5">
+                  <small className="text-[10px] text-slate-400 uppercase font-mono">Atomic Mass</small>
+                  <strong className="text-base text-white font-mono">{selectedElement.atomicMass.toFixed(3)} u</strong>
+                </div>
+                <div className="p-3 bg-slate-900/80 rounded-xl border border-white/5">
+                  <small className="text-[10px] text-slate-400 uppercase font-mono">Valence Electrons</small>
+                  <strong className="text-base text-primary font-mono">{selectedElement.shells[selectedElement.shells.length - 1]} e⁻</strong>
+                </div>
+                <div className="p-3 bg-slate-900/80 rounded-xl border border-white/5">
+                  <small className="text-[10px] text-slate-400 uppercase font-mono">State at 25°C</small>
+                  <strong className="text-base text-white capitalize">{props?.state || 'Unknown'}</strong>
+                </div>
+                <div className="p-3 bg-slate-900/80 rounded-xl border border-white/5">
+                  <small className="text-[10px] text-slate-400 uppercase font-mono">Density</small>
+                  <strong className="text-base text-white font-mono">{props?.density ? `${props.density} g/cm³` : 'N/A'}</strong>
+                </div>
+              </div>
             </div>
           )}
 
+          {/* Properties Tab */}
           {inspectorTab === 'properties' && (
-            <div className="detail-list">
-              <div><span>Electron config</span><strong>{getElectronConfig(selectedElement.atomicNumber)}</strong></div>
-              <div><span>Melting point</span><strong>{formatTemp(props?.meltingPoint)}</strong></div>
-              <div><span>Boiling point</span><strong>{formatTemp(props?.boilingPoint)}</strong></div>
-              <div><span>Category</span><strong>{categoryLabels[selectedElement.category]}</strong></div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-xs pb-1">
+                <span className="text-muted-foreground font-mono">Temperature Units:</span>
+                <div className="flex gap-1 bg-slate-900 p-0.5 rounded border border-white/10">
+                  {(['C', 'K', 'F'] as const).map(u => (
+                    <button
+                      key={u}
+                      onClick={() => setTempUnit(u)}
+                      className={cn("px-2 py-0.5 text-[10px] font-mono rounded", tempUnit === u ? "bg-white/20 text-white font-bold" : "text-slate-400")}
+                    >
+                      °{u}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="detail-list space-y-2 text-sm font-mono bg-slate-900/60 p-3 rounded-xl border border-white/5">
+                <div className="flex justify-between py-1.5 border-b border-white/5">
+                  <span className="text-slate-400">Electron Config</span>
+                  <strong className="text-white text-right">{getElectronConfig(selectedElement.atomicNumber)}</strong>
+                </div>
+                <div className="flex justify-between py-1.5 border-b border-white/5">
+                  <span className="text-slate-400">Melting Point</span>
+                  <strong className="text-white">{formatTemp(props?.meltingPoint, tempUnit)}</strong>
+                </div>
+                <div className="flex justify-between py-1.5 border-b border-white/5">
+                  <span className="text-slate-400">Boiling Point</span>
+                  <strong className="text-white">{formatTemp(props?.boilingPoint, tempUnit)}</strong>
+                </div>
+                <div className="flex justify-between py-1.5 border-b border-white/5">
+                  <span className="text-slate-400">Atomic Number</span>
+                  <strong className="text-primary">{selectedElement.atomicNumber}</strong>
+                </div>
+                <div className="flex justify-between py-1.5">
+                  <span className="text-slate-400">Energy Shells</span>
+                  <strong className="text-white">{selectedElement.shells.join(' • ')}</strong>
+                </div>
+              </div>
             </div>
           )}
 
+          {/* Learning Tab */}
           {inspectorTab === 'learning' && (
-            <div className="learning-card">
-              <Beaker className="h-5 w-5 text-primary" />
-              <p>{selectedElement.name} has {selectedElement.shells.length} electron shell{selectedElement.shells.length === 1 ? '' : 's'} and belongs to {categoryLabels[selectedElement.category].toLowerCase()}. Use compare mode to see how mass, shells, and thermal properties shift across the table.</p>
+            <div className="space-y-3">
+              <div className="learning-card p-4 rounded-xl border border-white/10 bg-slate-900/70 space-y-2">
+                <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
+                  <Beaker className="h-4 w-4" /> Atomic Configuration
+                </div>
+                <p className="text-sm text-slate-300 leading-relaxed">
+                  <strong>{selectedElement.name}</strong> possesses <strong>{selectedElement.shells.length}</strong> discrete electron shells with <strong>{selectedElement.atomicNumber}</strong> orbiting electrons. It belongs to the <strong>{categoryLabels[selectedElement.category]}</strong> group in Block-{getElementBlock(selectedElement.atomicNumber).toUpperCase()}.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl border border-white/10 bg-slate-900/70 space-y-2">
+                <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs uppercase tracking-wider">
+                  <Info className="h-4 w-4" /> Discovery & Physical State
+                </div>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  {props?.discoveryYear ? `Identified in ${props.discoveryYear}. ` : 'Known since antiquity. '}
+                  At standard room temperature (298 K / 25 °C), it naturally exists in the <strong>{props?.state || 'solid'}</strong> phase.
+                </p>
+              </div>
             </div>
           )}
 
+          {/* Actions Tab */}
           {inspectorTab === 'actions' && (
-            <div className="action-stack">
-              <button onClick={() => onCompare(selectedElement)}><GitCompare className="h-4 w-4" /> Add to compare</button>
-              <button onClick={() => setWorkspaceMode('reactions')}><Zap className="h-4 w-4" /> Try in reactions</button>
-              <button onClick={() => setWorkspaceMode('builder')}><Boxes className="h-4 w-4" /> Open builder</button>
+            <div className="action-stack space-y-2 pt-2">
+              <button
+                className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 hover:border-primary/40 text-white text-sm font-medium transition-all flex items-center justify-center gap-2 shadow-sm"
+                onClick={() => onCompare(selectedElement)}
+              >
+                <GitCompare className="h-4 w-4 text-primary" /> Add to Side-by-Side Comparison
+              </button>
+              <button
+                className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 hover:border-yellow-400/40 text-white text-sm font-medium transition-all flex items-center justify-center gap-2 shadow-sm"
+                onClick={() => setWorkspaceMode('reactions')}
+              >
+                <Zap className="h-4 w-4 text-yellow-400" /> Explore in Chemical Reactions
+              </button>
+              <button
+                className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 hover:border-blue-400/40 text-white text-sm font-medium transition-all flex items-center justify-center gap-2 shadow-sm"
+                onClick={() => setWorkspaceMode('builder')}
+              >
+                <Boxes className="h-4 w-4 text-blue-400" /> Construct Molecule in Builder
+              </button>
             </div>
           )}
         </div>
       )}
 
       {selectedMolecule && (
-        <div className="inspector-content">
-          <div className="hero-element">
-            <span>{selectedMolecule.formula}</span>
-            <div>
-              <h3>{selectedMolecule.name}</h3>
-              <p>{selectedMolecule.description}</p>
+        <div className="inspector-content p-4 space-y-4 overflow-y-auto">
+          <div className="hero-element p-3.5 rounded-xl border border-primary/40 bg-primary/10 flex items-center gap-3.5">
+            <span className="flex h-14 w-14 items-center justify-center text-xl font-bold rounded-xl border bg-primary/20 text-primary font-mono">
+              {selectedMolecule.formula}
+            </span>
+            <div className="min-w-0 flex-1">
+              <h3 className="text-xl font-bold text-white truncate">{selectedMolecule.name}</h3>
+              <p className="text-xs text-muted-foreground truncate">{selectedMolecule.description}</p>
             </div>
           </div>
-          <div className="metric-grid">
-            <div><small>Atoms</small><strong>{selectedMolecule.atoms.length}</strong></div>
-            <div><small>Bonds</small><strong>{selectedMolecule.bonds.length}</strong></div>
-            <div><small>Bond orders</small><strong>{selectedMolecule.bonds.map(bond => bond.order).join(', ')}</strong></div>
-            <div><small>Elements</small><strong>{Array.from(new Set(selectedMolecule.atoms.map(atom => atom.symbol))).join(', ')}</strong></div>
+
+          <div className="metric-grid grid grid-cols-2 gap-2">
+            <div className="p-3 bg-slate-900/80 rounded-xl border border-white/5">
+              <small className="text-[10px] text-slate-400 uppercase font-mono">Total Atoms</small>
+              <strong className="text-base text-white font-mono">{selectedMolecule.atoms.length}</strong>
+            </div>
+            <div className="p-3 bg-slate-900/80 rounded-xl border border-white/5">
+              <small className="text-[10px] text-slate-400 uppercase font-mono">Chemical Bonds</small>
+              <strong className="text-base text-white font-mono">{selectedMolecule.bonds.length}</strong>
+            </div>
+            <div className="p-3 bg-slate-900/80 rounded-xl border border-white/5">
+              <small className="text-[10px] text-slate-400 uppercase font-mono">Bond Orders</small>
+              <strong className="text-base text-white font-mono">{selectedMolecule.bonds.map(b => b.order).join(', ')}</strong>
+            </div>
+            <div className="p-3 bg-slate-900/80 rounded-xl border border-white/5">
+              <small className="text-[10px] text-slate-400 uppercase font-mono">Constituent Elements</small>
+              <strong className="text-base text-primary font-mono">{Array.from(new Set(selectedMolecule.atoms.map(a => a.symbol))).join(', ')}</strong>
+            </div>
           </div>
-          <div className="action-stack">
-            <button onClick={() => setWorkspaceMode('builder')}><Boxes className="h-4 w-4" /> Rebuild concept</button>
-            <button onClick={() => setWorkspaceMode('reactions')}><Zap className="h-4 w-4" /> Explore reactions</button>
+
+          <div className="action-stack space-y-2 pt-2">
+            <button className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 text-white text-sm font-medium transition-all flex items-center justify-center gap-2" onClick={() => setWorkspaceMode('builder')}>
+              <Boxes className="h-4 w-4 text-primary" /> Modify in 2D Molecule Builder
+            </button>
+            <button className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 text-white text-sm font-medium transition-all flex items-center justify-center gap-2" onClick={() => setWorkspaceMode('reactions')}>
+              <Zap className="h-4 w-4 text-yellow-400" /> Test in Reaction Lab
+            </button>
           </div>
         </div>
       )}
@@ -694,12 +1162,15 @@ export default function Index() {
     comparisonBasket,
     isMobile,
     mainViewMode,
+    mobileDrawer,
     savedSessions,
     searchQuery,
     selectedElement,
     selectedMolecule,
+    showOrbitals,
     viewMode,
     workspaceMode,
+    zenMode,
     zoomLevel,
     addRecentItem,
     addSavedSession,
@@ -709,14 +1180,18 @@ export default function Index() {
     setComparisonBasket,
     setIsMobile,
     setMainViewMode,
+    setMobileDrawer,
     setSavedSessions,
     setSearchQuery,
     setSelectedElement,
     setSelectedMolecule,
+    setShowOrbitals,
     setSidebarOpen,
     setViewMode,
     setWorkspaceMode,
     setZoomLevel,
+    togglePaused,
+    toggleZenMode,
   } = useAppStore();
 
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -727,7 +1202,7 @@ export default function Index() {
 
   useEffect(() => {
     const checkMobile = () => {
-      const mobile = window.innerWidth < 900;
+      const mobile = window.innerWidth < 820;
       setIsMobile(mobile);
       setSidebarOpen(!mobile);
     };
@@ -747,10 +1222,16 @@ export default function Index() {
       if (event.key === 'c') setWorkspaceMode('compare');
       if (event.key === 'b') setWorkspaceMode('builder');
       if (event.key === 'r') setWorkspaceMode('reactions');
+      if (event.key === 'z' || event.key === 'm') toggleZenMode();
+      if (event.key === ' ') {
+        event.preventDefault();
+        togglePaused();
+      }
+      if (event.key === 'o') setShowOrbitals(!showOrbitals);
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [setWorkspaceMode]);
+  }, [setWorkspaceMode, toggleZenMode, togglePaused, setShowOrbitals, showOrbitals]);
 
   const query = searchQuery.toLowerCase();
   const filteredElements = useMemo(() => elements.filter((element) => {
@@ -881,6 +1362,7 @@ export default function Index() {
         handPositionY={handPositionY}
         isHandControlled={isHandControlled}
         isFrozen={isFrozen}
+        onSelectElement={selectElement}
       />
     );
   };
@@ -897,8 +1379,8 @@ export default function Index() {
         onSave={saveSession}
       />
 
-      <div className={cn('workbench-layout', isMobile && 'is-mobile')}>
-        {!isMobile && (
+      <div className={cn('workbench-layout', isMobile && 'is-mobile', zenMode && 'is-zen')}>
+        {!isMobile && !zenMode && (
           <DiscoveryRail
             filteredElements={filteredElements}
             filteredMolecules={filteredMolecules}
@@ -914,7 +1396,7 @@ export default function Index() {
           </div>
         </main>
 
-        {!isMobile && (
+        {!isMobile && !zenMode && (
           <Inspector
             selectedElement={selectedElement}
             selectedMolecule={selectedMolecule}
@@ -924,11 +1406,98 @@ export default function Index() {
         )}
       </div>
 
+      {/* Mobile Drawers */}
+      <AnimatePresence>
+        {isMobile && mobileDrawer === 'discovery' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex flex-col"
+            onClick={() => setMobileDrawer('none')}
+          >
+            <motion.div
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 250 }}
+              className="w-[88vw] max-w-sm h-full bg-slate-950 border-r border-white/10 flex flex-col shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between p-3 border-b border-white/10 bg-slate-900/60">
+                <span className="text-xs font-bold text-white uppercase tracking-wider">Browse Elements</span>
+                <button className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white" onClick={() => setMobileDrawer('none')}>
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <DiscoveryRail
+                  filteredElements={filteredElements}
+                  filteredMolecules={filteredMolecules}
+                  onSelectElement={(el) => {
+                    selectElement(el);
+                    setMobileDrawer('none');
+                  }}
+                  onSelectMolecule={(mol) => {
+                    selectMolecule(mol);
+                    setMobileDrawer('none');
+                  }}
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {isMobile && mobileDrawer === 'inspector' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex flex-col justify-end"
+            onClick={() => setMobileDrawer('none')}
+          >
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 250 }}
+              className="w-full max-h-[85vh] bg-slate-950 border-t border-white/10 rounded-t-2xl flex flex-col shadow-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between p-3 border-b border-white/10 bg-slate-900/60">
+                <span className="text-xs font-bold text-white uppercase tracking-wider">Element Details & Bohr Model</span>
+                <button className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white" onClick={() => setMobileDrawer('none')}>
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                <Inspector
+                  selectedElement={selectedElement}
+                  selectedMolecule={selectedMolecule}
+                  onCompare={(el) => {
+                    addCompare(el);
+                    setMobileDrawer('none');
+                  }}
+                  onSave={() => {
+                    saveSession();
+                    setMobileDrawer('none');
+                  }}
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Mobile Dock with Touch Friendly Quick Actions */}
       {isMobile && (
         <div className="mobile-dock">
-          <button onClick={() => setCommandOpen(true)}><Search className="h-4 w-4" />Search</button>
+          <button onClick={() => setMobileDrawer('discovery')}><Search className="h-4 w-4" />Browse</button>
           <button onClick={() => setWorkspaceMode('table')}><Grid3X3 className="h-4 w-4" />Table</button>
-          <button onClick={() => selectedElement && addCompare(selectedElement)}><Plus className="h-4 w-4" />Compare</button>
+          <button onClick={() => setMobileDrawer('inspector')}><Info className="h-4 w-4" />Details</button>
+          <button onClick={() => selectedElement ? addCompare(selectedElement) : setWorkspaceMode('compare')}>
+            <GitCompare className="h-4 w-4" />Compare
+          </button>
           <button onClick={saveSession}><Save className="h-4 w-4" />Save</button>
         </div>
       )}

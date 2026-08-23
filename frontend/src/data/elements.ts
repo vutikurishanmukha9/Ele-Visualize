@@ -10,6 +10,8 @@ export type ElementCategory =
   | 'lanthanide'
   | 'actinide';
 
+export type ElementBlock = 's' | 'p' | 'd' | 'f';
+
 export interface ChemicalElement {
   atomicNumber: number;
   symbol: string;
@@ -17,7 +19,71 @@ export interface ChemicalElement {
   atomicMass: number;
   category: ElementCategory;
   shells: number[];
+  block?: ElementBlock;
 }
+
+export const categoryColors: Record<ElementCategory, string> = {
+  'alkali-metal': '#f43f5e',
+  'alkaline-earth': '#fb923c',
+  'transition-metal': '#eab308',
+  'post-transition': '#2dd4bf',
+  'metalloid': '#06b6d4',
+  'nonmetal': '#38bdf8',
+  'halogen': '#a855f7',
+  'noble-gas': '#ec4899',
+  'lanthanide': '#818cf8',
+  'actinide': '#f87171',
+};
+
+export const categoryGlows: Record<ElementCategory, string> = {
+  'alkali-metal': 'rgba(244, 63, 94, 0.4)',
+  'alkaline-earth': 'rgba(251, 146, 60, 0.4)',
+  'transition-metal': 'rgba(234, 179, 8, 0.4)',
+  'post-transition': 'rgba(45, 212, 191, 0.4)',
+  'metalloid': 'rgba(6, 182, 212, 0.4)',
+  'nonmetal': 'rgba(56, 189, 248, 0.4)',
+  'halogen': 'rgba(168, 85, 247, 0.4)',
+  'noble-gas': 'rgba(236, 72, 153, 0.4)',
+  'lanthanide': 'rgba(129, 140, 248, 0.4)',
+  'actinide': 'rgba(248, 113, 113, 0.4)',
+};
+
+export const getElementBlock = (atomicNumber: number): ElementBlock => {
+  if (atomicNumber === 1 || atomicNumber === 2) return 's';
+  if ((atomicNumber >= 3 && atomicNumber <= 4) || (atomicNumber >= 11 && atomicNumber <= 12) ||
+      (atomicNumber >= 19 && atomicNumber <= 20) || (atomicNumber >= 37 && atomicNumber <= 38) ||
+      (atomicNumber >= 55 && atomicNumber <= 56) || (atomicNumber >= 87 && atomicNumber <= 88)) {
+    return 's';
+  }
+  if ((atomicNumber >= 57 && atomicNumber <= 71) || (atomicNumber >= 89 && atomicNumber <= 103)) {
+    return 'f';
+  }
+  if ((atomicNumber >= 21 && atomicNumber <= 30) || (atomicNumber >= 39 && atomicNumber <= 48) ||
+      (atomicNumber >= 72 && atomicNumber <= 80) || (atomicNumber >= 104 && atomicNumber <= 112)) {
+    return 'd';
+  }
+  return 'p';
+};
+
+export const getCategoryColor = (category: ElementCategory): string => {
+  return categoryColors[category] || '#38bdf8';
+};
+
+export const getCategoryGlow = (category: ElementCategory): string => {
+  return categoryGlows[category] || 'rgba(56, 189, 248, 0.4)';
+};
+
+export const getElementColor = (element: ChemicalElement): string => {
+  // Element specific overrides for iconic elements
+  if (element.symbol === 'Au') return '#ffd700'; // Gold
+  if (element.symbol === 'Cu') return '#f97316'; // Copper
+  if (element.symbol === 'Ag') return '#cbd5e1'; // Silver
+  if (element.symbol === 'S') return '#eab308'; // Sulfur
+  if (element.symbol === 'Cl') return '#22c55e'; // Chlorine green
+  if (element.symbol === 'Br') return '#b91c1c'; // Bromine deep red
+  if (element.symbol === 'I') return '#7e22ce'; // Iodine violet
+  return categoryColors[element.category] || '#38bdf8';
+};
 
 export const elements: ChemicalElement[] = [
   // Period 1
