@@ -7,6 +7,7 @@ import gsap from 'gsap';
 import { createFresnelMaterial } from '@/shaders/fresnelShader';
 import { createVolumetricOrbitalMaterial } from '@/shaders/orbitalShader';
 import { disposeHierarchy } from '@/lib/threeDisposal';
+import { audioEngine } from '@/lib/audioEngine';
 
 export type CameraPreset = '3d' | 'top' | 'side' | 'iso' | 'reset';
 
@@ -226,7 +227,7 @@ const OrbitalClouds = memo(function OrbitalClouds({ electrons }: { electrons: nu
     );
 });
 
-// High-fidelity Nucleus with dual-mode representation and rigid concentric center
+// High-fidelity Nucleus with dual-mode representation, gluon forcefield halo, and golden spiral packing
 const Nucleus = memo(function Nucleus({ protons, neutrons, color, symbol, showParticles }: {
     protons: number;
     neutrons: number;
@@ -235,20 +236,20 @@ const Nucleus = memo(function Nucleus({ protons, neutrons, color, symbol, showPa
     showParticles: boolean;
 }) {
     const nucleusRef = useRef<THREE.Group>(null);
-    const total = Math.min(protons + neutrons, 36);
+    const total = Math.min(protons + neutrons, 48);
 
     const particles = useMemo(() => {
         const pts: { pos: [number, number, number]; isProton: boolean }[] = [];
-        const phi = Math.PI * (3 - Math.sqrt(5)); // Golden ratio angle
+        const phi = Math.PI * (3 - Math.sqrt(5)); // Golden ratio phyllotaxis angle
 
         for (let i = 0; i < total; i++) {
             const y = 1 - (i / (total - 1 || 1)) * 2;
             const radius = Math.sqrt(1 - y * y);
             const theta = phi * i;
-            const scale = 0.55;
+            const scale = 0.58;
 
-            // Introduce slight jitter for organic packing
-            const jitter = 0.05 * Math.sin(i * 3.7);
+            // Organic quantum packing jitter
+            const jitter = 0.04 * Math.sin(i * 3.7);
 
             pts.push({
                 pos: [
@@ -262,16 +263,25 @@ const Nucleus = memo(function Nucleus({ protons, neutrons, color, symbol, showPa
         return pts;
     }, [protons, neutrons, total]);
 
-    useFrame((_, delta) => {
+    useFrame(({ clock }, delta) => {
         if (nucleusRef.current) {
             nucleusRef.current.rotation.y += delta * 0.25;
             nucleusRef.current.rotation.x += delta * 0.12;
+
+            // Micro-pulsating strong nuclear force breathing
+            const pulse = 1.0 + 0.03 * Math.sin(clock.getElapsedTime() * 4.0);
+            nucleusRef.current.scale.set(pulse, pulse, pulse);
         }
     });
 
     return (
         <group ref={nucleusRef}>
-            
+            {/* Strong Nuclear Force Gluon Energy Halo */}
+            <mesh scale={showParticles ? 1.4 : 1.1}>
+                <sphereGeometry args={[0.7, 24, 24]} />
+                <meshBasicMaterial color={color} transparent opacity={0.12} side={THREE.BackSide} />
+            </mesh>
+
             {showParticles ? (
                 <group>
                     {particles.map((p, i) => (
@@ -281,30 +291,30 @@ const Nucleus = memo(function Nucleus({ protons, neutrons, color, symbol, showPa
                             position={p.pos}
                         >
                             <meshPhysicalMaterial
-                                color={p.isProton ? '#ef4444' : '#38bdf8'}
-                                emissive={p.isProton ? '#dc2626' : '#0284c7'}
-                                emissiveIntensity={1.4}
-                                metalness={0.4}
-                                roughness={0.12}
+                                color={p.isProton ? '#ff3366' : '#38bdf8'}
+                                emissive={p.isProton ? '#e11d48' : '#0284c7'}
+                                emissiveIntensity={1.6}
+                                metalness={0.35}
+                                roughness={0.08}
                                 clearcoat={1}
-                                clearcoatRoughness={0.08}
+                                clearcoatRoughness={0.04}
                                 depthWrite={true}
                                 depthTest={true}
                             />
                         </Sphere>
                     ))}
                     {/* Proton / Neutron counter badge with occlusion */}
-                    <Html center distanceFactor={5} position={[0, -0.9, 0]} occlude>
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-950/85 border border-white/20 text-[10px] font-mono pointer-events-none backdrop-blur-md whitespace-nowrap shadow-2xl">
-                            <span className="text-red-400 font-semibold">{protons}p⁺</span>
+                    <Html center distanceFactor={5} position={[0, -0.95, 0]} occlude>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-950/90 border border-white/20 text-[10px] font-mono pointer-events-none backdrop-blur-md whitespace-nowrap shadow-2xl">
+                            <span className="text-rose-400 font-semibold">{protons}p⁺</span>
                             <span className="text-slate-400">•</span>
-                            <span className="text-sky-400 font-semibold">{neutrons}n⁰</span>
+                            <span className="text-cyan-400 font-semibold">{neutrons}n⁰</span>
                         </div>
                     </Html>
                 </group>
             ) : (
                 <>
-                    <GlowingSphere size={0.68} color={color} glowColor={color} emissiveIntensity={1.3} position={[0, 0, 0]} />
+                    <GlowingSphere size={0.68} color={color} glowColor={color} emissiveIntensity={1.4} position={[0, 0, 0]} />
                     <Html center distanceFactor={4} occlude>
                         <div
                             className="font-bold pointer-events-none select-none tracking-tight leading-none"
@@ -498,6 +508,7 @@ function CameraPresetController({ preset = '3d' }: { preset?: CameraPreset }) {
     const { camera } = useThree();
 
     useEffect(() => {
+        audioEngine.playClick(960);
         if (preset === 'top') {
             gsap.to(camera.position, { x: 0, y: 13, z: 0.01, duration: 1.0, ease: 'power2.out' });
         } else if (preset === 'side') {

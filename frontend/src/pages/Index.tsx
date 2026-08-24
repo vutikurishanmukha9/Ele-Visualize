@@ -24,6 +24,8 @@ import {
   SlidersHorizontal,
   Sparkles,
   Trash2,
+  Volume2,
+  VolumeX,
   X,
   Zap,
 } from 'lucide-react';
@@ -45,6 +47,7 @@ import { Molecule, molecules } from '@/data/molecules';
 import { cn } from '@/lib/utils';
 import { sendProductEvent } from '@/lib/productSocket';
 import { sessionApi } from '@/lib/sessions';
+import { audioEngine } from '@/lib/audioEngine';
 import { SavedSession, WorkspaceMode, useAppStore } from '@/store/useAppStore';
 
 const workspaces: { id: WorkspaceMode; label: string; icon: typeof Atom }[] = [
@@ -199,6 +202,16 @@ function TopBar({
       </button>
 
       <div className="flex items-center gap-1.5">
+        <button
+          className="icon-button"
+          onClick={() => {
+            audioEngine.toggleMute();
+            // Trigger state re-render by dispatching custom event or state
+          }}
+          title={audioEngine.isMuted() ? "Unmute Audio (Ambient & Acoustic Feedback)" : "Mute Audio"}
+        >
+          {audioEngine.isMuted() ? <VolumeX className="h-4 w-4 text-slate-500" /> : <Volume2 className="h-4 w-4 text-cyan-400" />}
+        </button>
         <button className="icon-button hidden sm:inline-flex" onClick={() => setUiDensity(uiDensity === 'comfortable' ? 'compact' : 'comfortable')} title="Toggle density">
           <SlidersHorizontal className="h-4 w-4" />
         </button>
@@ -219,6 +232,7 @@ function WorkspaceNav() {
   const { workspaceMode, setWorkspaceMode, setMainViewMode } = useAppStore();
 
   const selectWorkspace = (mode: WorkspaceMode) => {
+    audioEngine.playClick(840);
     setWorkspaceMode(mode);
     const map: Record<WorkspaceMode, '3d' | 'grid' | 'compare' | 'reaction' | 'builder'> = {
       explore: '3d',
@@ -1263,6 +1277,7 @@ export default function Index() {
   const compareElement2 = useMemo(() => elements.find(element => element.atomicNumber === comparisonBasket[1]) || null, [comparisonBasket]);
 
   const selectElement = useCallback((element: ChemicalElement) => {
+    audioEngine.playElementChime(element.atomicNumber);
     setSelectedElement(element);
     setSelectedMolecule(null);
     setViewMode('atoms');
@@ -1271,6 +1286,7 @@ export default function Index() {
   }, [addRecentItem, setSelectedElement, setSelectedMolecule, setViewMode, workspaceMode]);
 
   const selectMolecule = useCallback((molecule: Molecule) => {
+    audioEngine.playBondingChord();
     setSelectedMolecule(molecule);
     setSelectedElement(null);
     setViewMode('molecules');

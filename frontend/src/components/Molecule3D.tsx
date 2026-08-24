@@ -5,6 +5,7 @@ import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { Molecule, Atom } from '@/data/molecules';
+import { disposeHierarchy } from '@/lib/threeDisposal';
 
 interface Molecule3DProps {
     molecule: Molecule;
@@ -144,6 +145,10 @@ function MoleculeScene({
                 { x: zoom, y: zoom, z: zoom, duration: 0.9, ease: 'back.out(1.3)', overwrite: true }
             );
         }
+        const node = groupRef.current;
+        return () => {
+            disposeHierarchy(node);
+        };
     }, [molecule, zoom]);
 
     // Hand-controlled or auto rotation
