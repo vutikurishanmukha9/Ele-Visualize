@@ -1,6 +1,6 @@
 import { useRef, useMemo, memo, useEffect, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Sphere, Line, Html, Float, Stars, Sparkles } from '@react-three/drei';
+import { OrbitControls, Sphere, Line, Html, Float, Sparkles } from '@react-three/drei';
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import gsap from 'gsap';
@@ -32,15 +32,13 @@ interface Atom3DProps {
 // Shell letter names according to Bohr quantum numbers n=1..7
 const SHELL_NAMES = ['K', 'L', 'M', 'N', 'O', 'P', 'Q'];
 
-// Optimized segment resolution
-const SPHERE_SEGMENTS = 24;
 const ORBIT_POINTS = 80;
 
-// Glowing sphere with an opaque physical core (depth-writing) and an outer luminous Fresnel rim
+// Scientific Laboratory Glowing Core with Optical Glass Transmission and Chromatic Fresnel Refraction
 const GlowingSphere = memo(function GlowingSphere({
-    color, size, position, glowColor = '#38bdf8', emissiveIntensity = 1.2
+    color, size, position, glowColor = '#38bdf8'
 }: { color: string; size: number; position?: [number, number, number]; glowColor?: string; emissiveIntensity?: number }) {
-    const fresnelMat = useMemo(() => createFresnelMaterial(color, glowColor, 1.8), [color, glowColor]);
+    const fresnelMat = useMemo(() => createFresnelMaterial(color, glowColor, 2.2), [color, glowColor]);
 
     useEffect(() => {
         return () => {
@@ -56,32 +54,33 @@ const GlowingSphere = memo(function GlowingSphere({
 
     return (
         <group position={position}>
-            {/* Solid inner core for authentic depth occlusion with radiant emission */}
-            <Sphere args={[size * 0.95, SPHERE_SEGMENTS, SPHERE_SEGMENTS]}>
+            {/* High-Refraction Optical Quartz Core */}
+            <Sphere args={[size * 0.96, 32, 32]}>
                 <meshPhysicalMaterial
                     color={color}
                     emissive={color}
-                    emissiveIntensity={emissiveIntensity * 1.2}
-                    metalness={0.3}
-                    roughness={0.12}
-                    clearcoat={1}
-                    clearcoatRoughness={0.08}
-                    reflectivity={0.9}
-                    transmission={0.05}
-                    ior={1.4}
+                    emissiveIntensity={0.65}
+                    metalness={0.12}
+                    roughness={0.08}
+                    clearcoat={1.0}
+                    clearcoatRoughness={0.04}
+                    reflectivity={0.95}
+                    transmission={0.65}
+                    ior={1.65}
+                    thickness={1.2}
                     depthWrite={true}
                     depthTest={true}
                 />
             </Sphere>
-            {/* Luminous outer Fresnel atmosphere */}
-            <Sphere args={[size * 1.06, SPHERE_SEGMENTS, SPHERE_SEGMENTS]} material={fresnelMat} />
+            {/* Delicate Spectral Fresnel Atmosphere */}
+            <Sphere args={[size * 1.04, 32, 32]} material={fresnelMat} />
         </group>
     );
 });
 
 // Volumetric S orbital (spherical quantum harmonic)
 const SOrbital = memo(function SOrbital({ radius, color }: { radius: number; color: string }) {
-    const material = useMemo(() => createVolumetricOrbitalMaterial(color, 0.32, '#ffffff', 0), [color]);
+    const material = useMemo(() => createVolumetricOrbitalMaterial(color, 0.22, '#ffffff', 0), [color]);
 
     useEffect(() => {
         return () => {
@@ -96,7 +95,7 @@ const SOrbital = memo(function SOrbital({ radius, color }: { radius: number; col
     });
 
     return (
-        <Sphere args={[radius, SPHERE_SEGMENTS, SPHERE_SEGMENTS]} material={material} />
+        <Sphere args={[radius, 32, 32]} material={material} />
     );
 });
 
@@ -107,7 +106,7 @@ const POrbital = memo(function POrbital({ radius, color, axis }: { radius: numbe
             axis === 'y' ? [0, 0, 0] :
                 [Math.PI / 2, 0, 0];
 
-    const mat = useMemo(() => createVolumetricOrbitalMaterial(color, 0.26, '#ffffff', 1), [color]);
+    const mat = useMemo(() => createVolumetricOrbitalMaterial(color, 0.18, '#ffffff', 1), [color]);
 
     useEffect(() => {
         return () => {
@@ -123,8 +122,8 @@ const POrbital = memo(function POrbital({ radius, color, axis }: { radius: numbe
 
     return (
         <group rotation={rotation}>
-            <Sphere args={[radius * 0.55, 18, 18]} position={[0, radius * 0.75, 0]} material={mat} />
-            <Sphere args={[radius * 0.55, 18, 18]} position={[0, -radius * 0.75, 0]} material={mat} />
+            <Sphere args={[radius * 0.55, 24, 24]} position={[0, radius * 0.75, 0]} material={mat} />
+            <Sphere args={[radius * 0.55, 24, 24]} position={[0, -radius * 0.75, 0]} material={mat} />
         </group>
     );
 });
@@ -138,7 +137,7 @@ const DOrbital = memo(function DOrbital({ radius, color, type }: { radius: numbe
 
     const lobeSize = radius * 0.42;
     const lobeOffset = radius * 0.62;
-    const mat = useMemo(() => createVolumetricOrbitalMaterial(color, 0.22, '#ffffff', 2), [color]);
+    const mat = useMemo(() => createVolumetricOrbitalMaterial(color, 0.16, '#ffffff', 2), [color]);
 
     useEffect(() => {
         return () => {
@@ -154,10 +153,10 @@ const DOrbital = memo(function DOrbital({ radius, color, type }: { radius: numbe
 
     return (
         <group rotation={rotation}>
-            <Sphere args={[lobeSize, 14, 14]} position={[lobeOffset, lobeOffset, 0]} material={mat} />
-            <Sphere args={[lobeSize, 14, 14]} position={[-lobeOffset, lobeOffset, 0]} material={mat} />
-            <Sphere args={[lobeSize, 14, 14]} position={[lobeOffset, -lobeOffset, 0]} material={mat} />
-            <Sphere args={[lobeSize, 14, 14]} position={[-lobeOffset, -lobeOffset, 0]} material={mat} />
+            <Sphere args={[lobeSize, 20, 20]} position={[lobeOffset, lobeOffset, 0]} material={mat} />
+            <Sphere args={[lobeSize, 20, 20]} position={[-lobeOffset, lobeOffset, 0]} material={mat} />
+            <Sphere args={[lobeSize, 20, 20]} position={[lobeOffset, -lobeOffset, 0]} material={mat} />
+            <Sphere args={[lobeSize, 20, 20]} position={[-lobeOffset, -lobeOffset, 0]} material={mat} />
         </group>
     );
 });
@@ -166,7 +165,7 @@ const DOrbital = memo(function DOrbital({ radius, color, type }: { radius: numbe
 const FOrbital = memo(function FOrbital({ radius, color, rotation = [0, 0, 0] }: { radius: number; color: string; rotation?: [number, number, number] }) {
     const lobeSize = radius * 0.32;
     const offset = radius * 0.52;
-    const mat = useMemo(() => createVolumetricOrbitalMaterial(color, 0.2, '#ffffff', 3), [color]);
+    const mat = useMemo(() => createVolumetricOrbitalMaterial(color, 0.14, '#ffffff', 3), [color]);
 
     useEffect(() => {
         return () => {
@@ -182,24 +181,24 @@ const FOrbital = memo(function FOrbital({ radius, color, rotation = [0, 0, 0] }:
 
     return (
         <group rotation={rotation}>
-            <Sphere args={[lobeSize, 12, 12]} position={[offset, offset, offset]} material={mat} />
-            <Sphere args={[lobeSize, 12, 12]} position={[-offset, offset, offset]} material={mat} />
-            <Sphere args={[lobeSize, 12, 12]} position={[offset, -offset, offset]} material={mat} />
-            <Sphere args={[lobeSize, 12, 12]} position={[-offset, -offset, offset]} material={mat} />
-            <Sphere args={[lobeSize, 12, 12]} position={[offset, offset, -offset]} material={mat} />
-            <Sphere args={[lobeSize, 12, 12]} position={[-offset, offset, -offset]} material={mat} />
-            <Sphere args={[lobeSize, 12, 12]} position={[offset, -offset, -offset]} material={mat} />
-            <Sphere args={[lobeSize, 12, 12]} position={[-offset, -offset, -offset]} material={mat} />
+            <Sphere args={[lobeSize, 16, 16]} position={[offset, offset, offset]} material={mat} />
+            <Sphere args={[lobeSize, 16, 16]} position={[-offset, offset, offset]} material={mat} />
+            <Sphere args={[lobeSize, 16, 16]} position={[offset, -offset, offset]} material={mat} />
+            <Sphere args={[lobeSize, 16, 16]} position={[-offset, -offset, offset]} material={mat} />
+            <Sphere args={[lobeSize, 16, 16]} position={[offset, offset, -offset]} material={mat} />
+            <Sphere args={[lobeSize, 16, 16]} position={[-offset, offset, -offset]} material={mat} />
+            <Sphere args={[lobeSize, 16, 16]} position={[offset, -offset, -offset]} material={mat} />
+            <Sphere args={[lobeSize, 16, 16]} position={[-offset, -offset, -offset]} material={mat} />
         </group>
     );
 });
 
 // Orbital clouds
 const OrbitalClouds = memo(function OrbitalClouds({ electrons }: { electrons: number[]; elementColor?: string }) {
-    const sColor = '#38bdf8';
-    const pColor = '#ec4899';
-    const dColor = '#eab308';
-    const fColor = '#a855f7';
+    const sColor = '#0284c7';
+    const pColor = '#be185d';
+    const dColor = '#d97706';
+    const fColor = '#7c3aed';
 
     const totalElectrons = electrons.reduce((a, b) => a + b, 0);
 
@@ -224,7 +223,7 @@ const OrbitalClouds = memo(function OrbitalClouds({ electrons }: { electrons: nu
     );
 });
 
-// High-fidelity Nucleus with dual-mode representation, gluon forcefield halo, golden spiral packing, and Brownian subatomic jiggle
+// High-fidelity Nucleus with Ruby & Sapphire subatomic gemstones and optical depth
 const Nucleus = memo(function Nucleus({ protons, neutrons, color, symbol, showParticles }: {
     protons: number;
     neutrons: number;
@@ -244,7 +243,7 @@ const Nucleus = memo(function Nucleus({ protons, neutrons, color, symbol, showPa
             const y = 1 - (i / (total - 1 || 1)) * 2;
             const radius = Math.sqrt(1 - y * y);
             const theta = phi * i;
-            const scale = 0.58;
+            const scale = 0.56;
 
             pts.push({
                 pos: [
@@ -262,22 +261,22 @@ const Nucleus = memo(function Nucleus({ protons, neutrons, color, symbol, showPa
     useFrame(({ clock }, delta) => {
         const t = clock.getElapsedTime();
         if (nucleusRef.current) {
-            nucleusRef.current.rotation.y += delta * 0.28;
-            nucleusRef.current.rotation.x += delta * 0.14;
+            nucleusRef.current.rotation.y += delta * 0.22;
+            nucleusRef.current.rotation.x += delta * 0.11;
 
             // Micro-pulsating strong nuclear force breathing
-            const pulse = 1.0 + 0.04 * Math.sin(t * 4.5);
+            const pulse = 1.0 + 0.025 * Math.sin(t * 3.5);
             nucleusRef.current.scale.set(pulse, pulse, pulse);
         }
 
-        // Subatomic Brownian jiggle
+        // Subatomic thermal jiggle
         if (showParticles) {
             particles.forEach((p, i) => {
                 const mesh = particleMeshesRef.current[i];
                 if (mesh) {
-                    const jx = Math.sin(t * 6.0 + p.phase) * 0.022;
-                    const jy = Math.cos(t * 5.2 + p.phase) * 0.022;
-                    const jz = Math.sin(t * 7.1 + p.phase) * 0.022;
+                    const jx = Math.sin(t * 5.0 + p.phase) * 0.015;
+                    const jy = Math.cos(t * 4.5 + p.phase) * 0.015;
+                    const jz = Math.sin(t * 5.8 + p.phase) * 0.015;
                     mesh.position.set(p.pos[0] + jx, p.pos[1] + jy, p.pos[2] + jz);
                 }
             });
@@ -286,14 +285,10 @@ const Nucleus = memo(function Nucleus({ protons, neutrons, color, symbol, showPa
 
     return (
         <group ref={nucleusRef}>
-            {/* Strong Nuclear Force Gluon Energy Corona */}
-            <mesh scale={showParticles ? 1.45 : 1.15}>
+            {/* Subtle Strong Force Gluon Aura */}
+            <mesh scale={showParticles ? 1.35 : 1.1}>
                 <sphereGeometry args={[0.7, 32, 32]} />
-                <meshBasicMaterial color={color} transparent opacity={0.16} side={THREE.BackSide} />
-            </mesh>
-            <mesh scale={showParticles ? 1.6 : 1.25}>
-                <sphereGeometry args={[0.7, 24, 24]} />
-                <meshBasicMaterial color="#ffffff" transparent opacity={0.06} side={THREE.BackSide} />
+                <meshBasicMaterial color={color} transparent opacity={0.08} side={THREE.BackSide} />
             </mesh>
 
             {showParticles ? (
@@ -302,41 +297,46 @@ const Nucleus = memo(function Nucleus({ protons, neutrons, color, symbol, showPa
                         <Sphere
                             key={i}
                             ref={(el) => { particleMeshesRef.current[i] = el; }}
-                            args={[0.135, 18, 18]}
+                            args={[0.13, 24, 24]}
                             position={p.pos}
                         >
+                            {/* Rich Optical Gemstone Materials (Ruby for p+, Sapphire for n0) */}
                             <meshPhysicalMaterial
-                                color={p.isProton ? '#ff2a6d' : '#00f0ff'}
-                                emissive={p.isProton ? '#e11d48' : '#0284c7'}
-                                emissiveIntensity={2.0}
-                                metalness={0.4}
+                                color={p.isProton ? '#991b1b' : '#0369a1'}
+                                emissive={p.isProton ? '#be123c' : '#0284c7'}
+                                emissiveIntensity={0.35}
+                                metalness={0.15}
                                 roughness={0.06}
-                                clearcoat={1}
+                                transmission={0.65}
+                                ior={1.72}
+                                thickness={0.8}
+                                clearcoat={1.0}
                                 clearcoatRoughness={0.03}
+                                reflectivity={0.95}
                                 depthWrite={true}
                                 depthTest={true}
                             />
                         </Sphere>
                     ))}
-                    {/* Proton / Neutron counter badge with occlusion */}
-                    <Html center distanceFactor={5} position={[0, -1.05, 0]} occlude>
-                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/95 border border-slate-300/80 text-[10.5px] font-mono pointer-events-none backdrop-blur-md whitespace-nowrap shadow-card font-bold">
-                            <span className="text-rose-600">{protons}p⁺</span>
-                            <span className="text-slate-300">•</span>
-                            <span className="text-cyan-700">{neutrons}n⁰</span>
+                    {/* Scientific Telemetry Badge */}
+                    <Html center distanceFactor={5} position={[0, -1.0, 0]} occlude>
+                        <div className="flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-white/90 border border-black/[0.08] text-[10px] font-mono pointer-events-none backdrop-blur-md whitespace-nowrap shadow-xs font-semibold text-slate-700">
+                            <span className="text-rose-700 font-bold">{protons}p⁺</span>
+                            <span className="text-slate-300">/</span>
+                            <span className="text-sky-700 font-bold">{neutrons}n⁰</span>
                         </div>
                     </Html>
                 </group>
             ) : (
                 <>
-                    <GlowingSphere size={0.72} color={color} glowColor={color} emissiveIntensity={1.8} position={[0, 0, 0]} />
+                    <GlowingSphere size={0.7} color={color} glowColor={color} position={[0, 0, 0]} />
                     <Html center distanceFactor={4} occlude>
                         <div
-                            className="font-bold pointer-events-none select-none tracking-tight leading-none"
+                            className="font-bold pointer-events-none select-none tracking-tight leading-none font-mono"
                             style={{
-                                fontSize: symbol.length > 2 ? '22px' : '28px',
+                                fontSize: symbol.length > 2 ? '20px' : '26px',
                                 color: '#ffffff',
-                                textShadow: `0 0 20px ${color}, 0 0 40px rgba(0,0,0,0.9)`,
+                                textShadow: `0 1px 8px rgba(0,0,0,0.6)`,
                             }}
                         >
                             {symbol}
@@ -349,6 +349,7 @@ const Nucleus = memo(function Nucleus({ protons, neutrons, color, symbol, showPa
 });
 
 // High-Performance Instanced Electron Mesh with Quantum Wave Oscillation & Valence Glow
+// High-Performance Instanced Electron Mesh with High-Refraction Photon Glass Materials
 interface InstancedElectronsProps {
     shells: number[];
     valenceCount: number;
@@ -380,7 +381,7 @@ const InstancedElectrons = memo(function InstancedElectrons({
         shells.forEach((count, sIdx) => {
             const displayCount = Math.min(count, 16);
             const radius = 1.1 + sIdx * 0.58;
-            const speed = 1.6 / Math.sqrt(sIdx + 1);
+            const speed = 1.5 / Math.sqrt(sIdx + 1);
             const tilt = orbitalTilts[sIdx % orbitalTilts.length] || { x: Math.PI / 4, z: 0 };
             const harmonic = (sIdx + 2) * 2;
 
@@ -402,8 +403,8 @@ const InstancedElectrons = memo(function InstancedElectrons({
         return data;
     }, [shells, valenceCount, orbitalTilts]);
 
-    const defaultColor = useMemo(() => new THREE.Color(color || '#38bdf8'), [color]);
-    const valenceColor = useMemo(() => new THREE.Color('#fbbf24'), []);
+    const defaultColor = useMemo(() => new THREE.Color(color || '#0284c7'), [color]);
+    const valenceColor = useMemo(() => new THREE.Color('#d97706'), []);
     const focusColor = useMemo(() => new THREE.Color('#ffffff'), []);
 
     // Set per-instance colors once on data change or focus change
@@ -428,16 +429,16 @@ const InstancedElectrons = memo(function InstancedElectrons({
             const isShellFocused = focusedShell === el.shellIndex;
 
             // Quantum wave radial and vertical oscillation
-            const waveR = el.radius * (1.0 + 0.028 * Math.sin(el.harmonic * angle + t * 2.0));
+            const waveR = el.radius * (1.0 + 0.022 * Math.sin(el.harmonic * angle + t * 1.8));
             const posX = Math.cos(angle) * waveR;
-            const posY = Math.sin(angle) * Math.sin(el.tiltX) * waveR + 0.02 * Math.cos(el.harmonic * angle);
+            const posY = Math.sin(angle) * Math.sin(el.tiltX) * waveR + 0.015 * Math.cos(el.harmonic * angle);
             const posZ = Math.sin(angle) * Math.cos(el.tiltZ) * waveR;
 
             dummy.position.set(posX, posY, posZ);
 
-            // Pulsing electron scale
-            const pulseScale = 1.0 + 0.12 * Math.sin(t * 6.0 + el.phase);
-            dummy.scale.setScalar((isShellFocused ? 0.12 : el.isValence ? 0.095 : 0.08) * pulseScale);
+            // Subtle pulsing electron scale
+            const pulseScale = 1.0 + 0.08 * Math.sin(t * 4.0 + el.phase);
+            dummy.scale.setScalar((isShellFocused ? 0.11 : el.isValence ? 0.088 : 0.076) * pulseScale);
             dummy.updateMatrix();
 
             meshRef.current.setMatrixAt(i, dummy.matrix);
@@ -453,18 +454,25 @@ const InstancedElectrons = memo(function InstancedElectrons({
             ref={meshRef}
             args={[undefined, undefined, electronData.length]}
         >
-            <sphereGeometry args={[1, 20, 20]} />
-            <meshStandardMaterial
-                roughness={0.08}
-                metalness={0.9}
+            <sphereGeometry args={[1, 24, 24]} />
+            {/* Scientific Optical Glass Transmission */}
+            <meshPhysicalMaterial
+                roughness={0.04}
+                metalness={0.18}
+                transmission={0.65}
+                ior={2.1}
+                thickness={0.7}
+                clearcoat={1.0}
+                clearcoatRoughness={0.02}
+                reflectivity={0.95}
                 emissive={color}
-                emissiveIntensity={2.5}
+                emissiveIntensity={0.8}
             />
         </instancedMesh>
     );
 });
 
-// Interactive Orbital Shell guide rings with gyroscopic precession, double-layer glass tubes, and glow
+// Interactive Orbital Shell guide rings with hairline precision and laser-etched telemetry
 const OrbitalShell = memo(function OrbitalShell({
     radius,
     electronCount,
@@ -499,30 +507,21 @@ const OrbitalShell = memo(function OrbitalShell({
     // Gyroscopic precession
     useFrame(({ clock }) => {
         if (groupRef.current) {
-            const t = clock.getElapsedTime() * 0.3;
-            groupRef.current.rotation.y = tiltZ + Math.sin(t + shellIndex) * 0.04;
-            groupRef.current.rotation.x = tiltX + Math.cos(t + shellIndex) * 0.03;
+            const t = clock.getElapsedTime() * 0.25;
+            groupRef.current.rotation.y = tiltZ + Math.sin(t + shellIndex) * 0.03;
+            groupRef.current.rotation.x = tiltX + Math.cos(t + shellIndex) * 0.025;
         }
     });
 
     return (
         <group ref={groupRef} rotation={[tiltX, 0, tiltZ]}>
-            {/* Primary Crystalline Fiber Ring */}
+            {/* Razor-Sharp Hairline Crystalline Track */}
             <Line
                 points={orbitPoints}
                 color={isFocused ? '#ffffff' : color}
-                lineWidth={isFocused ? 3.5 : 2.0}
+                lineWidth={isFocused ? 2.0 : 1.1}
                 transparent
-                opacity={isFocused ? 1.0 : 0.5}
-            />
-
-            {/* Outer Translucent Glow Aura Halo */}
-            <Line
-                points={orbitPoints}
-                color={isFocused ? '#38bdf8' : color}
-                lineWidth={isFocused ? 7.0 : 4.5}
-                transparent
-                opacity={isFocused ? 0.35 : 0.12}
+                opacity={isFocused ? 0.95 : 0.28}
             />
 
             {/* Subtle Shell Marker on ring edge with occlusion */}
@@ -536,8 +535,10 @@ const OrbitalShell = memo(function OrbitalShell({
                     onMouseEnter={() => onHover && onHover(shellIndex)}
                     onMouseLeave={() => onHover && onHover(null)}
                     className={cn(
-                        "cursor-pointer select-none px-2.5 py-0.5 rounded-full border text-[9.5px] font-mono transition-all backdrop-blur-md shadow-xs font-bold",
-                        isFocused ? "bg-[#16a875] text-white border-[#16a875] scale-110 shadow-md" : "bg-white/95 border-slate-200 text-slate-700 hover:border-[#16a875] hover:text-[#16a875]"
+                        "cursor-pointer select-none px-2 py-0.5 rounded-full border text-[9px] font-mono transition-all backdrop-blur-md shadow-xs font-semibold",
+                        isFocused
+                            ? "bg-[#16a875] text-white border-[#16a875] scale-105 shadow-sm"
+                            : "bg-white/90 border-slate-200/80 text-slate-600 hover:border-[#16a875] hover:text-[#16a875]"
                     )}
                     title={`Shell ${shellName} (n=${shellIndex + 1}): ${electronCount} electrons`}
                 >
@@ -610,9 +611,9 @@ const AtomScene = memo(function AtomScene({
         // Ambient smooth axial spin
         groupRef.current.rotation.y += 0.003 * animationSpeed;
 
-        // Interactive magnetic cursor-hand parallax tilt (fluid spring reaction to cursor movement)
-        const targetTiltX = -pointer.y * 0.28;
-        const targetTiltZ = pointer.x * 0.28;
+        // Interactive magnetic cursor-hand parallax tilt
+        const targetTiltX = -pointer.y * 0.25;
+        const targetTiltZ = pointer.x * 0.25;
         groupRef.current.rotation.x = THREE.MathUtils.damp(groupRef.current.rotation.x, targetTiltX, 3.5, delta);
         groupRef.current.rotation.z = THREE.MathUtils.damp(groupRef.current.rotation.z, targetTiltZ, 3.5, delta);
     });
@@ -628,12 +629,12 @@ const AtomScene = memo(function AtomScene({
     const valenceElectrons = electrons[electrons.length - 1] || 1;
 
     return (
-        <Float speed={1.2} rotationIntensity={0.06} floatIntensity={0.1}>
+        <Float speed={1.0} rotationIntensity={0.04} floatIntensity={0.08}>
             <group ref={groupRef} scale={0}>
-                {/* Radiant Core Luminescence & Dynamic Field Illumination */}
-                <pointLight position={[0, 0, 0]} intensity={4.0} color={color} distance={25} decay={1.8} />
-                <pointLight position={[0, 4, 3]} intensity={1.2} color="#ffffff" distance={15} decay={2} />
-                <pointLight position={[0, -3, -4]} intensity={1.5} color={color} distance={15} decay={2} />
+                {/* Laboratory Core Luminescence */}
+                <pointLight position={[0, 0, 0]} intensity={2.0} color={color} distance={20} decay={1.8} />
+                <pointLight position={[0, 4, 3]} intensity={0.9} color="#ffffff" distance={15} decay={2} />
+                <pointLight position={[0, -3, -4]} intensity={1.0} color={color} distance={15} decay={2} />
 
                 {showOrbitals && <OrbitalClouds electrons={electrons} elementColor={color} />}
 
@@ -701,38 +702,38 @@ export function Atom3D({
                     alpha: true,
                     powerPreference: 'high-performance',
                     stencil: false,
-                    depth: true
+                    depth: true,
+                    toneMapping: THREE.ACESFilmicToneMapping,
+                    toneMappingExposure: 1.05
                 }}
                 style={{ background: 'transparent' }}
                 dpr={[1, 2]}
             >
                 <CameraPresetController preset={cameraPreset} />
                 
-                {/* Deep Quantum Field Stars & Multi-Layer Ambient Energy Sparks */}
-                <Stars radius={100} depth={60} count={800} factor={4} saturation={0.6} fade speed={0.4} />
-                <Sparkles count={70} scale={16} size={3.0} speed={0.6} opacity={0.7} color={color} />
-                <Sparkles count={40} scale={24} size={4.5} speed={0.3} opacity={0.4} color="#60a5fa" />
+                {/* Subtle Sub-Micron Quantum Studio Energy Motes */}
+                <Sparkles count={35} scale={14} size={1.8} speed={0.25} opacity={0.3} color={color} />
                 
                 {/* Professional Multi-Point Studio Lighting Rig */}
                 {/* 1. Studio Ambient Base */}
-                <ambientLight intensity={0.8} color="#f8fafc" />
-                {/* 2. Omnidirectional Hemisphere Light (eliminates pitch-black dead zones from all 360° camera angles) */}
-                <hemisphereLight skyColor="#f8fafc" groundColor="#1e1b4b" intensity={0.9} />
-                {/* 3. Key Directional Light for crisp specular highlights and form definition */}
-                <directionalLight position={[8, 12, 10]} intensity={1.8} color="#ffffff" />
-                {/* 4. Cool Cyan Fill Light (diffuse bounce) */}
-                <directionalLight position={[-10, -6, -8]} intensity={1.1} color="#38bdf8" />
-                {/* 5. Warm Amber Fill Light (ground bounce) */}
-                <directionalLight position={[8, -8, -6]} intensity={0.9} color="#f59e0b" />
-                {/* 6. Dynamic Rim / Backlight (silhouette & orbital shell edge illumination) */}
-                <directionalLight position={[0, 8, -12]} intensity={2.2} color="#818cf8" />
+                <ambientLight intensity={0.9} color="#f8fafc" />
+                {/* 2. Omnidirectional Hemisphere Light */}
+                <hemisphereLight skyColor="#f8fafc" groundColor="#1e293b" intensity={0.85} />
+                {/* 3. Key Directional Light for crisp specular highlights */}
+                <directionalLight position={[8, 12, 10]} intensity={1.6} color="#ffffff" />
+                {/* 4. Cool Cyan Fill Light */}
+                <directionalLight position={[-10, -6, -8]} intensity={0.8} color="#38bdf8" />
+                {/* 5. Warm Amber Fill Light */}
+                <directionalLight position={[8, -8, -6]} intensity={0.65} color="#f59e0b" />
+                {/* 6. Dynamic Rim / Backlight */}
+                <directionalLight position={[0, 8, -12]} intensity={1.6} color="#818cf8" />
                 {/* 7. Bottom Rim Bounce Light */}
-                <directionalLight position={[0, -10, 4]} intensity={0.8} color="#06b6d4" />
+                <directionalLight position={[0, -10, 4]} intensity={0.6} color="#06b6d4" />
 
-                {/* Ground Radial Energy Halo Stage Pedestal */}
+                {/* Ground Stage Halo Pedestal */}
                 <mesh position={[0, -5.5, 0]} rotation={[-Math.PI / 2, 0, 0]}>
                     <ringGeometry args={[1.5, 7.5, 64]} />
-                    <meshBasicMaterial color={color} transparent opacity={0.1} side={THREE.DoubleSide} />
+                    <meshBasicMaterial color={color} transparent opacity={0.06} side={THREE.DoubleSide} />
                 </mesh>
 
                 <AtomScene
@@ -760,19 +761,19 @@ export function Atom3D({
                     minDistance={3.0}
                     maxDistance={32}
                     autoRotate={autoRotate}
-                    autoRotateSpeed={1.5}
+                    autoRotateSpeed={1.2}
                 />
 
-                {/* Post-Processing Cinematic Bloom & Vignette */}
+                {/* Photometric Bloom & Subtle Vignette */}
                 {enableBloom && (
                     <EffectComposer multisampling={0} disableNormalPass>
                         <Bloom
-                            luminanceThreshold={0.2}
-                            luminanceSmoothing={0.85}
-                            intensity={1.25}
+                            luminanceThreshold={0.75}
+                            luminanceSmoothing={0.3}
+                            intensity={0.45}
                             mipmapBlur
                         />
-                        <Vignette eskil={false} offset={0.1} darkness={0.08} />
+                        <Vignette eskil={false} offset={0.12} darkness={0.06} />
                     </EffectComposer>
                 )}
             </Canvas>

@@ -1,6 +1,6 @@
 import { useRef, useMemo, useEffect, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Sphere, Cylinder, Html, Float, Stars, Sparkles } from '@react-three/drei';
+import { OrbitControls, Sphere, Cylinder, Html, Float, Sparkles } from '@react-three/drei';
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import gsap from 'gsap';
@@ -15,7 +15,7 @@ interface Molecule3DProps {
     spaceFilling?: boolean;
 }
 
-// Single atom sphere with interactive hover, physical materials, and thermal vibration
+// Single atom sphere with interactive hover, physical quartz/gemstone materials, and thermal vibration
 function AtomSphere({
     atom,
     index,
@@ -33,9 +33,9 @@ function AtomSphere({
         if (!meshRef.current) return;
         const t = clock.getElapsedTime();
         // Molecular thermal micro-vibration (Raman / IR modes)
-        const vx = Math.sin(t * 4.2 + index * 1.3) * 0.018;
-        const vy = Math.cos(t * 3.8 + index * 1.7) * 0.018;
-        const vz = Math.sin(t * 5.1 + index * 2.1) * 0.018;
+        const vx = Math.sin(t * 4.2 + index * 1.3) * 0.015;
+        const vy = Math.cos(t * 3.8 + index * 1.7) * 0.015;
+        const vz = Math.sin(t * 5.1 + index * 2.1) * 0.015;
         meshRef.current.position.set(atom.position[0] + vx, atom.position[1] + vy, atom.position[2] + vz);
     });
 
@@ -49,20 +49,24 @@ function AtomSphere({
                 }}
                 onPointerOut={() => setHovered(false)}
             >
+                {/* High-Refractive Scientific CPK Gemstone */}
                 <meshPhysicalMaterial
                     color={atom.color}
                     emissive={atom.color}
-                    emissiveIntensity={hovered ? 1.8 : 0.75}
-                    metalness={0.28}
-                    roughness={0.12}
+                    emissiveIntensity={hovered ? 0.8 : 0.3}
+                    metalness={0.15}
+                    roughness={0.06}
+                    transmission={0.62}
+                    ior={1.68}
+                    thickness={0.9}
                     clearcoat={1.0}
-                    clearcoatRoughness={0.06}
-                    reflectivity={0.9}
+                    clearcoatRoughness={0.03}
+                    reflectivity={0.95}
                 />
             </Sphere>
             {hovered && (
                 <Html distanceFactor={8} position={[0, radius + 0.45, 0]} center>
-                    <div className="bg-slate-900/95 text-white text-[10.5px] font-mono font-bold px-2.5 py-0.5 rounded-full border border-sky-400/50 shadow-card pointer-events-none whitespace-nowrap">
+                    <div className="bg-slate-900/95 text-white text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border border-sky-400/40 shadow-xs pointer-events-none whitespace-nowrap">
                         {atom.element}
                     </div>
                 </Html>
@@ -71,7 +75,7 @@ function AtomSphere({
     );
 }
 
-// Render bonds as high-gloss metallic cylinders with animated electron density pulses
+// Render bonds as precision brushed titanium cylinders
 function BondCylinder({
     from,
     to,
@@ -105,8 +109,7 @@ function BondCylinder({
     useFrame(({ clock }) => {
         if (matRef.current) {
             const t = clock.getElapsedTime();
-            // Bond covalent electron density wave
-            matRef.current.emissiveIntensity = 0.35 + 0.2 * Math.sin(t * 3.5 + index * 1.5);
+            matRef.current.emissiveIntensity = 0.2 + 0.12 * Math.sin(t * 3.0 + index * 1.5);
         }
     });
 
@@ -115,18 +118,18 @@ function BondCylinder({
             {offsets.map((offset, idx) => (
                 <Cylinder
                     key={idx}
-                    args={[0.058, 0.058, length, 20]}
+                    args={[0.052, 0.052, length, 24]}
                     position={[offset, 0, 0]}
                 >
                     <meshPhysicalMaterial
                         ref={idx === 0 ? matRef : undefined}
                         color="#cbd5e1"
-                        emissive="#38bdf8"
-                        emissiveIntensity={0.35}
-                        roughness={0.15}
-                        metalness={0.7}
-                        clearcoat={0.8}
-                        clearcoatRoughness={0.08}
+                        emissive="#94a3b8"
+                        emissiveIntensity={0.2}
+                        roughness={0.12}
+                        metalness={0.85}
+                        clearcoat={0.9}
+                        clearcoatRoughness={0.05}
                     />
                 </Cylinder>
             ))}
@@ -160,18 +163,18 @@ function MoleculeScene({
     useFrame((_, delta) => {
         if (!groupRef.current) return;
         // Interactive magnetic cursor-hand parallax tilt
-        const targetTiltX = -pointer.y * 0.28;
-        const targetTiltZ = pointer.x * 0.28;
+        const targetTiltX = -pointer.y * 0.25;
+        const targetTiltZ = pointer.x * 0.25;
         groupRef.current.rotation.x = THREE.MathUtils.damp(groupRef.current.rotation.x, targetTiltX, 3.5, delta);
         groupRef.current.rotation.z = THREE.MathUtils.damp(groupRef.current.rotation.z, targetTiltZ, 3.5, delta);
     });
 
     return (
-        <Float speed={1.2} rotationIntensity={0.06} floatIntensity={0.1}>
+        <Float speed={1.0} rotationIntensity={0.04} floatIntensity={0.08}>
             <group ref={groupRef} scale={zoom}>
-                {/* Radiant Center Luminescence */}
-                <pointLight position={[0, 0, 0]} intensity={3.0} color="#38bdf8" distance={15} decay={1.8} />
-                <pointLight position={[0, 4, 3]} intensity={1.5} color="#ffffff" distance={12} decay={2} />
+                {/* Laboratory Core Luminescence */}
+                <pointLight position={[0, 0, 0]} intensity={2.0} color="#38bdf8" distance={15} decay={1.8} />
+                <pointLight position={[0, 4, 3]} intensity={1.0} color="#ffffff" distance={12} decay={2} />
 
                 {/* Render bonds when not in full space-filling mode */}
                 {!spaceFilling && molecule.bonds.map((bond, i) => (
@@ -209,29 +212,29 @@ export function Molecule3D({
                     antialias: true,
                     alpha: true,
                     powerPreference: 'high-performance',
-                    depth: true
+                    depth: true,
+                    toneMapping: THREE.ACESFilmicToneMapping,
+                    toneMappingExposure: 1.05
                 }}
                 style={{ background: 'transparent' }}
                 dpr={[1, 2]}
             >
-                {/* Deep field stars & ambient cosmic dust sparks */}
-                <Stars radius={80} depth={50} count={700} factor={3.8} saturation={0.5} fade speed={0.4} />
-                <Sparkles count={60} scale={12} size={3.0} speed={0.5} opacity={0.6} color="#38bdf8" />
-                <Sparkles count={30} scale={18} size={4.5} speed={0.3} opacity={0.4} color="#818cf8" />
+                {/* Subtle Sub-Micron Quantum Studio Energy Motes */}
+                <Sparkles count={30} scale={10} size={1.6} speed={0.25} opacity={0.25} color="#38bdf8" />
 
                 {/* Professional Multi-Point Studio Lighting Rig */}
-                <ambientLight intensity={0.8} color="#f8fafc" />
-                <hemisphereLight skyColor="#f8fafc" groundColor="#1e1b4b" intensity={0.9} />
-                <directionalLight position={[8, 12, 10]} intensity={1.8} color="#ffffff" />
-                <directionalLight position={[-10, -6, -8]} intensity={1.1} color="#38bdf8" />
-                <directionalLight position={[8, -8, -6]} intensity={0.9} color="#f59e0b" />
-                <directionalLight position={[0, 8, -12]} intensity={2.2} color="#818cf8" />
-                <directionalLight position={[0, -10, 4]} intensity={0.8} color="#06b6d4" />
+                <ambientLight intensity={0.9} color="#f8fafc" />
+                <hemisphereLight skyColor="#f8fafc" groundColor="#1e293b" intensity={0.85} />
+                <directionalLight position={[8, 12, 10]} intensity={1.6} color="#ffffff" />
+                <directionalLight position={[-10, -6, -8]} intensity={0.8} color="#38bdf8" />
+                <directionalLight position={[8, -8, -6]} intensity={0.65} color="#f59e0b" />
+                <directionalLight position={[0, 8, -12]} intensity={1.6} color="#818cf8" />
+                <directionalLight position={[0, -10, 4]} intensity={0.6} color="#06b6d4" />
 
-                {/* Ground Radial Energy Halo Stage Pedestal */}
+                {/* Ground Stage Halo Pedestal */}
                 <mesh position={[0, -3.8, 0]} rotation={[-Math.PI / 2, 0, 0]}>
                     <ringGeometry args={[1.0, 5.5, 64]} />
-                    <meshBasicMaterial color="#38bdf8" transparent opacity={0.08} side={THREE.DoubleSide} />
+                    <meshBasicMaterial color="#38bdf8" transparent opacity={0.06} side={THREE.DoubleSide} />
                 </mesh>
 
                 <MoleculeScene
@@ -253,16 +256,16 @@ export function Molecule3D({
                     autoRotateSpeed={1.0}
                 />
 
-                {/* Post-Processing Bloom & Vignette */}
+                {/* Photometric Bloom & Subtle Vignette */}
                 {enableBloom && (
                     <EffectComposer multisampling={0} disableNormalPass>
                         <Bloom
-                            luminanceThreshold={0.2}
-                            luminanceSmoothing={0.85}
-                            intensity={1.2}
+                            luminanceThreshold={0.75}
+                            luminanceSmoothing={0.3}
+                            intensity={0.45}
                             mipmapBlur
                         />
-                        <Vignette eskil={false} offset={0.15} darkness={0.45} />
+                        <Vignette eskil={false} offset={0.12} darkness={0.06} />
                     </EffectComposer>
                 )}
             </Canvas>
