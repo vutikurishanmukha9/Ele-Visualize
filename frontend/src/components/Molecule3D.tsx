@@ -15,13 +15,32 @@ interface Molecule3DProps {
     spaceFilling?: boolean;
 }
 
-// Single atom sphere with interactive hover and depth occlusion
-function AtomSphere({ atom, spaceFilling = false }: { atom: Atom; spaceFilling?: boolean }) {
+// Single atom sphere with interactive hover, physical materials, and thermal vibration
+function AtomSphere({
+    atom,
+    index,
+    spaceFilling = false
+}: {
+    atom: Atom;
+    index: number;
+    spaceFilling?: boolean;
+}) {
     const [hovered, setHovered] = useState(false);
+    const meshRef = useRef<THREE.Group>(null);
     const radius = spaceFilling ? atom.radius * 1.8 : atom.radius;
 
+    useFrame(({ clock }) => {
+        if (!meshRef.current) return;
+        const t = clock.getElapsedTime();
+        // Molecular thermal micro-vibration (Raman / IR modes)
+        const vx = Math.sin(t * 4.2 + index * 1.3) * 0.018;
+        const vy = Math.cos(t * 3.8 + index * 1.7) * 0.018;
+        const vz = Math.sin(t * 5.1 + index * 2.1) * 0.018;
+        meshRef.current.position.set(atom.position[0] + vx, atom.position[1] + vy, atom.position[2] + vz);
+    });
+
     return (
-        <group position={atom.position}>
+        <group ref={meshRef} position={atom.position}>
             <Sphere
                 args={[radius, 32, 32]}
                 onPointerOver={(e) => {
@@ -33,16 +52,17 @@ function AtomSphere({ atom, spaceFilling = false }: { atom: Atom; spaceFilling?:
                 <meshPhysicalMaterial
                     color={atom.color}
                     emissive={atom.color}
-                    emissiveIntensity={hovered ? 1.4 : 0.6}
-                    metalness={0.25}
-                    roughness={0.15}
-                    clearcoat={0.8}
-                    clearcoatRoughness={0.1}
+                    emissiveIntensity={hovered ? 1.8 : 0.75}
+                    metalness={0.28}
+                    roughness={0.12}
+                    clearcoat={1.0}
+                    clearcoatRoughness={0.06}
+                    reflectivity={0.9}
                 />
             </Sphere>
             {hovered && (
-                <Html distanceFactor={8} position={[0, radius + 0.4, 0]} center>
-                    <div className="bg-slate-900/90 text-white text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border border-sky-400/40 shadow-lg pointer-events-none whitespace-nowrap">
+                <Html distanceFactor={8} position={[0, radius + 0.45, 0]} center>
+                    <div className="bg-slate-900/95 text-white text-[10.5px] font-mono font-bold px-2.5 py-0.5 rounded-full border border-sky-400/50 shadow-card pointer-events-none whitespace-nowrap">
                         {atom.element}
                     </div>
                 </Html>
@@ -51,12 +71,23 @@ function AtomSphere({ atom, spaceFilling = false }: { atom: Atom; spaceFilling?:
     );
 }
 
-// Render bonds as high-gloss metallic cylinders
-function BondCylinder({ from, to, order = 1 }: { from: [number, number, number]; to: [number, number, number]; order?: number }) {
+// Render bonds as high-gloss metallic cylinders with animated electron density pulses
+function BondCylinder({
+    from,
+    to,
+    order = 1,
+    index = 0
+}: {
+    from: [number, number, number];
+    to: [number, number, number];
+    order?: number;
+    index?: number;
+}) {
     const start = useMemo(() => new THREE.Vector3(...from), [from]);
     const end = useMemo(() => new THREE.Vector3(...to), [to]);
     const mid = useMemo(() => new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5), [start, end]);
     const length = useMemo(() => start.distanceTo(end), [start, end]);
+    const matRef = useRef<THREE.MeshPhysicalMaterial>(null);
 
     const orientation = useMemo(() => {
         const dir = new THREE.Vector3().subVectors(end, start).normalize();
@@ -71,21 +102,31 @@ function BondCylinder({ from, to, order = 1 }: { from: [number, number, number];
         return [-0.14, 0, 0.14];
     }, [order]);
 
+    useFrame(({ clock }) => {
+        if (matRef.current) {
+            const t = clock.getElapsedTime();
+            // Bond covalent electron density wave
+            matRef.current.emissiveIntensity = 0.35 + 0.2 * Math.sin(t * 3.5 + index * 1.5);
+        }
+    });
+
     return (
         <group position={mid} quaternion={orientation}>
             {offsets.map((offset, idx) => (
                 <Cylinder
                     key={idx}
-                    args={[0.055, 0.055, length, 16]}
+                    args={[0.058, 0.058, length, 20]}
                     position={[offset, 0, 0]}
                 >
                     <meshPhysicalMaterial
+                        ref={idx === 0 ? matRef : undefined}
                         color="#cbd5e1"
-                        emissive="#94a3b8"
-                        emissiveIntensity={0.3}
-                        roughness={0.2}
-                        metalness={0.6}
-                        clearcoat={0.5}
+                        emissive="#38bdf8"
+                        emissiveIntensity={0.35}
+                        roughness={0.15}
+                        metalness={0.7}
+                        clearcoat={0.8}
+                        clearcoatRoughness={0.08}
                     />
                 </Cylinder>
             ))}
@@ -129,13 +170,14 @@ function MoleculeScene({
         <Float speed={1.2} rotationIntensity={0.06} floatIntensity={0.1}>
             <group ref={groupRef} scale={zoom}>
                 {/* Radiant Center Luminescence */}
-                <pointLight position={[0, 0, 0]} intensity={2.5} color="#38bdf8" distance={12} decay={1.8} />
-                <pointLight position={[0, 3, 2]} intensity={1.0} color="#ffffff" distance={10} decay={2} />
+                <pointLight position={[0, 0, 0]} intensity={3.0} color="#38bdf8" distance={15} decay={1.8} />
+                <pointLight position={[0, 4, 3]} intensity={1.5} color="#ffffff" distance={12} decay={2} />
 
                 {/* Render bonds when not in full space-filling mode */}
                 {!spaceFilling && molecule.bonds.map((bond, i) => (
                     <BondCylinder
                         key={i}
+                        index={i}
                         from={molecule.atoms[bond.from].position}
                         to={molecule.atoms[bond.to].position}
                         order={bond.order}
@@ -144,7 +186,7 @@ function MoleculeScene({
 
                 {/* Render atoms */}
                 {molecule.atoms.map((atom, i) => (
-                    <AtomSphere key={i} atom={atom} spaceFilling={spaceFilling} />
+                    <AtomSphere key={i} index={i} atom={atom} spaceFilling={spaceFilling} />
                 ))}
             </group>
         </Float>

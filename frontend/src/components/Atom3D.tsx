@@ -1,5 +1,5 @@
 import { useRef, useMemo, memo, useEffect, useState } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Sphere, Line, Html, Float, Stars, Sparkles } from '@react-three/drei';
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
@@ -8,6 +8,7 @@ import { createFresnelMaterial } from '@/shaders/fresnelShader';
 import { createVolumetricOrbitalMaterial } from '@/shaders/orbitalShader';
 import { disposeHierarchy } from '@/lib/threeDisposal';
 import { audioEngine } from '@/lib/audioEngine';
+import { cn } from '@/lib/utils';
 
 export type CameraPreset = '3d' | 'top' | 'side' | 'iso' | 'reset';
 
@@ -223,7 +224,7 @@ const OrbitalClouds = memo(function OrbitalClouds({ electrons }: { electrons: nu
     );
 });
 
-// High-fidelity Nucleus with dual-mode representation, gluon forcefield halo, and golden spiral packing
+// High-fidelity Nucleus with dual-mode representation, gluon forcefield halo, golden spiral packing, and Brownian subatomic jiggle
 const Nucleus = memo(function Nucleus({ protons, neutrons, color, symbol, showParticles }: {
     protons: number;
     neutrons: number;
@@ -232,10 +233,11 @@ const Nucleus = memo(function Nucleus({ protons, neutrons, color, symbol, showPa
     showParticles: boolean;
 }) {
     const nucleusRef = useRef<THREE.Group>(null);
+    const particleMeshesRef = useRef<(THREE.Mesh | null)[]>([]);
     const total = Math.min(protons + neutrons, 48);
 
     const particles = useMemo(() => {
-        const pts: { pos: [number, number, number]; isProton: boolean }[] = [];
+        const pts: { pos: [number, number, number]; isProton: boolean; phase: number }[] = [];
         const phi = Math.PI * (3 - Math.sqrt(5)); // Golden ratio phyllotaxis angle
 
         for (let i = 0; i < total; i++) {
@@ -244,38 +246,54 @@ const Nucleus = memo(function Nucleus({ protons, neutrons, color, symbol, showPa
             const theta = phi * i;
             const scale = 0.58;
 
-            // Organic quantum packing jitter
-            const jitter = 0.04 * Math.sin(i * 3.7);
-
             pts.push({
                 pos: [
-                    Math.cos(theta) * radius * (scale + jitter),
-                    y * (scale + jitter),
-                    Math.sin(theta) * radius * (scale + jitter)
+                    Math.cos(theta) * radius * scale,
+                    y * scale,
+                    Math.sin(theta) * radius * scale
                 ],
-                isProton: i < (protons / (protons + neutrons || 1)) * total
+                isProton: i < (protons / (protons + neutrons || 1)) * total,
+                phase: i * 1.37
             });
         }
         return pts;
     }, [protons, neutrons, total]);
 
     useFrame(({ clock }, delta) => {
+        const t = clock.getElapsedTime();
         if (nucleusRef.current) {
-            nucleusRef.current.rotation.y += delta * 0.25;
-            nucleusRef.current.rotation.x += delta * 0.12;
+            nucleusRef.current.rotation.y += delta * 0.28;
+            nucleusRef.current.rotation.x += delta * 0.14;
 
             // Micro-pulsating strong nuclear force breathing
-            const pulse = 1.0 + 0.03 * Math.sin(clock.getElapsedTime() * 4.0);
+            const pulse = 1.0 + 0.04 * Math.sin(t * 4.5);
             nucleusRef.current.scale.set(pulse, pulse, pulse);
+        }
+
+        // Subatomic Brownian jiggle
+        if (showParticles) {
+            particles.forEach((p, i) => {
+                const mesh = particleMeshesRef.current[i];
+                if (mesh) {
+                    const jx = Math.sin(t * 6.0 + p.phase) * 0.022;
+                    const jy = Math.cos(t * 5.2 + p.phase) * 0.022;
+                    const jz = Math.sin(t * 7.1 + p.phase) * 0.022;
+                    mesh.position.set(p.pos[0] + jx, p.pos[1] + jy, p.pos[2] + jz);
+                }
+            });
         }
     });
 
     return (
         <group ref={nucleusRef}>
-            {/* Strong Nuclear Force Gluon Energy Halo */}
-            <mesh scale={showParticles ? 1.4 : 1.1}>
+            {/* Strong Nuclear Force Gluon Energy Corona */}
+            <mesh scale={showParticles ? 1.45 : 1.15}>
+                <sphereGeometry args={[0.7, 32, 32]} />
+                <meshBasicMaterial color={color} transparent opacity={0.16} side={THREE.BackSide} />
+            </mesh>
+            <mesh scale={showParticles ? 1.6 : 1.25}>
                 <sphereGeometry args={[0.7, 24, 24]} />
-                <meshBasicMaterial color={color} transparent opacity={0.12} side={THREE.BackSide} />
+                <meshBasicMaterial color="#ffffff" transparent opacity={0.06} side={THREE.BackSide} />
             </mesh>
 
             {showParticles ? (
@@ -283,41 +301,42 @@ const Nucleus = memo(function Nucleus({ protons, neutrons, color, symbol, showPa
                     {particles.map((p, i) => (
                         <Sphere
                             key={i}
-                            args={[0.13, 16, 16]}
+                            ref={(el) => { particleMeshesRef.current[i] = el; }}
+                            args={[0.135, 18, 18]}
                             position={p.pos}
                         >
                             <meshPhysicalMaterial
-                                color={p.isProton ? '#ff3366' : '#38bdf8'}
+                                color={p.isProton ? '#ff2a6d' : '#00f0ff'}
                                 emissive={p.isProton ? '#e11d48' : '#0284c7'}
-                                emissiveIntensity={1.6}
-                                metalness={0.35}
-                                roughness={0.08}
+                                emissiveIntensity={2.0}
+                                metalness={0.4}
+                                roughness={0.06}
                                 clearcoat={1}
-                                clearcoatRoughness={0.04}
+                                clearcoatRoughness={0.03}
                                 depthWrite={true}
                                 depthTest={true}
                             />
                         </Sphere>
                     ))}
                     {/* Proton / Neutron counter badge with occlusion */}
-                    <Html center distanceFactor={5} position={[0, -0.95, 0]} occlude>
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/95 border border-slate-300 text-[10px] font-mono pointer-events-none backdrop-blur-md whitespace-nowrap shadow-md">
-                            <span className="text-rose-600 font-bold">{protons}p⁺</span>
-                            <span className="text-slate-400">•</span>
-                            <span className="text-sky-700 font-bold">{neutrons}n⁰</span>
+                    <Html center distanceFactor={5} position={[0, -1.05, 0]} occlude>
+                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/95 border border-slate-300/80 text-[10.5px] font-mono pointer-events-none backdrop-blur-md whitespace-nowrap shadow-card font-bold">
+                            <span className="text-rose-600">{protons}p⁺</span>
+                            <span className="text-slate-300">•</span>
+                            <span className="text-cyan-700">{neutrons}n⁰</span>
                         </div>
                     </Html>
                 </group>
             ) : (
                 <>
-                    <GlowingSphere size={0.68} color={color} glowColor={color} emissiveIntensity={1.4} position={[0, 0, 0]} />
+                    <GlowingSphere size={0.72} color={color} glowColor={color} emissiveIntensity={1.8} position={[0, 0, 0]} />
                     <Html center distanceFactor={4} occlude>
                         <div
                             className="font-bold pointer-events-none select-none tracking-tight leading-none"
                             style={{
-                                fontSize: symbol.length > 2 ? '20px' : '26px',
+                                fontSize: symbol.length > 2 ? '22px' : '28px',
                                 color: '#ffffff',
-                                textShadow: `0 0 16px ${color}, 0 0 32px rgba(0,0,0,0.9)`,
+                                textShadow: `0 0 20px ${color}, 0 0 40px rgba(0,0,0,0.9)`,
                             }}
                         >
                             {symbol}
@@ -329,7 +348,109 @@ const Nucleus = memo(function Nucleus({ protons, neutrons, color, symbol, showPa
     );
 });
 
-// High-Performance Instanced Electron Mesh with Per-Instance Valence Colors & Real-Time Matrix Updates
+// Dynamic Photon Energy Comet Trails trailing each orbiting electron
+interface ElectronTrailProps {
+    electronData: { radius: number; speed: number; phase: number; tiltX: number; tiltZ: number; harmonic: number }[];
+    color: string;
+    speedMultiplier: number;
+    isPaused: boolean;
+}
+
+const QuantumPhotonTrails = memo(function QuantumPhotonTrails({
+    electronData,
+    color,
+    speedMultiplier,
+    isPaused,
+}: ElectronTrailProps) {
+    const lineRef = useRef<THREE.LineSegments>(null);
+    const TRAIL_LENGTH = 12; // 12 points per trailing comet
+
+    const { positions, colors } = useMemo(() => {
+        const totalSegments = electronData.length * (TRAIL_LENGTH - 1);
+        const pos = new Float32Array(totalSegments * 6); // 2 vertices per segment * 3 coords
+        const col = new Float32Array(totalSegments * 6); // 2 vertices per segment * 3 colors
+        return { positions: pos, colors: col };
+    }, [electronData.length]);
+
+    const baseColor = useMemo(() => new THREE.Color(color || '#38bdf8'), [color]);
+    const tailColor = useMemo(() => new THREE.Color('#ffffff'), []);
+
+    useFrame(({ clock }) => {
+        if (!lineRef.current) return;
+        const t = isPaused ? 0 : clock.getElapsedTime() * speedMultiplier;
+        let ptr = 0;
+
+        electronData.forEach((el) => {
+            const currentAngle = el.phase + t * el.speed;
+            const step = 0.035; // angular spread of trail
+
+            for (let k = 0; k < TRAIL_LENGTH - 1; k++) {
+                const a1 = currentAngle - k * step;
+                const a2 = currentAngle - (k + 1) * step;
+
+                // De Broglie wave oscillation
+                const waveR1 = el.radius * (1.0 + 0.028 * Math.sin(el.harmonic * a1 + t * 2.0));
+                const waveR2 = el.radius * (1.0 + 0.028 * Math.sin(el.harmonic * a2 + t * 2.0));
+
+                const x1 = Math.cos(a1) * waveR1;
+                const y1 = Math.sin(a1) * Math.sin(el.tiltX) * waveR1 + 0.02 * Math.cos(el.harmonic * a1);
+                const z1 = Math.sin(a1) * Math.cos(el.tiltZ) * waveR1;
+
+                const x2 = Math.cos(a2) * waveR2;
+                const y2 = Math.sin(a2) * Math.sin(el.tiltX) * waveR2 + 0.02 * Math.cos(el.harmonic * a2);
+                const z2 = Math.sin(a2) * Math.cos(el.tiltZ) * waveR2;
+
+                positions[ptr * 6] = x1;
+                positions[ptr * 6 + 1] = y1;
+                positions[ptr * 6 + 2] = z1;
+                positions[ptr * 6 + 3] = x2;
+                positions[ptr * 6 + 4] = y2;
+                positions[ptr * 6 + 5] = z2;
+
+                const alpha1 = Math.pow(1.0 - k / TRAIL_LENGTH, 1.8);
+                const alpha2 = Math.pow(1.0 - (k + 1) / TRAIL_LENGTH, 1.8);
+
+                colors[ptr * 6] = baseColor.r * alpha1;
+                colors[ptr * 6 + 1] = baseColor.g * alpha1;
+                colors[ptr * 6 + 2] = baseColor.b * alpha1;
+                colors[ptr * 6 + 3] = tailColor.r * alpha2;
+                colors[ptr * 6 + 4] = tailColor.g * alpha2;
+                colors[ptr * 6 + 5] = tailColor.b * alpha2;
+
+                ptr++;
+            }
+        });
+
+        lineRef.current.geometry.attributes.position.needsUpdate = true;
+        lineRef.current.geometry.attributes.color.needsUpdate = true;
+    });
+
+    if (electronData.length === 0) return null;
+
+    return (
+        <lineSegments ref={lineRef}>
+            <bufferGeometry>
+                <bufferAttribute
+                    attach="attributes-position"
+                    args={[positions, 3]}
+                />
+                <bufferAttribute
+                    attach="attributes-color"
+                    args={[colors, 3]}
+                />
+            </bufferGeometry>
+            <lineBasicMaterial
+                vertexColors
+                transparent
+                opacity={0.85}
+                blending={THREE.AdditiveBlending}
+                linewidth={2}
+            />
+        </lineSegments>
+    );
+});
+
+// High-Performance Instanced Electron Mesh with Quantum Wave Oscillation & Valence Glow
 interface InstancedElectronsProps {
     shells: number[];
     valenceCount: number;
@@ -354,15 +475,16 @@ const InstancedElectrons = memo(function InstancedElectrons({
 
     // Pre-calculate shell distributions and initial phase offsets
     const electronData = useMemo(() => {
-        const data: { shellIndex: number; radius: number; speed: number; phase: number; isValence: boolean; tiltX: number; tiltZ: number }[] = [];
+        const data: { shellIndex: number; radius: number; speed: number; phase: number; isValence: boolean; tiltX: number; tiltZ: number; harmonic: number }[] = [];
         const totalElectrons = shells.reduce((a, b) => a + b, 0);
         let counted = 0;
 
         shells.forEach((count, sIdx) => {
-            const displayCount = Math.min(count, 14);
+            const displayCount = Math.min(count, 16);
             const radius = 1.1 + sIdx * 0.58;
-            const speed = 1.4 / Math.sqrt(sIdx + 1);
+            const speed = 1.6 / Math.sqrt(sIdx + 1);
             const tilt = orbitalTilts[sIdx % orbitalTilts.length] || { x: Math.PI / 4, z: 0 };
+            const harmonic = (sIdx + 2) * 2;
 
             for (let i = 0; i < displayCount; i++) {
                 const isValence = (totalElectrons - counted) <= valenceCount;
@@ -374,6 +496,7 @@ const InstancedElectrons = memo(function InstancedElectrons({
                     isValence,
                     tiltX: tilt.x,
                     tiltZ: tilt.z,
+                    harmonic,
                 });
                 counted++;
             }
@@ -382,7 +505,7 @@ const InstancedElectrons = memo(function InstancedElectrons({
     }, [shells, valenceCount, orbitalTilts]);
 
     const defaultColor = useMemo(() => new THREE.Color(color || '#38bdf8'), [color]);
-    const valenceColor = useMemo(() => new THREE.Color('#f59e0b'), []);
+    const valenceColor = useMemo(() => new THREE.Color('#fbbf24'), []);
     const focusColor = useMemo(() => new THREE.Color('#ffffff'), []);
 
     // Set per-instance colors once on data change or focus change
@@ -406,12 +529,17 @@ const InstancedElectrons = memo(function InstancedElectrons({
             const angle = el.phase + t * el.speed;
             const isShellFocused = focusedShell === el.shellIndex;
 
-            dummy.position.set(
-                Math.cos(angle) * el.radius,
-                Math.sin(angle) * Math.sin(el.tiltX) * el.radius,
-                Math.sin(angle) * Math.cos(el.tiltZ) * el.radius
-            );
-            dummy.scale.setScalar(isShellFocused ? 0.11 : el.isValence ? 0.09 : 0.075);
+            // Quantum wave radial and vertical oscillation
+            const waveR = el.radius * (1.0 + 0.028 * Math.sin(el.harmonic * angle + t * 2.0));
+            const posX = Math.cos(angle) * waveR;
+            const posY = Math.sin(angle) * Math.sin(el.tiltX) * waveR + 0.02 * Math.cos(el.harmonic * angle);
+            const posZ = Math.sin(angle) * Math.cos(el.tiltZ) * waveR;
+
+            dummy.position.set(posX, posY, posZ);
+
+            // Pulsing electron scale
+            const pulseScale = 1.0 + 0.12 * Math.sin(t * 6.0 + el.phase);
+            dummy.scale.setScalar((isShellFocused ? 0.12 : el.isValence ? 0.095 : 0.08) * pulseScale);
             dummy.updateMatrix();
 
             meshRef.current.setMatrixAt(i, dummy.matrix);
@@ -423,22 +551,33 @@ const InstancedElectrons = memo(function InstancedElectrons({
     if (electronData.length === 0) return null;
 
     return (
-        <instancedMesh
-            ref={meshRef}
-            args={[undefined, undefined, electronData.length]}
-        >
-            <sphereGeometry args={[1, 16, 16]} />
-            <meshStandardMaterial
-                roughness={0.15}
-                metalness={0.85}
-                emissive={color}
-                emissiveIntensity={1.8}
+        <group>
+            {/* Instanced Glowing Electron Spheres */}
+            <instancedMesh
+                ref={meshRef}
+                args={[undefined, undefined, electronData.length]}
+            >
+                <sphereGeometry args={[1, 20, 20]} />
+                <meshStandardMaterial
+                    roughness={0.08}
+                    metalness={0.9}
+                    emissive={color}
+                    emissiveIntensity={2.5}
+                />
+            </instancedMesh>
+
+            {/* Radiant Photon Comet Tails */}
+            <QuantumPhotonTrails
+                electronData={electronData}
+                color={color}
+                speedMultiplier={speedMultiplier}
+                isPaused={isPaused}
             />
-        </instancedMesh>
+        </group>
     );
 });
 
-// Interactive Orbital Shell guide rings with realistic tilts and labels
+// Interactive Orbital Shell guide rings with gyroscopic precession, double-layer glass tubes, and glow
 const OrbitalShell = memo(function OrbitalShell({
     radius,
     electronCount,
@@ -458,6 +597,7 @@ const OrbitalShell = memo(function OrbitalShell({
     isFocused?: boolean;
     onHover?: (index: number | null) => void;
 }) {
+    const groupRef = useRef<THREE.Group>(null);
     const shellName = SHELL_NAMES[shellIndex] || `n=${shellIndex + 1}`;
 
     const orbitPoints = useMemo(() => {
@@ -469,14 +609,33 @@ const OrbitalShell = memo(function OrbitalShell({
         return points;
     }, [radius]);
 
+    // Gyroscopic precession
+    useFrame(({ clock }) => {
+        if (groupRef.current) {
+            const t = clock.getElapsedTime() * 0.3;
+            groupRef.current.rotation.y = tiltZ + Math.sin(t + shellIndex) * 0.04;
+            groupRef.current.rotation.x = tiltX + Math.cos(t + shellIndex) * 0.03;
+        }
+    });
+
     return (
-        <group rotation={[tiltX, 0, tiltZ]}>
+        <group ref={groupRef} rotation={[tiltX, 0, tiltZ]}>
+            {/* Primary Crystalline Fiber Ring */}
             <Line
                 points={orbitPoints}
                 color={isFocused ? '#ffffff' : color}
-                lineWidth={isFocused ? 3.0 : 1.8}
+                lineWidth={isFocused ? 3.5 : 2.0}
                 transparent
-                opacity={isFocused ? 0.95 : 0.45}
+                opacity={isFocused ? 1.0 : 0.5}
+            />
+
+            {/* Outer Translucent Glow Aura Halo */}
+            <Line
+                points={orbitPoints}
+                color={isFocused ? '#38bdf8' : color}
+                lineWidth={isFocused ? 7.0 : 4.5}
+                transparent
+                opacity={isFocused ? 0.35 : 0.12}
             />
 
             {/* Subtle Shell Marker on ring edge with occlusion */}
@@ -489,7 +648,10 @@ const OrbitalShell = memo(function OrbitalShell({
                 <div
                     onMouseEnter={() => onHover && onHover(shellIndex)}
                     onMouseLeave={() => onHover && onHover(null)}
-                    className="cursor-pointer select-none px-2 py-0.5 rounded-md bg-white/95 border border-slate-300 hover:border-sky-500 text-[9px] font-mono text-slate-700 hover:text-sky-800 transition-all backdrop-blur-md shadow-md"
+                    className={cn(
+                        "cursor-pointer select-none px-2.5 py-0.5 rounded-full border text-[9.5px] font-mono transition-all backdrop-blur-md shadow-xs font-bold",
+                        isFocused ? "bg-[#16a875] text-white border-[#16a875] scale-110 shadow-md" : "bg-white/95 border-slate-200 text-slate-700 hover:border-[#16a875] hover:text-[#16a875]"
+                    )}
                     title={`Shell ${shellName} (n=${shellIndex + 1}): ${electronCount} electrons`}
                 >
                     {shellName}:{electronCount}e⁻
