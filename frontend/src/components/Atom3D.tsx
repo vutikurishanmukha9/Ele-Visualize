@@ -554,9 +554,18 @@ const AtomScene = memo(function AtomScene({
         }
     }, [protons, symbol, zoom]);
 
-    useFrame(() => {
+    const { pointer } = useThree();
+
+    useFrame((_, delta) => {
         if (!groupRef.current || isPaused) return;
+        // Ambient smooth axial spin
         groupRef.current.rotation.y += 0.003 * animationSpeed;
+
+        // Interactive magnetic cursor-hand parallax tilt (fluid spring reaction to cursor movement)
+        const targetTiltX = -pointer.y * 0.28;
+        const targetTiltZ = pointer.x * 0.28;
+        groupRef.current.rotation.x = THREE.MathUtils.damp(groupRef.current.rotation.x, targetTiltX, 3.5, delta);
+        groupRef.current.rotation.z = THREE.MathUtils.damp(groupRef.current.rotation.z, targetTiltZ, 3.5, delta);
     });
 
     // Clean unmount memory disposal
@@ -635,7 +644,7 @@ export function Atom3D({
     };
 
     return (
-        <div className="w-full h-full min-h-[380px] relative select-none bg-transparent">
+        <div className="w-full h-full min-h-[380px] relative select-none bg-transparent cursor-grab active:cursor-grabbing">
             <Canvas
                 camera={{ position: [0, 0, 12], fov: 48, near: 0.1, far: 150 }}
                 gl={{
@@ -695,12 +704,14 @@ export function Atom3D({
                 <OrbitControls
                     enablePan={true}
                     enableZoom={true}
-                    minDistance={3.5}
-                    maxDistance={28}
-                    dampingFactor={0.08}
-                    rotateSpeed={0.8}
+                    enableDamping={true}
+                    dampingFactor={0.06}
+                    rotateSpeed={1.0}
+                    panSpeed={0.8}
+                    minDistance={3.0}
+                    maxDistance={32}
                     autoRotate={autoRotate}
-                    autoRotateSpeed={1.2}
+                    autoRotateSpeed={1.5}
                 />
 
                 {/* Post-Processing Cinematic Bloom & Vignette */}

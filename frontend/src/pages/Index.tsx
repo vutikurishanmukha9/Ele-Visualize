@@ -743,12 +743,48 @@ function VisualStage({
 
       {/* Main Canvas Stage */}
       <div className="stage-canvas w-full h-full flex-1 relative flex items-center justify-center overflow-hidden spectral-canvas-bg">
-        {/* Quantum OS v1.0 Pill Badge (Top Left of Canvas) */}
-        <div className="absolute top-4 left-4 z-20">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#e6f6ef]/90 border border-[#bce8d5] text-[#087f5b] text-[11px] font-mono font-bold shadow-xs backdrop-blur-sm">
+        {/* Quantum OS & Interactive Hand Controls Badge (Top Left of Canvas) */}
+        <div className="absolute top-4 left-4 z-20 flex flex-wrap items-center gap-2 pointer-events-none select-none">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 border border-black/[0.08] text-slate-700 text-[11px] font-mono font-bold shadow-xs backdrop-blur-sm">
             <span className="w-2 h-2 rounded-full bg-[#16a875] animate-pulse" />
             <span>QUANTUM.OS v1.0</span>
           </div>
+
+          <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 border border-black/[0.06] text-slate-500 text-[10.5px] font-mono shadow-xs backdrop-blur-sm">
+            <span>🖐️ Drag to Rotate</span>
+            <span className="text-slate-300">•</span>
+            <span>🖱️ Scroll to Zoom</span>
+            <span className="text-slate-300">•</span>
+            <span>⇧ Pan</span>
+          </div>
+        </div>
+
+        {/* Floating Quick-Spin & Camera Orbit Action Floating Pill (Top Right) */}
+        <div className="absolute top-4 right-4 z-20 flex items-center gap-1 bg-white/90 backdrop-blur-md p-1 rounded-xl border border-black/[0.08] shadow-xs">
+          <button
+            onClick={() => setAutoRotate(!autoRotate)}
+            className={cn(
+              "px-2.5 py-1 rounded-lg text-[10.5px] font-mono font-bold transition-all flex items-center gap-1.5",
+              autoRotate ? "bg-[#e6f6ef] text-[#087f5b] border border-[#bce8d5] shadow-xs" : "text-slate-500 hover:text-slate-800 hover:bg-slate-100/80"
+            )}
+            title="Toggle Continuous Auto-Spin Orbit"
+          >
+            <span className={cn("w-1.5 h-1.5 rounded-full", autoRotate ? "bg-[#16a875] animate-ping" : "bg-slate-300")} />
+            <span>{autoRotate ? 'AUTO-SPIN ON' : 'AUTO-SPIN'}</span>
+          </button>
+
+          <div className="h-3.5 w-[1px] bg-slate-200 mx-0.5" />
+
+          <button
+            onClick={() => {
+              setCameraPreset('3d');
+              setAutoRotate(false);
+            }}
+            className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-all"
+            title="Reset 3D Perspective"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+          </button>
         </div>
 
         {/* Collapsible Spectroscopy Drawer in 3D View */}

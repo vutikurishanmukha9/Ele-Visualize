@@ -1,5 +1,5 @@
 import { useRef, useMemo, useEffect, useState } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Sphere, Cylinder, Html, Float, Stars, Sparkles } from '@react-three/drei';
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
@@ -100,6 +100,7 @@ function MoleculeScene({
     spaceFilling = false
 }: Molecule3DProps) {
     const groupRef = useRef<THREE.Group>(null);
+    const { pointer } = useThree();
 
     useEffect(() => {
         if (groupRef.current) {
@@ -114,6 +115,15 @@ function MoleculeScene({
             disposeHierarchy(node);
         };
     }, [molecule, zoom]);
+
+    useFrame((_, delta) => {
+        if (!groupRef.current) return;
+        // Interactive magnetic cursor-hand parallax tilt
+        const targetTiltX = -pointer.y * 0.28;
+        const targetTiltZ = pointer.x * 0.28;
+        groupRef.current.rotation.x = THREE.MathUtils.damp(groupRef.current.rotation.x, targetTiltX, 3.5, delta);
+        groupRef.current.rotation.z = THREE.MathUtils.damp(groupRef.current.rotation.z, targetTiltZ, 3.5, delta);
+    });
 
     return (
         <Float speed={1.2} rotationIntensity={0.06} floatIntensity={0.1}>
@@ -150,7 +160,7 @@ export function Molecule3D({
     spaceFilling = false
 }: Molecule3DProps) {
     return (
-        <div className="w-full h-full min-h-[380px] relative select-none bg-transparent">
+        <div className="w-full h-full min-h-[380px] relative select-none bg-transparent cursor-grab active:cursor-grabbing">
             <Canvas
                 camera={{ position: [0, 0, 6], fov: 48, near: 0.1, far: 100 }}
                 gl={{
@@ -191,9 +201,12 @@ export function Molecule3D({
                 <OrbitControls
                     enablePan={true}
                     enableZoom={true}
+                    enableDamping={true}
+                    dampingFactor={0.06}
+                    rotateSpeed={1.0}
+                    panSpeed={0.8}
                     minDistance={2.5}
-                    maxDistance={18}
-                    dampingFactor={0.08}
+                    maxDistance={22}
                     autoRotate={autoRotate}
                     autoRotateSpeed={1.0}
                 />
