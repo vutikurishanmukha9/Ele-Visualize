@@ -1,6 +1,6 @@
 import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Sphere, Trail } from '@react-three/drei';
+import { Sphere } from '@react-three/drei';
 import * as THREE from 'three';
 
 interface AtomProps {
@@ -122,23 +122,16 @@ function Electron({ radius, initialAngle, speed, color }: { radius: number; init
     });
 
     return (
-        <Trail
-            width={0.5}
-            length={10}
-            color={color}
-            attenuation={(t) => t * t}
-        >
-            <mesh ref={ref}>
-                <sphereGeometry args={[0.08, 16, 16]} />
-                <meshPhysicalMaterial
-                    color="#ffffff"
-                    emissive={color}
-                    emissiveIntensity={2.5}
-                    metalness={0.8}
-                    roughness={0.1}
-                    clearcoat={1}
-                />
-            </mesh>
-        </Trail>
+        <mesh ref={ref}>
+            <sphereGeometry args={[0.08, 16, 16]} />
+            <meshPhysicalMaterial
+                color="#ffffff"
+                emissive={color}
+                emissiveIntensity={2.5}
+                metalness={0.8}
+                roughness={0.1}
+                clearcoat={1}
+            />
+        </mesh>
     );
 }

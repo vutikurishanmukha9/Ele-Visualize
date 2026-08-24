@@ -1,6 +1,6 @@
 import { useRef, useMemo, memo, MutableRefObject, useEffect, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Sphere, Line, Html, Float, Stars, Trail, Sparkles } from '@react-three/drei';
+import { OrbitControls, Sphere, Line, Html, Float, Stars, Sparkles } from '@react-three/drei';
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import gsap from 'gsap';
@@ -348,24 +348,17 @@ const Electron = memo(function Electron({ radius, startAngle, speed, color, isPa
 
     return (
         <group ref={ref}>
-            <Trail
-                width={isHighlighted ? 0.9 : 0.55}
-                length={14}
-                color={color}
-                attenuation={(t) => t * t * (1 - 0.15 * t)}
-            >
-                <Sphere args={[0.08 * electronScale, 14, 14]} position={[0, 0, 0]}>
-                    <meshPhysicalMaterial
-                        color="#ffffff"
-                        emissive={color}
-                        emissiveIntensity={isHighlighted ? 3.8 : 2.6}
-                        metalness={0.8}
-                        roughness={0.08}
-                        clearcoat={1}
-                        clearcoatRoughness={0.05}
-                    />
-                </Sphere>
-            </Trail>
+            <Sphere args={[0.08 * electronScale, 16, 16]} position={[0, 0, 0]}>
+                <meshPhysicalMaterial
+                    color="#ffffff"
+                    emissive={color}
+                    emissiveIntensity={isHighlighted ? 3.8 : 2.6}
+                    metalness={0.8}
+                    roughness={0.08}
+                    clearcoat={1}
+                    clearcoatRoughness={0.05}
+                />
+            </Sphere>
         </group>
     );
 });
