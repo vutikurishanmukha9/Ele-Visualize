@@ -1,8 +1,9 @@
 import { memo, useMemo } from 'react';
 import { ChemicalElement, elements, categoryColors } from '../data/elements';
 import { elementProperties } from '../data/elementProperties';
-import { X, Sparkles, Scale } from 'lucide-react';
+import { X, Scale, Zap } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
+import { audioEngine } from '@/lib/audioEngine';
 
 interface ComparisonModeProps {
     element1: ChemicalElement | null;
@@ -30,9 +31,9 @@ const TelemetryDeltaRow = memo(function TelemetryDeltaRow({
     const diff = val1 !== null && val2 !== null ? val1 - val2 : null;
 
     return (
-        <div className="p-2 rounded bg-black/60 border border-white/5 font-mono text-xs">
-            <div className="flex justify-between items-center text-[10px] text-slate-400 mb-1">
-                <span>{label}</span>
+        <div className="p-2.5 rounded-lg bg-black/60 border border-white/5 font-mono text-xs space-y-1">
+            <div className="flex justify-between items-center text-[10px] text-slate-400">
+                <span className="uppercase font-semibold">{label}</span>
                 {diff !== null && (
                     <span className={diff > 0 ? 'text-cyan-400 font-bold' : diff < 0 ? 'text-amber-400 font-bold' : 'text-slate-400'}>
                         Δ {diff > 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2)} {unit}
@@ -40,19 +41,19 @@ const TelemetryDeltaRow = memo(function TelemetryDeltaRow({
                 )}
             </div>
 
-            <div className="grid grid-cols-2 gap-2 items-center">
+            <div className="grid grid-cols-2 gap-3 items-center">
                 {/* Left Element Bar */}
-                <div className="flex items-center gap-1.5 justify-end">
+                <div className="flex items-center gap-2 justify-end">
                     <span className="text-[11px] font-bold text-cyan-300">{val1 ?? 'N/A'}{unit}</span>
-                    <div className="w-24 h-2 bg-slate-900 rounded overflow-hidden flex justify-end">
-                        <div className="h-full bg-cyan-500 transition-all duration-300" style={{ width: `${p1}%` }} />
+                    <div className="w-28 h-2 bg-slate-900 rounded overflow-hidden flex justify-end">
+                        <div className="h-full bg-cyan-500 transition-all duration-300 shadow-[0_0_8px_#06b6d4]" style={{ width: `${p1}%` }} />
                     </div>
                 </div>
 
                 {/* Right Element Bar */}
-                <div className="flex items-center gap-1.5">
-                    <div className="w-24 h-2 bg-slate-900 rounded overflow-hidden">
-                        <div className="h-full bg-amber-500 transition-all duration-300" style={{ width: `${p2}%` }} />
+                <div className="flex items-center gap-2">
+                    <div className="w-28 h-2 bg-slate-900 rounded overflow-hidden">
+                        <div className="h-full bg-amber-500 transition-all duration-300 shadow-[0_0_8px_#f59e0b]" style={{ width: `${p2}%` }} />
                     </div>
                     <span className="text-[11px] font-bold text-amber-300">{val2 ?? 'N/A'}{unit}</span>
                 </div>
@@ -71,7 +72,7 @@ export const ComparisonMode = memo(function ComparisonMode({
     const props1 = element1 ? elementProperties[element1.atomicNumber] : null;
     const props2 = element2 ? elementProperties[element2.atomicNumber] : null;
 
-    // Calculate Electronegativity Difference & Ionic Character Percentage
+    // Calculate Electronegativity Difference & Pauling Ionic Character
     const bondAnalysis = useMemo(() => {
         if (!props1?.electronegativity || !props2?.electronegativity) return null;
         const deltaEN = Math.abs(props1.electronegativity - props2.electronegativity);
@@ -87,6 +88,7 @@ export const ComparisonMode = memo(function ComparisonMode({
     }, [props1, props2]);
 
     const handleSelectQuick = (sym: string, slot: 1 | 2) => {
+        audioEngine.playClick(820);
         const el = elements.find((e) => e.symbol === sym);
         if (el) setComparisonSlot(slot, el);
     };
@@ -96,159 +98,128 @@ export const ComparisonMode = memo(function ComparisonMode({
             {/* Header Title */}
             <div className="flex items-center justify-between p-2.5 rounded-lg bg-black/80 border border-white/10">
                 <div className="flex items-center gap-2">
-                    <Scale className="w-4 h-4 text-cyan-400" />
+                    <Scale className="w-4 h-4 text-cyan-400 animate-pulse" />
                     <span className="font-bold text-xs tracking-wider uppercase text-cyan-300">
-                        DUAL-ELEMENT DIFFERENTIAL TELEMETRY CONSOLE
+                        DUAL-ELEMENT DIFFERENTIAL COMPARISON CONSOLE
                     </span>
                 </div>
-                <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
-                    <span>Quick Select:</span>
-                    {QUICK_PICKS.map((s) => (
-                        <button
-                            key={s}
-                            onClick={() => {
-                                if (!element1) handleSelectQuick(s, 1);
-                                else if (!element2) handleSelectQuick(s, 2);
-                                else handleSelectQuick(s, 1);
-                            }}
-                            className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 hover:border-cyan-400 hover:text-cyan-300 transition-all font-bold"
-                        >
-                            {s}
-                        </button>
-                    ))}
-                </div>
             </div>
 
-            {/* Main Dual Cards Grid */}
+            {/* Element Selection Slots */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {/* Slot 1: Alpha Target */}
-                <div className="p-4 rounded-xl bg-black/80 border border-cyan-500/30 relative chamfer-tl-br">
-                    <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-                            <span className="text-[10px] font-bold text-cyan-400 uppercase">ALPHA TARGET (SLOT A)</span>
-                        </div>
+                {/* Slot 1 */}
+                <div className="p-3 rounded-xl bg-black/80 border border-cyan-500/30 space-y-2">
+                    <div className="flex justify-between items-center">
+                        <span className="text-[10px] text-cyan-400 font-bold uppercase">Element Slot A</span>
                         {element1 && (
-                            <button
-                                onClick={() => onRemoveElement(1)}
-                                className="p-1 rounded hover:bg-white/10 text-slate-400 hover:text-white"
-                            >
+                            <button onClick={() => onRemoveElement(1)} className="text-slate-500 hover:text-white">
                                 <X className="w-3.5 h-3.5" />
                             </button>
                         )}
                     </div>
-
                     {element1 ? (
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3">
                             <div
-                                className="w-16 h-16 rounded-xl flex flex-col items-center justify-center font-bold border-2"
-                                style={{
-                                    borderColor: categoryColors[element1.category] || '#00f0ff',
-                                    backgroundColor: `${categoryColors[element1.category]}20`,
-                                }}
+                                className="w-12 h-12 rounded-lg flex flex-col items-center justify-center font-black text-lg border"
+                                style={{ backgroundColor: `${categoryColors[element1.category]}25`, borderColor: categoryColors[element1.category] }}
                             >
-                                <span className="text-[10px] text-slate-400 font-mono">{element1.atomicNumber}</span>
-                                <span className="text-2xl text-white font-extrabold">{element1.symbol}</span>
+                                {element1.symbol}
                             </div>
                             <div>
-                                <h3 className="text-base font-extrabold text-white">{element1.name}</h3>
-                                <p className="text-xs text-cyan-400">{element1.category}</p>
-                                <p className="text-[11px] text-slate-400 mt-0.5">{element1.atomicMass.toFixed(2)} u</p>
+                                <div className="font-bold text-white text-sm">{element1.name}</div>
+                                <div className="text-[10px] text-slate-400">Atomic #{element1.atomicNumber} • {element1.atomicMass.toFixed(2)} u</div>
                             </div>
                         </div>
                     ) : (
-                        <div className="text-center py-6 text-xs text-slate-500 border border-dashed border-white/10 rounded-lg">
-                            Click any element in Discovery Rail or Quick Select to load Slot A
-                        </div>
+                        <div className="text-xs text-slate-500 py-2">Select from Quick Picks or Discovery Rail</div>
                     )}
+                    {/* Quick picks */}
+                    <div className="flex gap-1 flex-wrap pt-1">
+                        {QUICK_PICKS.map((s) => (
+                            <button
+                                key={s}
+                                onClick={() => handleSelectQuick(s, 1)}
+                                className="px-1.5 py-0.5 rounded bg-white/5 hover:bg-cyan-500/20 border border-white/10 text-[9px] text-slate-300"
+                            >
+                                {s}
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
-                {/* Slot 2: Beta Target */}
-                <div className="p-4 rounded-xl bg-black/80 border border-amber-500/30 relative chamfer-tr-bl">
-                    <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-                            <span className="text-[10px] font-bold text-amber-400 uppercase">BETA TARGET (SLOT B)</span>
-                        </div>
+                {/* Slot 2 */}
+                <div className="p-3 rounded-xl bg-black/80 border border-amber-500/30 space-y-2">
+                    <div className="flex justify-between items-center">
+                        <span className="text-[10px] text-amber-400 font-bold uppercase">Element Slot B</span>
                         {element2 && (
-                            <button
-                                onClick={() => onRemoveElement(2)}
-                                className="p-1 rounded hover:bg-white/10 text-slate-400 hover:text-white"
-                            >
+                            <button onClick={() => onRemoveElement(2)} className="text-slate-500 hover:text-white">
                                 <X className="w-3.5 h-3.5" />
                             </button>
                         )}
                     </div>
-
                     {element2 ? (
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3">
                             <div
-                                className="w-16 h-16 rounded-xl flex flex-col items-center justify-center font-bold border-2"
-                                style={{
-                                    borderColor: categoryColors[element2.category] || '#ffaa00',
-                                    backgroundColor: `${categoryColors[element2.category]}20`,
-                                }}
+                                className="w-12 h-12 rounded-lg flex flex-col items-center justify-center font-black text-lg border"
+                                style={{ backgroundColor: `${categoryColors[element2.category]}25`, borderColor: categoryColors[element2.category] }}
                             >
-                                <span className="text-[10px] text-slate-400 font-mono">{element2.atomicNumber}</span>
-                                <span className="text-2xl text-white font-extrabold">{element2.symbol}</span>
+                                {element2.symbol}
                             </div>
                             <div>
-                                <h3 className="text-base font-extrabold text-white">{element2.name}</h3>
-                                <p className="text-xs text-amber-400">{element2.category}</p>
-                                <p className="text-[11px] text-slate-400 mt-0.5">{element2.atomicMass.toFixed(2)} u</p>
+                                <div className="font-bold text-white text-sm">{element2.name}</div>
+                                <div className="text-[10px] text-slate-400">Atomic #{element2.atomicNumber} • {element2.atomicMass.toFixed(2)} u</div>
                             </div>
                         </div>
                     ) : (
-                        <div className="text-center py-6 text-xs text-slate-500 border border-dashed border-white/10 rounded-lg">
-                            Click any element in Discovery Rail or Quick Select to load Slot B
-                        </div>
+                        <div className="text-xs text-slate-500 py-2">Select from Quick Picks or Discovery Rail</div>
                     )}
+                    {/* Quick picks */}
+                    <div className="flex gap-1 flex-wrap pt-1">
+                        {QUICK_PICKS.map((s) => (
+                            <button
+                                key={s}
+                                onClick={() => handleSelectQuick(s, 2)}
+                                className="px-1.5 py-0.5 rounded bg-white/5 hover:bg-amber-500/20 border border-white/10 text-[9px] text-slate-300"
+                            >
+                                {s}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
-            {/* Bond Compatibility & Interaction Telemetry */}
-            {bondAnalysis && element1 && element2 && (
-                <div className="p-3.5 rounded-xl bg-black/90 border border-purple-500/30 space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-purple-300 flex items-center gap-1.5">
-                            <Sparkles className="w-3.5 h-3.5" /> {element1.symbol} — {element2.symbol} Chemical Interaction Analysis
+            {/* Pauling Bond Analysis Card */}
+            {bondAnalysis && (
+                <div className="p-3 rounded-xl bg-black/80 border border-white/10 space-y-2">
+                    <div className="flex justify-between items-center text-xs">
+                        <span className="flex items-center gap-1.5 text-white font-bold uppercase">
+                            <Zap className="w-3.5 h-3.5 text-cyan-400" />
+                            Pauling Chemical Bonding Analysis
                         </span>
-                        <span className="font-bold px-2 py-0.5 rounded bg-purple-500/20 text-purple-200 border border-purple-500/40 text-[10px]">
-                            {bondAnalysis.bondType}
-                        </span>
+                        <span className="font-bold text-cyan-300">{bondAnalysis.bondType} (Δχ = {bondAnalysis.deltaEN.toFixed(2)})</span>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                        <div className="p-2 rounded bg-white/5 border border-white/10">
-                            <span className="text-[9px] text-slate-400">Δ Electronegativity</span>
-                            <div className="font-bold text-cyan-300 text-sm">Δχ = {bondAnalysis.deltaEN.toFixed(2)}</div>
+                    <div className="h-3 w-full bg-slate-900 rounded-full overflow-hidden flex">
+                        <div
+                            className="bg-cyan-500 flex items-center justify-center text-[8px] font-bold text-black"
+                            style={{ width: `${bondAnalysis.percentCovalent}%` }}
+                        >
+                            {bondAnalysis.percentCovalent > 15 ? `${bondAnalysis.percentCovalent}% Covalent` : ''}
                         </div>
-                        <div className="p-2 rounded bg-white/5 border border-white/10">
-                            <span className="text-[9px] text-slate-400">% Ionic Character</span>
-                            <div className="font-bold text-amber-300 text-sm">{bondAnalysis.percentIonic}%</div>
-                        </div>
-                        <div className="p-2 rounded bg-white/5 border border-white/10">
-                            <span className="text-[9px] text-slate-400">% Covalent Character</span>
-                            <div className="font-bold text-emerald-300 text-sm">{bondAnalysis.percentCovalent}%</div>
+                        <div
+                            className="bg-amber-500 flex items-center justify-center text-[8px] font-bold text-black"
+                            style={{ width: `${bondAnalysis.percentIonic}%` }}
+                        >
+                            {bondAnalysis.percentIonic > 15 ? `${bondAnalysis.percentIonic}% Ionic` : ''}
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Comparative Telemetry Metric Rows */}
-            {element1 && element2 && (
-                <div className="p-3.5 rounded-xl bg-black/80 border border-white/10 space-y-2">
-                    <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">
-                        PRECISION COMPARATIVE TELEMETRY
-                    </div>
-
-                    <TelemetryDeltaRow
-                        label="Atomic Mass (u)"
-                        val1={element1.atomicMass}
-                        val2={element2.atomicMass}
-                        max={300}
-                        unit=" u"
-                    />
+            {/* Differential Telemetry Metrics */}
+            <div className="p-3 rounded-xl bg-black/80 border border-white/10 space-y-2">
+                <span className="text-[10px] text-slate-400 uppercase font-bold">Physical & Chemical Delta Comparison</span>
+                <div className="space-y-1.5">
                     <TelemetryDeltaRow
                         label="Electronegativity (Pauling)"
                         val1={props1?.electronegativity ?? null}
@@ -256,35 +227,42 @@ export const ComparisonMode = memo(function ComparisonMode({
                         max={4.0}
                     />
                     <TelemetryDeltaRow
-                        label="First Ionization Energy (kJ/mol)"
+                        label="1st Ionization Energy"
                         val1={props1?.ionizationEnergy ?? null}
                         val2={props2?.ionizationEnergy ?? null}
                         max={2400}
                         unit=" kJ/mol"
                     />
                     <TelemetryDeltaRow
-                        label="Atomic Radius (pm)"
+                        label="Atomic Radius (Calculated)"
                         val1={props1?.atomicRadius ?? null}
                         val2={props2?.atomicRadius ?? null}
                         max={300}
                         unit=" pm"
                     />
                     <TelemetryDeltaRow
-                        label="Density (g/cm³)"
-                        val1={props1?.density ?? null}
-                        val2={props2?.density ?? null}
-                        max={23}
-                        unit=" g/cm³"
-                    />
-                    <TelemetryDeltaRow
-                        label="Melting Point (K)"
+                        label="Melting Point"
                         val1={props1?.meltingPoint ?? null}
                         val2={props2?.meltingPoint ?? null}
                         max={4000}
                         unit=" K"
                     />
+                    <TelemetryDeltaRow
+                        label="Boiling Point"
+                        val1={props1?.boilingPoint ?? null}
+                        val2={props2?.boilingPoint ?? null}
+                        max={6000}
+                        unit=" K"
+                    />
+                    <TelemetryDeltaRow
+                        label="Density @ STP"
+                        val1={props1?.density ?? null}
+                        val2={props2?.density ?? null}
+                        max={25}
+                        unit=" g/cm³"
+                    />
                 </div>
-            )}
+            </div>
         </div>
     );
 });

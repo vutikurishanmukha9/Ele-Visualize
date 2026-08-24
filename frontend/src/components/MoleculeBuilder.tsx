@@ -1,8 +1,8 @@
-import { useState, useCallback, useMemo, memo, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useMemo, memo, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
-import { Trash2, Save, RotateCcw, X, Check, AlertTriangle, Atom, Plus } from 'lucide-react';
+import { Trash2, X, Check, AlertTriangle, Atom, Wand2 } from 'lucide-react';
+import { audioEngine } from '@/lib/audioEngine';
 
 interface MoleculeBuilderProps {
     onClose?: () => void;
@@ -24,7 +24,7 @@ interface Bond {
     to: string;
 }
 
-// Valence electrons
+// Valence electrons & bonding limits
 const VALENCE: Record<string, number> = {
     H: 1, C: 4, N: 3, O: 2, F: 1, Cl: 1, Br: 1, I: 1,
     S: 2, P: 3, B: 3, Si: 4, Na: 1, K: 1, Ca: 2, Mg: 2,
@@ -32,459 +32,436 @@ const VALENCE: Record<string, number> = {
 
 // Element colors
 const ELEMENT_COLORS: Record<string, string> = {
-    H: '#ffffff', C: '#333333', N: '#3050F8', O: '#FF0D0D',
+    H: '#ffffff', C: '#334155', N: '#3050F8', O: '#FF0D0D',
     S: '#FFFF30', P: '#FF8000', F: '#90E050', Cl: '#1FF01F',
     Br: '#A62929',
 };
 
-// Palette atom
-const PaletteAtom = memo(function PaletteAtom({
-    symbol,
-    color,
-    valence,
-    isSelected,
-    onClick,
-}: {
-    symbol: string;
-    color: string;
-    valence: number;
-    isSelected: boolean;
-    onClick: () => void;
-}) {
-    return (
-        <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onClick}
-            className={cn(
-                "w-11 h-11 sm:w-14 sm:h-14 rounded-xl flex flex-col items-center justify-center font-bold shadow-lg transition-all border-2",
-                isSelected
-                    ? "border-white ring-2 ring-white/50"
-                    : "border-transparent hover:border-white/30"
-            )}
-            style={{
-                backgroundColor: color,
-                color: ['H', 'S', 'F'].includes(symbol) ? '#000' : '#fff'
-            }}
-        >
-            <span className="text-lg sm:text-xl">{symbol}</span>
-            <span className="text-[8px] sm:text-[9px] opacity-70">v:{valence}</span>
-        </motion.button>
-    );
-});
+// Quick Templates for rapid molecular exploration
+interface MoleculeTemplate {
+    name: string;
+    formula: string;
+    atoms: { symbol: string; x: number; y: number }[];
+    bonds: [number, number][];
+}
 
-// Canvas atom
-const CanvasAtom = memo(function CanvasAtom({
-    atom,
-    isSelected,
-    isValidBonds,
-    onClick,
-    onDrag,
-}: {
-    atom: PlacedAtom;
-    isSelected: boolean;
-    isValidBonds: boolean;
-    onClick: () => void;
-    onDrag: (x: number, y: number) => void;
-}) {
-    const handleDrag = (e: React.MouseEvent) => {
-        e.preventDefault();
-        const startX = e.clientX;
-        const startY = e.clientY;
-        const startAtomX = atom.x;
-        const startAtomY = atom.y;
-
-        const handleMove = (moveEvent: MouseEvent) => {
-            const dx = moveEvent.clientX - startX;
-            const dy = moveEvent.clientY - startY;
-            onDrag(startAtomX + dx, startAtomY + dy);
-        };
-
-        const handleUp = () => {
-            document.removeEventListener('mousemove', handleMove);
-            document.removeEventListener('mouseup', handleUp);
-        };
-
-        document.addEventListener('mousemove', handleMove);
-        document.addEventListener('mouseup', handleUp);
-    };
-
-    const handleTouchStart = (e: React.TouchEvent) => {
-        if (e.touches.length !== 1) return;
-        const touch = e.touches[0];
-        const startX = touch.clientX;
-        const startY = touch.clientY;
-        const startAtomX = atom.x;
-        const startAtomY = atom.y;
-
-        const handleTouchMove = (moveEvent: TouchEvent) => {
-            if (moveEvent.touches.length !== 1) return;
-            const t = moveEvent.touches[0];
-            const dx = t.clientX - startX;
-            const dy = t.clientY - startY;
-            onDrag(startAtomX + dx, startAtomY + dy);
-        };
-
-        const handleTouchEnd = () => {
-            document.removeEventListener('touchmove', handleTouchMove);
-            document.removeEventListener('touchend', handleTouchEnd);
-        };
-
-        document.addEventListener('touchmove', handleTouchMove, { passive: true });
-        document.addEventListener('touchend', handleTouchEnd);
-    };
-
-    return (
-        <motion.div
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-            className={cn(
-                "absolute w-12 h-12 rounded-full flex flex-col items-center justify-center cursor-pointer font-bold transition-all select-none touch-none",
-                isSelected && "ring-4 ring-cyan-400 z-10",
-                !isValidBonds && atom.bonds > 0 && "ring-2 ring-yellow-500",
-                atom.bonds === atom.maxBonds && "ring-2 ring-green-500"
-            )}
-            style={{
-                left: atom.x - 24,
-                top: atom.y - 24,
-                backgroundColor: atom.color,
-                color: ['H', 'S', 'F'].includes(atom.symbol) ? '#000' : '#fff',
-                boxShadow: isSelected
-                    ? `0 0 20px rgba(0,200,255,0.5)`
-                    : `0 4px 12px rgba(0,0,0,0.4)`
-            }}
-            onClick={(e) => {
-                e.stopPropagation();
-                onClick();
-            }}
-            onMouseDown={(e) => {
-                e.stopPropagation(); // Prevent canvas click
-                handleDrag(e);
-            }}
-            onTouchStart={(e) => {
-                e.stopPropagation();
-                handleTouchStart(e);
-            }}
-        >
-            <span className="text-lg leading-none">{atom.symbol}</span>
-            <span className="text-[9px] opacity-80">{atom.bonds}/{atom.maxBonds}</span>
-        </motion.div>
-    );
-});
+const TEMPLATES: MoleculeTemplate[] = [
+    {
+        name: 'Water',
+        formula: 'H₂O',
+        atoms: [
+            { symbol: 'O', x: 260, y: 180 },
+            { symbol: 'H', x: 190, y: 240 },
+            { symbol: 'H', x: 330, y: 240 },
+        ],
+        bonds: [[0, 1], [0, 2]],
+    },
+    {
+        name: 'Carbon Dioxide',
+        formula: 'CO₂',
+        atoms: [
+            { symbol: 'C', x: 260, y: 200 },
+            { symbol: 'O', x: 150, y: 200 },
+            { symbol: 'O', x: 370, y: 200 },
+        ],
+        bonds: [[0, 1], [0, 1], [0, 2], [0, 2]],
+    },
+    {
+        name: 'Methane',
+        formula: 'CH₄',
+        atoms: [
+            { symbol: 'C', x: 260, y: 200 },
+            { symbol: 'H', x: 260, y: 100 },
+            { symbol: 'H', x: 160, y: 200 },
+            { symbol: 'H', x: 360, y: 200 },
+            { symbol: 'H', x: 260, y: 300 },
+        ],
+        bonds: [[0, 1], [0, 2], [0, 3], [0, 4]],
+    },
+    {
+        name: 'Ammonia',
+        formula: 'NH₃',
+        atoms: [
+            { symbol: 'N', x: 260, y: 180 },
+            { symbol: 'H', x: 180, y: 250 },
+            { symbol: 'H', x: 260, y: 270 },
+            { symbol: 'H', x: 340, y: 250 },
+        ],
+        bonds: [[0, 1], [0, 2], [0, 3]],
+    },
+    {
+        name: 'Ethanol',
+        formula: 'C₂H₅OH',
+        atoms: [
+            { symbol: 'C', x: 180, y: 200 },
+            { symbol: 'C', x: 280, y: 200 },
+            { symbol: 'O', x: 370, y: 200 },
+            { symbol: 'H', x: 440, y: 200 },
+            { symbol: 'H', x: 180, y: 110 },
+            { symbol: 'H', x: 180, y: 290 },
+            { symbol: 'H', x: 110, y: 200 },
+            { symbol: 'H', x: 280, y: 110 },
+            { symbol: 'H', x: 280, y: 290 },
+        ],
+        bonds: [[0, 1], [1, 2], [2, 3], [0, 4], [0, 5], [0, 6], [1, 7], [1, 8]],
+    },
+];
 
 export const MoleculeBuilder = memo(function MoleculeBuilder({ onClose }: MoleculeBuilderProps) {
     const [atoms, setAtoms] = useState<PlacedAtom[]>([]);
     const [bonds, setBonds] = useState<Bond[]>([]);
-    const [selectedAtom, setSelectedAtom] = useState<string | null>(null);
-    const [selectedPalette, setSelectedPalette] = useState<string>('C');
+    const [selectedPaletteAtom, setSelectedPaletteAtom] = useState<string>('C');
+    const [selectedCanvasAtom, setSelectedCanvasAtom] = useState<string | null>(null);
     const canvasRef = useRef<HTMLDivElement>(null);
 
-    // Palette elements
-    const paletteElements = useMemo(() => {
-        const symbols = ['H', 'C', 'N', 'O', 'S', 'P', 'F', 'Cl', 'Br'];
-        return symbols.map(symbol => ({
-            symbol,
-            color: ELEMENT_COLORS[symbol] || '#666',
-            valence: VALENCE[symbol] || 1,
-        }));
-    }, []);
-
-    // Validation
-    const isValid = useMemo(() => {
-        return atoms.length > 0 && atoms.every(a => a.bonds === a.maxBonds);
-    }, [atoms]);
-
-    // Formula
-    const formula = useMemo(() => {
-        if (atoms.length === 0) return '';
+    // Compute chemical formula from placed atoms
+    const chemicalFormula = useMemo(() => {
+        if (atoms.length === 0) return 'Empty';
         const counts: Record<string, number> = {};
-        atoms.forEach(a => { counts[a.symbol] = (counts[a.symbol] || 0) + 1; });
-        const order = ['C', 'H'];
-        const others = Object.keys(counts).filter(s => !order.includes(s)).sort();
-        return [...order, ...others]
-            .filter(s => counts[s])
-            .map(s => `${s}${counts[s] > 1 ? counts[s] : ''}`)
-            .join('');
+        atoms.forEach((a) => {
+            counts[a.symbol] = (counts[a.symbol] || 0) + 1;
+        });
+
+        // Hill system ordering: C first, then H, then alphabetical
+        const order = ['C', 'H', ...Object.keys(counts).filter((k) => k !== 'C' && k !== 'H').sort()];
+        let formula = '';
+        order.forEach((sym) => {
+            if (counts[sym]) {
+                formula += `${sym}${counts[sym] > 1 ? counts[sym] : ''}`;
+            }
+        });
+        return formula;
     }, [atoms]);
 
-    // Click on canvas to add atom
-    const handleCanvasClick = useCallback((e: React.MouseEvent) => {
-        if (!canvasRef.current) return;
-        const target = e.target as HTMLElement;
-        if (target !== canvasRef.current) return; // Only if clicking canvas directly
+    // Valence satisfaction metrics
+    const validation = useMemo(() => {
+        if (atoms.length === 0) return { isValid: false, message: 'Add atoms to build a molecule' };
+        
+        let allSatisfied = true;
+        for (const atom of atoms) {
+            if (atom.bonds !== atom.maxBonds) {
+                allSatisfied = false;
+                break;
+            }
+        }
 
+        return {
+            isValid: allSatisfied,
+            message: allSatisfied ? 'All valence octets satisfied ✓' : 'Incomplete bonding pairs detected',
+        };
+    }, [atoms]);
+
+    // Add atom to canvas
+    const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!canvasRef.current) return;
         const rect = canvasRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
-        const palEl = paletteElements.find(p => p.symbol === selectedPalette);
 
+        const maxBonds = VALENCE[selectedPaletteAtom] || 1;
         const newAtom: PlacedAtom = {
-            id: `atom-${Date.now()}-${Math.random()}`,
-            symbol: selectedPalette,
+            id: `atom-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            symbol: selectedPaletteAtom,
             x,
             y,
-            color: palEl?.color || '#666',
+            color: ELEMENT_COLORS[selectedPaletteAtom] || '#38bdf8',
             bonds: 0,
-            maxBonds: palEl?.valence || 1,
+            maxBonds,
         };
 
-        setAtoms(prev => [...prev, newAtom]);
-    }, [selectedPalette, paletteElements]);
+        setAtoms((prev) => [...prev, newAtom]);
+        audioEngine.playClick(680);
+    };
 
-    // Move atom
-    const moveAtom = useCallback((atomId: string, x: number, y: number) => {
-        setAtoms(prev => prev.map(a => a.id === atomId ? { ...a, x, y } : a));
-    }, []);
-
-    // Click on placed atom
-    const handleAtomClick = useCallback((atomId: string) => {
-        if (!selectedAtom) {
-            setSelectedAtom(atomId);
-        } else if (selectedAtom === atomId) {
-            setSelectedAtom(null);
-        } else {
-            // Create bond
-            const from = atoms.find(a => a.id === selectedAtom);
-            const to = atoms.find(a => a.id === atomId);
-
-            if (from && to && from.bonds < from.maxBonds && to.bonds < to.maxBonds) {
-                const bondExists = bonds.some(
-                    b => (b.from === selectedAtom && b.to === atomId) ||
-                        (b.from === atomId && b.to === selectedAtom)
-                );
-
-                if (!bondExists) {
-                    setBonds(prev => [...prev, { id: `bond-${Date.now()}`, from: selectedAtom, to: atomId }]);
-                    setAtoms(prev => prev.map(a => {
-                        if (a.id === selectedAtom || a.id === atomId) {
-                            return { ...a, bonds: a.bonds + 1 };
-                        }
-                        return a;
-                    }));
-                }
-            }
-            setSelectedAtom(null);
+    // Bond between two atoms
+    const handleAtomClick = (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!selectedCanvasAtom) {
+            setSelectedCanvasAtom(id);
+            audioEngine.playClick(880);
+            return;
         }
-    }, [selectedAtom, atoms, bonds]);
 
-    const deleteAtom = useCallback((atomId: string) => {
-        const connectedBonds = bonds.filter(b => b.from === atomId || b.to === atomId);
-        const disconnectedIds = connectedBonds.map(b => b.from === atomId ? b.to : b.from);
-        
-        setAtoms(prev => prev
-            .filter(a => a.id !== atomId)
-            .map(a => disconnectedIds.includes(a.id) ? { ...a, bonds: Math.max(0, a.bonds - 1) } : a)
-        );
-        setBonds(prev => prev.filter(b => b.from !== atomId && b.to !== atomId));
-        setSelectedAtom(null);
-    }, [bonds]);
+        if (selectedCanvasAtom === id) {
+            setSelectedCanvasAtom(null);
+            return;
+        }
 
-    const reset = useCallback(() => {
-        setAtoms([]);
-        setBonds([]);
-        setSelectedAtom(null);
-    }, []);
+        const atom1 = atoms.find((a) => a.id === selectedCanvasAtom);
+        const atom2 = atoms.find((a) => a.id === id);
 
-    const saveMolecule = useCallback(() => {
-        if (!isValid) return;
-        try {
-            const saved = JSON.parse(localStorage.getItem('savedMolecules') || '[]');
-            saved.push({ id: Date.now(), formula, atoms: atoms.length, date: new Date().toISOString() });
-            localStorage.setItem('savedMolecules', JSON.stringify(saved));
+        if (!atom1 || !atom2) return;
+
+        if (atom1.bonds >= atom1.maxBonds || atom2.bonds >= atom2.maxBonds) {
             toast({
-                title: 'Molecule Saved',
-                description: `Successfully stored ${formula} in your molecular database.`,
-            });
-        } catch {
-            toast({
-                title: 'Save Failed',
-                description: 'Could not store molecule to local storage.',
+                title: 'Valence Exceeded',
+                description: `Cannot add bond: ${atom1.bonds >= atom1.maxBonds ? atom1.symbol : atom2.symbol} reached maximum valence capacity.`,
                 variant: 'destructive',
             });
+            setSelectedCanvasAtom(null);
+            return;
         }
-    }, [isValid, atoms.length, formula]);
+
+        // Add bond
+        const newBond: Bond = {
+            id: `bond-${Date.now()}`,
+            from: selectedCanvasAtom,
+            to: id,
+        };
+
+        setBonds((prev) => [...prev, newBond]);
+        setAtoms((prev) =>
+            prev.map((a) =>
+                a.id === selectedCanvasAtom || a.id === id
+                    ? { ...a, bonds: a.bonds + 1 }
+                    : a
+            )
+        );
+
+        setSelectedCanvasAtom(null);
+        audioEngine.playBondingChord();
+    };
+
+    // Auto-Bond Solver: automatically establishes covalent bonds
+    const handleAutoBond = () => {
+        if (atoms.length < 2) return;
+
+        const nextBonds: Bond[] = [];
+        const nextAtoms = atoms.map((a) => ({ ...a, bonds: 0 }));
+
+        for (let i = 0; i < nextAtoms.length; i++) {
+            for (let j = i + 1; j < nextAtoms.length; j++) {
+                const a1 = nextAtoms[i];
+                const a2 = nextAtoms[j];
+
+                const dist = Math.hypot(a1.x - a2.x, a1.y - a2.y);
+                if (dist < 140 && a1.bonds < a1.maxBonds && a2.bonds < a2.maxBonds) {
+                    nextBonds.push({
+                        id: `bond-auto-${i}-${j}`,
+                        from: a1.id,
+                        to: a2.id,
+                    });
+                    a1.bonds += 1;
+                    a2.bonds += 1;
+                }
+            }
+        }
+
+        setAtoms(nextAtoms);
+        setBonds(nextBonds);
+        audioEngine.playBondingChord();
+        toast({
+            title: 'Auto-Bond Generated',
+            description: `Resolved ${nextBonds.length} covalent bonds.`,
+        });
+    };
+
+    // Load preset template
+    const loadTemplate = (tmpl: MoleculeTemplate) => {
+        const newAtoms: PlacedAtom[] = tmpl.atoms.map((a, idx) => ({
+            id: `atom-${idx}`,
+            symbol: a.symbol,
+            x: a.x,
+            y: a.y,
+            color: ELEMENT_COLORS[a.symbol] || '#38bdf8',
+            bonds: 0,
+            maxBonds: VALENCE[a.symbol] || 1,
+        }));
+
+        const newBonds: Bond[] = tmpl.bonds.map(([f, t], bIdx) => ({
+            id: `bond-${bIdx}`,
+            from: `atom-${f}`,
+            to: `atom-${t}`,
+        }));
+
+        // Calculate bond counts
+        newBonds.forEach((b) => {
+            const a1 = newAtoms.find((a) => a.id === b.from);
+            const a2 = newAtoms.find((a) => a.id === b.to);
+            if (a1) a1.bonds += 1;
+            if (a2) a2.bonds += 1;
+        });
+
+        setAtoms(newAtoms);
+        setBonds(newBonds);
+        setSelectedCanvasAtom(null);
+        audioEngine.playBondingChord();
+    };
+
+    // Clear canvas
+    const handleClear = () => {
+        setAtoms([]);
+        setBonds([]);
+        setSelectedCanvasAtom(null);
+        audioEngine.playClick(440);
+    };
 
     return (
-        <div className="h-full flex flex-col bg-gradient-to-b from-slate-900 to-slate-950">
-            {/* Header */}
-            <div className="flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 pt-14 sm:pt-4 border-b border-white/10">
-                <div className="flex items-center gap-2 sm:gap-3">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
-                        <Atom className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                    </div>
-                    <div>
-                        <h2 className="text-base sm:text-xl font-bold text-white">Molecule Builder</h2>
-                        <p className="hidden sm:block text-xs text-slate-400">Select atom type, click canvas to place</p>
-                    </div>
+        <div className="h-full flex flex-col p-3 gap-3 bg-slate-950 font-mono text-white select-none overflow-y-auto matrix-grid-bg">
+            {/* Header Telemetry */}
+            <div className="flex items-center justify-between p-2.5 rounded-lg bg-black/80 border border-white/10">
+                <div className="flex items-center gap-2">
+                    <Atom className="w-4 h-4 text-emerald-400 animate-spin" />
+                    <span className="font-bold text-xs tracking-wider uppercase text-emerald-300">
+                        INTERACTIVE 2D/3D MOLECULAR SYNTHESIZER
+                    </span>
                 </div>
-
-                <div className="flex items-center gap-2 sm:gap-3">
-                    {formula && (
-                        <div className={cn(
-                            "px-2 sm:px-4 py-1 sm:py-2 rounded-xl font-mono text-sm sm:text-lg flex items-center gap-1 sm:gap-2 border",
-                            isValid
-                                ? "bg-green-500/10 text-green-400 border-green-500/30"
-                                : "bg-yellow-500/10 text-yellow-400 border-yellow-500/30"
-                        )}>
-                            {isValid ? <Check className="w-4 h-4 sm:w-5 sm:h-5" /> : <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" />}
-                            <span className="font-bold">{formula}</span>
-                        </div>
-                    )}
-                    {onClose && (
-                        <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                            <X className="w-5 h-5 text-slate-400" />
-                        </button>
-                    )}
-                </div>
+                {onClose && (
+                    <button onClick={onClose} className="p-1 rounded hover:bg-white/10 text-slate-400">
+                        <X className="w-4 h-4" />
+                    </button>
+                )}
             </div>
 
-            {/* Palette - wrapping grid on mobile, horizontal on desktop */}
-            <div className="px-2 sm:px-6 py-2 sm:py-3 border-b border-white/10 bg-black/20">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                    <span className="text-xs text-slate-400">Select:</span>
-                    <div className="grid grid-cols-6 sm:flex gap-1.5 sm:gap-2">
-                        {paletteElements.map(el => (
-                            <PaletteAtom
-                                key={el.symbol}
-                                symbol={el.symbol}
-                                color={el.color}
-                                valence={el.valence}
-                                isSelected={selectedPalette === el.symbol}
-                                onClick={() => setSelectedPalette(el.symbol)}
-                            />
+            {/* Quick Templates & Status Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-black/80 border border-white/10 text-xs">
+                <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">Preset Templates:</span>
+                    <div className="flex gap-1.5 flex-wrap">
+                        {TEMPLATES.map((tmpl) => (
+                            <button
+                                key={tmpl.name}
+                                onClick={() => loadTemplate(tmpl)}
+                                className="px-2 py-1 rounded bg-slate-900 hover:bg-emerald-500/20 border border-white/10 hover:border-emerald-400/50 text-[10px] font-bold text-slate-200 hover:text-emerald-300 transition-colors"
+                            >
+                                {tmpl.name} ({tmpl.formula})
+                            </button>
                         ))}
                     </div>
                 </div>
+
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={handleAutoBond}
+                        className="px-2.5 py-1 rounded bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 text-emerald-300 text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-sm"
+                    >
+                        <Wand2 className="w-3 h-3" />
+                        Auto-Bond Solver
+                    </button>
+                    <button
+                        onClick={handleClear}
+                        className="px-2.5 py-1 rounded bg-rose-500/20 hover:bg-rose-500/30 border border-rose-400/40 text-rose-300 text-[11px] font-bold flex items-center gap-1.5 transition-all"
+                    >
+                        <Trash2 className="w-3 h-3" />
+                        Clear
+                    </button>
+                </div>
             </div>
 
-            {/* Canvas */}
-            <div className="flex-1 relative overflow-hidden">
+            {/* Main Stage Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 flex-1 min-h-[460px]">
+                {/* Palette Sidebar */}
+                <div className="p-3 rounded-xl bg-black/80 border border-white/10 space-y-3">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">Element Palette</span>
+                    <div className="grid grid-cols-3 gap-2">
+                        {Object.keys(VALENCE).slice(0, 9).map((sym) => {
+                            const isSelected = selectedPaletteAtom === sym;
+                            const color = ELEMENT_COLORS[sym] || '#38bdf8';
+                            return (
+                                <button
+                                    key={sym}
+                                    onClick={() => setSelectedPaletteAtom(sym)}
+                                    className={cn(
+                                        "p-2.5 rounded-lg flex flex-col items-center justify-center border font-bold transition-all",
+                                        isSelected
+                                            ? "bg-emerald-500/20 border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.3)] scale-105"
+                                            : "bg-white/5 border-white/10 hover:border-white/20 text-slate-300"
+                                    )}
+                                >
+                                    <span className="text-base font-extrabold" style={{ color }}>{sym}</span>
+                                    <span className="text-[8px] text-slate-400 font-mono">v:{VALENCE[sym]}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    <div className="p-2.5 rounded-lg bg-slate-900/60 border border-white/5 space-y-1 text-[10px] text-slate-400">
+                        <p className="font-bold text-white uppercase">How To Assemble:</p>
+                        <p>1. Click canvas to place selected atom.</p>
+                        <p>2. Click first atom, then second atom to form a covalent bond.</p>
+                    </div>
+                </div>
+
+                {/* Synthesis 2D Interactive Canvas */}
                 <div
                     ref={canvasRef}
-                    className="absolute inset-0 cursor-crosshair"
                     onClick={handleCanvasClick}
+                    className="lg:col-span-3 rounded-xl bg-slate-900/90 border border-white/15 relative overflow-hidden cursor-crosshair min-h-[380px] shadow-2xl"
                     style={{
-                        backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px)',
-                        backgroundSize: '30px 30px',
+                        backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.04) 0%, transparent 80%)',
                     }}
                 >
-                    {/* Bonds SVG */}
+                    {/* SVG Bonds */}
                     <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                        {bonds.map(bond => {
-                            const from = atoms.find(a => a.id === bond.from);
-                            const to = atoms.find(a => a.id === bond.to);
-                            if (!from || !to) return null;
+                        {bonds.map((bond) => {
+                            const a1 = atoms.find((a) => a.id === bond.from);
+                            const a2 = atoms.find((a) => a.id === bond.to);
+                            if (!a1 || !a2) return null;
                             return (
-                                <g key={bond.id}>
-                                    {/* Glow effect */}
-                                    <line
-                                        x1={from.x} y1={from.y} x2={to.x} y2={to.y}
-                                        stroke="rgba(100,200,255,0.3)"
-                                        strokeWidth={8}
-                                        strokeLinecap="round"
-                                    />
-                                    {/* Main line */}
-                                    <line
-                                        x1={from.x} y1={from.y} x2={to.x} y2={to.y}
-                                        stroke="rgba(255,255,255,0.9)"
-                                        strokeWidth={3}
-                                        strokeLinecap="round"
-                                    />
-                                </g>
+                                <line
+                                    key={bond.id}
+                                    x1={a1.x}
+                                    y1={a1.y}
+                                    x2={a2.x}
+                                    y2={a2.y}
+                                    stroke="#38bdf8"
+                                    strokeWidth="4"
+                                    strokeLinecap="round"
+                                    opacity="0.85"
+                                />
                             );
                         })}
                     </svg>
 
-                    {/* Atoms */}
-                    <AnimatePresence>
-                        {atoms.map(atom => (
-                            <CanvasAtom
+                    {/* Placed Atoms */}
+                    {atoms.map((atom) => {
+                        const isSelected = selectedCanvasAtom === atom.id;
+                        const isSatisfied = atom.bonds === atom.maxBonds;
+                        return (
+                            <div
                                 key={atom.id}
-                                atom={atom}
-                                isSelected={selectedAtom === atom.id}
-                                isValidBonds={atom.bonds === atom.maxBonds}
-                                onClick={() => handleAtomClick(atom.id)}
-                                onDrag={(x, y) => moveAtom(atom.id, x, y)}
-                            />
-                        ))}
-                    </AnimatePresence>
-
-                    {/* Empty state */}
-                    {atoms.length === 0 && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-4">
-                            <div className="text-center text-slate-500">
-                                <div className="w-14 h-14 sm:w-20 sm:h-20 mx-auto mb-3 sm:mb-4 rounded-full bg-slate-800/50 flex items-center justify-center">
-                                    <Plus className="w-7 h-7 sm:w-10 sm:h-10 opacity-50" />
-                                </div>
-                                <p className="text-xs sm:text-lg font-medium">Tap to add atoms</p>
-                                <p className="text-[10px] sm:text-sm opacity-60 mt-1">Then tap two atoms to bond</p>
+                                onClick={(e) => handleAtomClick(atom.id, e)}
+                                className={cn(
+                                    "absolute w-12 h-12 -ml-6 -mt-6 rounded-full flex flex-col items-center justify-center font-extrabold cursor-pointer transition-transform shadow-xl border-2 select-none",
+                                    isSelected && "ring-4 ring-cyan-400 scale-110",
+                                    isSatisfied ? "border-emerald-400/80" : "border-amber-400/80 animate-pulse"
+                                )}
+                                style={{
+                                    left: atom.x,
+                                    top: atom.y,
+                                    backgroundColor: atom.color,
+                                    color: ['H', 'S', 'F'].includes(atom.symbol) ? '#0f172a' : '#ffffff',
+                                }}
+                            >
+                                <span className="text-sm font-black leading-none">{atom.symbol}</span>
+                                <span className="text-[8px] font-mono leading-none mt-0.5 opacity-80">
+                                    {atom.bonds}/{atom.maxBonds}
+                                </span>
                             </div>
+                        );
+                    })}
+
+                    {/* Bottom Status Overlay */}
+                    <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between p-2.5 rounded-lg bg-black/85 border border-white/10 backdrop-blur-md text-xs">
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-slate-400 uppercase">Formula:</span>
+                            <span className="font-bold text-emerald-300 text-sm">{chemicalFormula}</span>
                         </div>
-                    )}
-                </div>
 
-                {/* Action bar for selected atom */}
-                <AnimatePresence>
-                    {selectedAtom && (
-                        <motion.div
-                            initial={{ y: 20, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            exit={{ y: 20, opacity: 0 }}
-                            className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 bg-slate-800/90 backdrop-blur px-3 sm:px-5 py-2 sm:py-3 rounded-xl border border-white/10 flex items-center gap-2 sm:gap-4 shadow-2xl max-w-[90%]"
-                        >
-                            <span className="text-xs sm:text-sm text-slate-300 hidden sm:inline">Click another atom to bond</span>
-                            <button
-                                onClick={() => deleteAtom(selectedAtom)}
-                                className="flex items-center gap-2 px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 rounded-lg text-red-400 transition-colors"
-                            >
-                                <Trash2 className="w-4 h-4" />
-                                Delete
-                            </button>
-                            <button
-                                onClick={() => setSelectedAtom(null)}
-                                className="px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-slate-300 transition-colors"
-                            >
-                                Cancel
-                            </button>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
-
-            {/* Footer */}
-            <div className="px-2 sm:px-6 py-2 sm:py-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0 bg-black/20 pb-20 sm:pb-4">
-                <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-slate-400">
-                    <span className="flex items-center gap-1 sm:gap-2">
-                        <span className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-slate-600" />
-                        {atoms.length} atoms
-                    </span>
-                    <span className="flex items-center gap-1 sm:gap-2">
-                        <span className="w-2 h-0.5 sm:w-3 sm:h-1 rounded bg-slate-600" />
-                        {bonds.length} bonds
-                    </span>
-                </div>
-                <div className="flex gap-2 sm:gap-3">
-                    <button
-                        onClick={reset}
-                        className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg sm:rounded-xl transition-colors text-slate-300 text-xs sm:text-sm"
-                    >
-                        <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4" />
-                        Reset
-                    </button>
-                    <button
-                        onClick={saveMolecule}
-                        disabled={!isValid}
-                        className={cn(
-                            "flex items-center gap-1 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-medium transition-all text-xs sm:text-sm",
-                            isValid
-                                ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:shadow-lg hover:shadow-cyan-500/25"
-                                : "bg-slate-800 text-slate-500 cursor-not-allowed"
-                        )}
-                    >
-                        <Save className="w-3 h-3 sm:w-4 sm:h-4" />
-                        Save
-                    </button>
+                        <div className="flex items-center gap-2">
+                            {validation.isValid ? (
+                                <span className="flex items-center gap-1 text-emerald-400 font-bold text-[11px]">
+                                    <Check className="w-3.5 h-3.5" />
+                                    {validation.message}
+                                </span>
+                            ) : (
+                                <span className="flex items-center gap-1 text-amber-400 font-bold text-[11px]">
+                                    <AlertTriangle className="w-3.5 h-3.5" />
+                                    {validation.message}
+                                </span>
+                            )}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

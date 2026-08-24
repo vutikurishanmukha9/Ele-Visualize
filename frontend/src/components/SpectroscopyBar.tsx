@@ -1,5 +1,7 @@
 import { memo, useMemo, useState } from 'react';
 import { ChemicalElement } from '@/data/elements';
+import { audioEngine } from '@/lib/audioEngine';
+import { Zap } from 'lucide-react';
 
 interface SpectroscopyBarProps {
   element: ChemicalElement;
@@ -11,6 +13,7 @@ interface SpectralLine {
   intensity: number;  // 0.1 to 1.0
   color: string;
   name: string;
+  transition?: string;
 }
 
 // Convert wavelength (nm) to approximate RGB color
@@ -45,7 +48,7 @@ function wavelengthToRGB(wavelength: number): string {
     b = 0;
   }
 
-  // Intensity falloff near vision limits
+  // Intensity falloff near human vision limits
   let factor = 1.0;
   if (wavelength >= 380 && wavelength < 420) {
     factor = 0.3 + 0.7 * (wavelength - 380) / (420 - 380);
@@ -61,9 +64,10 @@ function wavelengthToRGB(wavelength: number): string {
 }
 
 export const SpectroscopyBar = memo(function SpectroscopyBar({ element, className = '' }: SpectroscopyBarProps) {
+  const [selectedLine, setSelectedLine] = useState<SpectralLine | null>(null);
   const [hoveredLine, setHoveredLine] = useState<SpectralLine | null>(null);
 
-  // Derive realistic spectral emission lines for element based on atomic number Z and valence shells
+  // Derive exact physical emission lines
   const spectralLines = useMemo<SpectralLine[]>(() => {
     const Z = element.atomicNumber;
     const lines: SpectralLine[] = [];
@@ -71,10 +75,10 @@ export const SpectroscopyBar = memo(function SpectroscopyBar({ element, classNam
     // Hydrogen Balmer Series (Physical exact values)
     if (Z === 1) {
       lines.push(
-        { wavelength: 656.3, intensity: 1.0, color: '#ff3333', name: 'H-Alpha (Balmer)' },
-        { wavelength: 486.1, intensity: 0.8, color: '#00e5ff', name: 'H-Beta (Balmer)' },
-        { wavelength: 434.0, intensity: 0.6, color: '#4b0082', name: 'H-Gamma (Balmer)' },
-        { wavelength: 410.2, intensity: 0.4, color: '#8a2be2', name: 'H-Delta (Balmer)' }
+        { wavelength: 656.3, intensity: 1.0, color: '#ff3333', name: 'H-Alpha', transition: '3d → 2p (Balmer)' },
+        { wavelength: 486.1, intensity: 0.8, color: '#00e5ff', name: 'H-Beta', transition: '4d → 2p (Balmer)' },
+        { wavelength: 434.0, intensity: 0.6, color: '#4b0082', name: 'H-Gamma', transition: '5d → 2p (Balmer)' },
+        { wavelength: 410.2, intensity: 0.4, color: '#8a2be2', name: 'H-Delta', transition: '6d → 2p (Balmer)' }
       );
       return lines;
     }
@@ -82,11 +86,11 @@ export const SpectroscopyBar = memo(function SpectroscopyBar({ element, classNam
     // Helium emission series
     if (Z === 2) {
       lines.push(
-        { wavelength: 706.5, intensity: 0.7, color: wavelengthToRGB(706.5), name: 'He-I' },
-        { wavelength: 667.8, intensity: 0.9, color: wavelengthToRGB(667.8), name: 'He-I' },
-        { wavelength: 587.6, intensity: 1.0, color: '#ffdd00', name: 'He-D3 Yellow' },
-        { wavelength: 501.6, intensity: 0.6, color: wavelengthToRGB(501.6), name: 'He-I' },
-        { wavelength: 447.1, intensity: 0.8, color: wavelengthToRGB(447.1), name: 'He-I' }
+        { wavelength: 706.5, intensity: 0.7, color: wavelengthToRGB(706.5), name: 'He-I 706.5', transition: '3s³S → 2p³P' },
+        { wavelength: 667.8, intensity: 0.9, color: wavelengthToRGB(667.8), name: 'He-I 667.8', transition: '3d¹D → 2p¹P' },
+        { wavelength: 587.6, intensity: 1.0, color: '#ffdd00', name: 'He-D3 Yellow', transition: '3d³D → 2p³P' },
+        { wavelength: 501.6, intensity: 0.6, color: wavelengthToRGB(501.6), name: 'He-I 501.6', transition: '3p¹P → 2s¹S' },
+        { wavelength: 447.1, intensity: 0.8, color: wavelengthToRGB(447.1), name: 'He-I 447.1', transition: '4d³D → 2p³P' }
       );
       return lines;
     }
@@ -94,15 +98,15 @@ export const SpectroscopyBar = memo(function SpectroscopyBar({ element, classNam
     // Sodium doublet
     if (Z === 11) {
       lines.push(
-        { wavelength: 589.0, intensity: 1.0, color: '#ffc400', name: 'Na D2 Doublet' },
-        { wavelength: 589.6, intensity: 0.9, color: '#ffbe00', name: 'Na D1 Doublet' },
-        { wavelength: 498.2, intensity: 0.4, color: wavelengthToRGB(498.2), name: 'Na-I' },
-        { wavelength: 568.8, intensity: 0.5, color: wavelengthToRGB(568.8), name: 'Na-I' }
+        { wavelength: 589.0, intensity: 1.0, color: '#ffc400', name: 'Na D2 Doublet', transition: '3p²P3/2 → 3s²S1/2' },
+        { wavelength: 589.6, intensity: 0.9, color: '#ffbe00', name: 'Na D1 Doublet', transition: '3p²P1/2 → 3s²S1/2' },
+        { wavelength: 498.2, intensity: 0.4, color: wavelengthToRGB(498.2), name: 'Na-I Green', transition: '5d → 3p' },
+        { wavelength: 568.8, intensity: 0.5, color: wavelengthToRGB(568.8), name: 'Na-I Yellow', transition: '4d → 3p' }
       );
       return lines;
     }
 
-    // Deterministic procedural generation for all other elements based on shell transitions
+    // Deterministic generation for other elements
     const numLines = 5 + (Z % 7);
     for (let i = 0; i < numLines; i++) {
       const seed = Math.sin(Z * 12.9898 + i * 78.233) * 43758.5453;
@@ -113,60 +117,72 @@ export const SpectroscopyBar = memo(function SpectroscopyBar({ element, classNam
         wavelength: wl,
         intensity,
         color: wavelengthToRGB(wl),
-        name: `${element.symbol}-${Math.floor(i / 2) + 1} (${wl} nm)`,
+        name: `${element.symbol} Line ${i + 1}`,
+        transition: `Level ${Math.floor(i / 2) + 3} → Level 2`,
       });
     }
 
     return lines.sort((a, b) => a.wavelength - b.wavelength);
   }, [element.atomicNumber, element.symbol]);
 
+  const activeLine = hoveredLine || selectedLine || spectralLines[0];
+
+  const handleLineClick = (line: SpectralLine) => {
+    setSelectedLine(line);
+    // Map wavelength to acoustic pitch (380nm -> 1200Hz, 750nm -> 400Hz)
+    const acousticFreq = Math.round(1200 - ((line.wavelength - 380) / 370) * 800);
+    audioEngine.playClick(acousticFreq);
+  };
+
   return (
-    <div className={`p-2.5 rounded-lg bg-black/80 border border-white/10 font-mono select-none ${className}`}>
-      <div className="flex items-center justify-between text-[10px] text-slate-400 mb-1.5 uppercase tracking-wider">
-        <span className="flex items-center gap-1.5 font-bold text-white">
-          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-          Optical Emission Spectrum (380 - 750 nm)
+    <div className={`p-3 rounded-xl bg-black/85 border border-white/10 font-mono select-none space-y-2.5 ${className}`}>
+      {/* Telemetry Header */}
+      <div className="flex items-center justify-between text-[11px] text-slate-400 uppercase tracking-wider">
+        <span className="flex items-center gap-2 font-bold text-white">
+          <Zap className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+          Optical Emission Spectroscopy
         </span>
         <span className="text-cyan-300 font-bold">
-          {hoveredLine ? `${hoveredLine.wavelength} nm • ${(1239.8 / hoveredLine.wavelength).toFixed(2)} eV` : `${spectralLines.length} Primary Lines`}
+          {activeLine ? `${activeLine.wavelength} nm` : `${spectralLines.length} Lines`}
         </span>
       </div>
 
-      {/* Spectrum Continuous Film Background with overlay emission lines */}
-      <div className="relative h-6 rounded bg-slate-950 border border-white/15 overflow-hidden flex items-center">
-        {/* Subtle Dark Dispersion Rainbow Strip */}
+      {/* Spectrum Continuous Film Strip */}
+      <div className="relative h-7 rounded-lg bg-slate-950 border border-white/20 overflow-hidden flex items-center shadow-inner cursor-crosshair">
+        {/* Continuous Rainbow dispersion substrate */}
         <div
-          className="absolute inset-0 opacity-20"
+          className="absolute inset-0 opacity-25"
           style={{
             background: 'linear-gradient(90deg, #4b0082 0%, #0000ff 20%, #00ff00 45%, #ffff00 65%, #ff7f00 80%, #ff0000 100%)',
           }}
         />
 
-        {/* Discrete Element Emission Bright Lines */}
+        {/* Spectral Emission Lines */}
         {spectralLines.map((line, idx) => {
           const leftPercent = ((line.wavelength - 380) / (750 - 380)) * 100;
-          const isHovered = hoveredLine?.wavelength === line.wavelength;
+          const isCurrent = activeLine?.wavelength === line.wavelength;
 
           return (
             <div
               key={idx}
+              onClick={() => handleLineClick(line)}
               onMouseEnter={() => setHoveredLine(line)}
               onMouseLeave={() => setHoveredLine(null)}
-              className="absolute top-0 bottom-0 cursor-pointer transition-transform hover:scale-y-110 z-10"
+              className="absolute top-0 bottom-0 transition-all hover:scale-y-125 z-10"
               style={{
                 left: `${leftPercent}%`,
-                width: isHovered ? '3px' : '2px',
+                width: isCurrent ? '4px' : '2px',
                 backgroundColor: line.color,
-                boxShadow: `0 0 ${isHovered ? '8px' : '4px'} ${line.color}`,
-                opacity: line.intensity,
+                boxShadow: isCurrent ? `0 0 12px ${line.color}, 0 0 20px ${line.color}` : `0 0 4px ${line.color}`,
+                opacity: isCurrent ? 1 : line.intensity,
               }}
-              title={`${line.name}: ${line.wavelength} nm`}
+              title={`${line.name}: ${line.wavelength} nm (Click for photon telemetry)`}
             />
           );
         })}
 
-        {/* Wavelength Scale Grid Ticks */}
-        <div className="absolute inset-x-0 bottom-0 h-1.5 flex justify-between px-1 text-[8px] text-slate-500 pointer-events-none">
+        {/* Axis Reference Ticks */}
+        <div className="absolute inset-x-0 bottom-0.5 flex justify-between px-2 text-[8px] text-slate-500 pointer-events-none">
           <span>380nm</span>
           <span>480nm</span>
           <span>580nm</span>
@@ -174,6 +190,30 @@ export const SpectroscopyBar = memo(function SpectroscopyBar({ element, classNam
           <span>750nm</span>
         </div>
       </div>
+
+      {/* Selected Spectral Line Detail Inspector */}
+      {activeLine && (
+        <div className="grid grid-cols-3 gap-2 p-2 rounded-lg bg-slate-900/80 border border-white/10 text-xs">
+          <div className="flex flex-col">
+            <span className="text-[9px] text-slate-400 uppercase">Photon Energy (E)</span>
+            <span className="font-bold text-cyan-300">
+              {(1239.84 / activeLine.wavelength).toFixed(3)} eV
+            </span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[9px] text-slate-400 uppercase">Frequency (ν)</span>
+            <span className="font-bold text-purple-300">
+              {((2.9979e5) / activeLine.wavelength).toFixed(1)} THz
+            </span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[9px] text-slate-400 uppercase">Transition</span>
+            <span className="font-bold text-amber-300 truncate" title={activeLine.transition}>
+              {activeLine.transition || 'Atomic Shell'}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 });
