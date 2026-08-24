@@ -43,6 +43,9 @@ import { Molecule3D } from '@/components/Molecule3D';
 import { MoleculeBuilder } from '@/components/MoleculeBuilder';
 import { PeriodicTableGrid } from '@/components/PeriodicTableGrid';
 import { ReactionSimulator } from '@/components/ReactionSimulator';
+import { SpectroscopyBar } from '@/components/SpectroscopyBar';
+import { QuantumNumbersHUD } from '@/components/QuantumNumbersHUD';
+import { ThermalScrubber } from '@/components/ThermalScrubber';
 import { xrStore } from '@/components/VisualizerCanvas';
 import { elementProperties } from '@/data/elementProperties';
 import { categoryLabels, categoryColors, categoryGlows, getElementColor, getElementBlock, ChemicalElement, ElementCategory, elements } from '@/data/elements';
@@ -708,6 +711,22 @@ function VisualStage({
       >
         <div className="stage-grid opacity-35 pointer-events-none" />
 
+        {/* Optical Chamber Reticle & Telemetry Overlay */}
+        <div className="absolute top-3 left-3 text-[9px] font-mono text-slate-500 pointer-events-none z-20 flex flex-col gap-0.5 select-none">
+          <span className="text-cyan-400 font-bold flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+            [QUANTUM.OBS-01]
+          </span>
+          <span>CAM: {cameraPreset.toUpperCase()} • FOV: 45mm • BLOOM: {enableBloom ? 'ON' : 'OFF'}</span>
+        </div>
+
+        {/* Live Floating Optical Spectroscopy Footprint */}
+        {viewMode === 'atoms' && selectedElement && (
+          <div className="absolute bottom-3 inset-x-3 sm:inset-x-8 max-w-xl mx-auto z-20 pointer-events-auto">
+            <SpectroscopyBar element={selectedElement} />
+          </div>
+        )}
+
         <AnimatePresence mode="wait">
           {viewMode === 'atoms' && selectedElement && (
             <motion.div
@@ -937,10 +956,12 @@ function Inspector({
             </div>
           </div>
 
-          {/* Overview Tab with 2D Bohr Diagram */}
+          {/* Overview Tab with 2D Bohr Diagram, Quantum Numbers & Thermal Simulation */}
           {inspectorTab === 'overview' && (
-            <div className="space-y-4">
+            <div className="space-y-3">
               <BohrModel2D shells={selectedElement.shells} color={elementColor} symbol={selectedElement.symbol} />
+
+              <QuantumNumbersHUD element={selectedElement} />
 
               <div className="metric-grid grid grid-cols-2 gap-2">
                 <div className="p-3 bg-slate-900/80 rounded-xl border border-white/5">

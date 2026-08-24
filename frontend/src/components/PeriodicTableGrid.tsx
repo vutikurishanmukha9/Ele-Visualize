@@ -1,10 +1,11 @@
 import { memo, useMemo, useState } from 'react';
-import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { elements, ChemicalElement, categoryLabels, categoryColors, getElementBlock, ElementBlock } from '../data/elements';
 import { elementProperties, getElementStateAtTemp } from '../data/elementProperties';
 import { cn } from '@/lib/utils';
-import { X, ExternalLink, Atom, Grid3X3, GitCompare, Zap, Wrench, Thermometer, Sparkles, Sliders } from 'lucide-react';
-import { AnimatedNumber } from './AnimatedNumber';
+import { X, ExternalLink, Atom, Grid3X3, Thermometer, Sparkles, Layers, Sliders, Activity } from 'lucide-react';
+import { SpectroscopyBar } from './SpectroscopyBar';
+import { ThermalScrubber } from './ThermalScrubber';
 
 interface PeriodicTableGridProps {
     selectedElement: ChemicalElement | null;
@@ -12,7 +13,7 @@ interface PeriodicTableGridProps {
     onChangeViewMode?: (mode: '3d' | 'grid' | 'compare' | 'reaction' | 'builder') => void;
 }
 
-// Periodic table layout positions for desktop (Row, Column)
+// 18-Column Standard IUPAC Matrix Positions (Row, Column)
 const LAYOUT: Record<number, [number, number]> = {
     1: [1, 1], 2: [1, 18],
     3: [2, 1], 4: [2, 2], 5: [2, 13], 6: [2, 14], 7: [2, 15], 8: [2, 16], 9: [2, 17], 10: [2, 18],
@@ -49,496 +50,309 @@ const CATEGORIES = [
     'actinide',
 ];
 
-const STATE_ICONS: Record<string, string> = {
-    solid: '🧊 Solid',
-    liquid: '💧 Liquid',
-    gas: '💨 Gas',
-    unknown: '❓ Unknown',
-};
-
-// Rich Element Popup Modal
-const ElementPopup = memo(function ElementPopup({
-    element, onClose, onSelect, currentTemp
-}: { element: ChemicalElement; onClose: () => void; onSelect: () => void; currentTemp: number; }) {
-    const color = categoryColors[element.category] || '#38bdf8';
-    const props = elementProperties[element.atomicNumber];
-    const stateAtTemp = getElementStateAtTemp(element.atomicNumber, currentTemp);
-
-    return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4"
-            onClick={onClose}
-        >
-            <motion.div
-                initial={{ scale: 0.9, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.9, y: 20 }}
-                className="bg-slate-950 border rounded-2xl p-6 max-w-md w-full shadow-2xl overflow-y-auto max-h-[90vh]"
-                style={{ borderColor: `${color}55`, boxShadow: `0 0 35px ${color}22` }}
-                onClick={(e) => e.stopPropagation()}
-            >
-                <div className="flex items-start justify-between mb-4">
-                    <div
-                        className="w-20 h-20 rounded-2xl flex flex-col items-center justify-center font-bold relative overflow-hidden"
-                        style={{
-                            backgroundColor: `${color}20`,
-                            border: `2px solid ${color}`,
-                            color: '#ffffff',
-                            boxShadow: `0 0 20px ${color}33`
-                        }}
-                    >
-                        <span className="text-[10px] opacity-75 font-mono absolute top-1.5 left-2">{element.atomicNumber}</span>
-                        <span className="text-3xl font-extrabold tracking-tight" style={{ color: color }}>{element.symbol}</span>
-                        <span className="text-[9px] opacity-75 font-mono absolute bottom-1.5">{element.atomicMass.toFixed(2)}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        <span
-                            className="px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wider"
-                            style={{ backgroundColor: `${color}25`, color: color, border: `1px solid ${color}44` }}
-                        >
-                            {categoryLabels[element.category]}
-                        </span>
-                        <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors">
-                            <X className="w-5 h-5" />
-                        </button>
-                    </div>
-                </div>
-
-                <h3 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
-                    {element.name}
-                    <span className="text-xs font-mono text-muted-foreground">Block-{getElementBlock(element.atomicNumber).toUpperCase()}</span>
-                </h3>
-
-                <div className="flex items-center gap-2 mb-4 text-xs">
-                    <span className="px-2 py-0.5 rounded bg-white/10 text-slate-300">
-                        {STATE_ICONS[stateAtTemp] || 'Solid'} at {currentTemp} K
-                    </span>
-                    {props?.discoveryYear && (
-                        <span className="text-muted-foreground">Discovered: {props.discoveryYear}</span>
-                    )}
-                </div>
-
-                <div className="space-y-2 text-sm mb-6 bg-slate-900/80 p-3.5 rounded-xl border border-white/5 font-mono">
-                    <div className="flex justify-between py-1 border-b border-white/5">
-                        <span className="text-slate-400">Atomic Mass</span>
-                        <span className="text-white font-semibold">
-                            <AnimatedNumber value={element.atomicMass} format={(v) => v.toFixed(4)} suffix=" u" />
-                        </span>
-                    </div>
-                    <div className="flex justify-between py-1 border-b border-white/5">
-                        <span className="text-slate-400">Electron Shells</span>
-                        <span className="text-primary font-semibold">{element.shells.join(' • ')}</span>
-                    </div>
-                    <div className="flex justify-between py-1 border-b border-white/5">
-                        <span className="text-slate-400">Melting Point</span>
-                        <span className="text-white">{props?.meltingPoint ? `${props.meltingPoint} K (${props.meltingPoint - 273} °C)` : 'Unknown'}</span>
-                    </div>
-                    <div className="flex justify-between py-1">
-                        <span className="text-slate-400">Boiling Point</span>
-                        <span className="text-white">{props?.boilingPoint ? `${props.boilingPoint} K (${props.boilingPoint - 273} °C)` : 'Unknown'}</span>
-                    </div>
-                </div>
-
-                <div className="flex gap-2">
-                    <button
-                        onClick={onSelect}
-                        className="flex-1 py-3 rounded-xl font-bold text-slate-950 transition-all flex items-center justify-center gap-2 shadow-lg"
-                        style={{ backgroundColor: color }}
-                    >
-                        <Atom className="w-4 h-4" />
-                        Explore 3D Atomic Model
-                    </button>
-                    <a
-                        href={`https://en.wikipedia.org/wiki/${element.name}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-3 bg-white/10 hover:bg-white/20 rounded-xl text-slate-300 hover:text-white transition-colors"
-                        title="Wikipedia Page"
-                    >
-                        <ExternalLink className="w-5 h-5" />
-                    </a>
-                </div>
-            </motion.div>
-        </motion.div>
-    );
-});
-
-// Mobile Element Card
-const MobileElementCard = memo(function MobileElementCard({
-    element, onTap, currentTemp
-}: { element: ChemicalElement; onTap: () => void; currentTemp: number; }) {
-    const color = categoryColors[element.category] || '#38bdf8';
-    const stateAtTemp = getElementStateAtTemp(element.atomicNumber, currentTemp);
-
-    return (
-        <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={onTap}
-            className="flex items-center gap-3 p-3 rounded-xl w-full text-left transition-all border border-white/5 hover:border-white/20"
-            style={{ backgroundColor: `${color}10` }}
-        >
-            <div
-                className="w-12 h-12 rounded-lg flex flex-col items-center justify-center font-bold flex-shrink-0"
-                style={{
-                    backgroundColor: `${color}25`,
-                    color: color,
-                    border: `1.5px solid ${color}66`
-                }}
-            >
-                <span className="text-[10px] opacity-75 font-mono">{element.atomicNumber}</span>
-                <span className="text-lg font-bold leading-tight">{element.symbol}</span>
-            </div>
-            <div className="flex-1 min-w-0">
-                <div className="font-semibold text-white truncate flex items-center gap-2">
-                    {element.name}
-                    <span className="text-[10px] font-normal px-1.5 py-0.2 rounded bg-white/10 text-slate-300">
-                        {stateAtTemp}
-                    </span>
-                </div>
-                <div className="text-xs capitalize truncate" style={{ color: color }}>
-                    {categoryLabels[element.category]}
-                </div>
-            </div>
-            <div className="text-right text-xs text-slate-400 font-mono">
-                {element.atomicMass.toFixed(2)} u
-            </div>
-        </motion.button>
-    );
-});
-
-// Desktop Element Cell with 3D Hover & Scientific Category Hue
-const DesktopElementCell = memo(function DesktopElementCell({
-    element, isSelected, isDimmed, onQuickView, currentTemp
-}: {
-    element: ChemicalElement;
-    isSelected: boolean;
-    isDimmed: boolean;
-    onQuickView: () => void;
-    currentTemp: number;
-}) {
-    const x = useMotionValue(0);
-    const y = useMotionValue(0);
-    const rotateX = useTransform(y, [-15, 15], [12, -12]);
-    const rotateY = useTransform(x, [-15, 15], [-12, 12]);
-
-    const color = categoryColors[element.category] || '#38bdf8';
-    const stateAtTemp = getElementStateAtTemp(element.atomicNumber, currentTemp);
-
-    const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement>) => {
-        const rect = e.currentTarget.getBoundingClientRect();
-        x.set(e.clientX - rect.left - rect.width / 2);
-        y.set(e.clientY - rect.top - rect.height / 2);
-    };
-
-    const handleMouseLeave = () => {
-        x.set(0);
-        y.set(0);
-    };
-
-    return (
-        <motion.button
-            variants={{
-                hidden: { opacity: 0, scale: 0.6 },
-                visible: { opacity: isDimmed ? 0.25 : 1, scale: 1, transition: { type: "spring", stiffness: 350, damping: 22 } }
-            }}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
-            whileHover={{ scale: 1.18, zIndex: 30 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onQuickView}
-            className={cn(
-                "w-full aspect-square rounded-md transition-all relative overflow-hidden flex flex-col items-center justify-between p-1 select-none border",
-                isSelected ? "ring-2 ring-white shadow-glow" : ""
-            )}
-            style={{
-                rotateX,
-                rotateY,
-                transformStyle: "preserve-3d",
-                backgroundColor: `${color}18`,
-                borderColor: isSelected ? '#ffffff' : `${color}45`,
-                boxShadow: isSelected ? `0 0 16px ${color}` : `0 2px 6px rgba(0,0,0,0.4)`
-            }}
-            title={`${element.name} (${element.symbol}) - #${element.atomicNumber} - ${categoryLabels[element.category]} - ${stateAtTemp}`}
-        >
-            {/* Top row: Number & State dot */}
-            <div className="w-full flex items-center justify-between text-[8px] font-mono leading-none pointer-events-none opacity-80">
-                <span className="text-slate-300">{element.atomicNumber}</span>
-                <span className={cn(
-                    "w-1.5 h-1.5 rounded-full",
-                    stateAtTemp === 'gas' ? "bg-purple-400 animate-pulse" :
-                    stateAtTemp === 'liquid' ? "bg-blue-400" : "bg-emerald-400"
-                )} title={`State at ${currentTemp}K: ${stateAtTemp}`} />
-            </div>
-
-            {/* Center Symbol */}
-            <div
-                className="text-xs sm:text-sm font-extrabold tracking-tight leading-none pointer-events-none"
-                style={{ color: color, textShadow: `0 0 8px ${color}88` }}
-            >
-                {element.symbol}
-            </div>
-
-            {/* Bottom row: Atomic mass */}
-            <div className="w-full text-center text-[7px] font-mono text-slate-400 truncate pointer-events-none leading-none">
-                {element.atomicMass < 100 ? element.atomicMass.toFixed(1) : Math.round(element.atomicMass)}
-            </div>
-        </motion.button>
-    );
-});
+type HeatmapMode = 'category' | 'electronegativity' | 'ionization' | 'radius' | 'density';
 
 export const PeriodicTableGrid = memo(function PeriodicTableGrid({
-    selectedElement, onSelectElement, onChangeViewMode,
+    selectedElement,
+    onSelectElement,
 }: PeriodicTableGridProps) {
-    const [quickViewElement, setQuickViewElement] = useState<ChemicalElement | null>(null);
-    const [activeCategory, setActiveCategory] = useState<string>('all');
-    const [activeBlock, setActiveBlock] = useState<ElementBlock | 'all'>('all');
-    const [currentTemp, setCurrentTemp] = useState<number>(298); // Room temp default: 298 K (25 °C)
-    const [tempUnit, setTempUnit] = useState<'K' | 'C'>('K');
+    const [selectedCategory, setSelectedCategory] = useState('all');
+    const [selectedBlock, setSelectedBlock] = useState<string>('all');
+    const [temperatureK, setTemperatureK] = useState(298); // 25°C standard room temp
+    const [heatmapMode, setHeatmapMode] = useState<HeatmapMode>('category');
+    const [hoveredElement, setHoveredElement] = useState<ChemicalElement | null>(null);
+    const [popupElement, setPopupElement] = useState<ChemicalElement | null>(null);
 
-    const grid = useMemo(() => {
-        const cells: (ChemicalElement | null)[][] = Array(11).fill(null).map(() => Array(19).fill(null));
-        elements.forEach((element) => {
-            const pos = LAYOUT[element.atomicNumber];
-            if (pos) cells[pos[0]][pos[1]] = element;
-        });
-        return cells;
-    }, []);
-
-    const isElementDimmed = (element: ChemicalElement) => {
-        const matchesCategory = activeCategory === 'all' || element.category === activeCategory;
-        const matchesBlock = activeBlock === 'all' || getElementBlock(element.atomicNumber) === activeBlock;
-        return !matchesCategory || !matchesBlock;
-    };
-
+    // Filter elements
     const filteredElements = useMemo(() => {
-        return elements.filter(el => {
-            const matchesCat = activeCategory === 'all' || el.category === activeCategory;
-            const matchesBlk = activeBlock === 'all' || getElementBlock(el.atomicNumber) === activeBlock;
-            return matchesCat && matchesBlk;
+        return elements.filter((el) => {
+            const matchesCat = selectedCategory === 'all' || el.category === selectedCategory;
+            const block = getElementBlock(el.atomicNumber);
+            const matchesBlock = selectedBlock === 'all' || block === selectedBlock;
+            return matchesCat && matchesBlock;
         });
-    }, [activeCategory, activeBlock]);
+    }, [selectedCategory, selectedBlock]);
 
-    const handleQuickView = (element: ChemicalElement) => setQuickViewElement(element);
-    const handleSelect = () => {
-        if (quickViewElement) {
-            onSelectElement(quickViewElement);
-            setQuickViewElement(null);
+    // Active element preview
+    const activeDisplayElement = hoveredElement || selectedElement || elements[0];
+
+    // Compute cell background color dynamically based on heatmap
+    const getCellColor = (element: ChemicalElement) => {
+        const props = elementProperties[element.atomicNumber];
+        const baseColor = categoryColors[element.category] || '#38bdf8';
+
+        if (heatmapMode === 'electronegativity') {
+            const en = props?.electronegativity;
+            if (!en) return '#334155';
+            const ratio = Math.max(0, Math.min(1, (en - 0.7) / (4.0 - 0.7)));
+            return `hsl(${Math.round(240 - ratio * 240)}, 85%, 50%)`;
         }
-    };
 
-    const tempDisplay = tempUnit === 'K' ? `${currentTemp} K` : `${currentTemp - 273} °C`;
+        if (heatmapMode === 'ionization') {
+            const ie = props?.ionizationEnergy;
+            if (!ie) return '#334155';
+            const ratio = Math.max(0, Math.min(1, (ie - 350) / (2400 - 350)));
+            return `hsl(${Math.round(280 - ratio * 280)}, 90%, 55%)`;
+        }
+
+        if (heatmapMode === 'radius') {
+            const r = props?.atomicRadius;
+            if (!r) return '#334155';
+            const ratio = Math.max(0, Math.min(1, (r - 30) / (280 - 30)));
+            return `hsl(${Math.round(180 + ratio * 140)}, 85%, 50%)`;
+        }
+
+        if (heatmapMode === 'density') {
+            const d = props?.density;
+            if (!d) return '#334155';
+            const ratio = Math.max(0, Math.min(1, d / 22.6));
+            return `hsl(${Math.round(45 + ratio * 280)}, 90%, 50%)`;
+        }
+
+        return baseColor;
+    };
 
     return (
-        <div className="w-full h-full flex flex-col bg-gradient-to-b from-slate-950 via-black to-slate-950 overflow-hidden">
-            {/* Top Interactive Controls Toolbar */}
-            <div className="flex-none p-3 sm:px-6 sm:py-3 border-b border-white/10 bg-slate-950/80 backdrop-blur-md flex flex-wrap items-center justify-between gap-3 z-20">
-                {/* Category & Block Filters */}
-                <div className="flex items-center flex-wrap gap-1.5">
-                    <span className="text-xs font-semibold text-muted-foreground mr-1 flex items-center gap-1">
-                        <Sparkles className="w-3.5 h-3.5 text-primary" /> Filter:
-                    </span>
-                    <button
-                        onClick={() => { setActiveCategory('all'); setActiveBlock('all'); }}
-                        className={cn(
-                            "px-2.5 py-1 rounded-md text-xs font-medium transition-all",
-                            activeCategory === 'all' && activeBlock === 'all'
-                                ? "bg-white text-black font-semibold shadow-md"
-                                : "bg-slate-900 text-slate-400 hover:text-white border border-white/5"
-                        )}
-                    >
-                        All (118)
-                    </button>
+        <div className="h-full flex flex-col bg-slate-950/90 text-white font-mono select-none overflow-hidden relative matrix-grid-bg">
+            {/* Top Command Telemetry Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-black/80 border-b border-white/10 backdrop-blur-md z-20">
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-bold">
+                        <Grid3X3 className="w-3.5 h-3.5" />
+                        <span>QUANTUM SPECTROMETRY MATRIX</span>
+                    </div>
 
-                    {/* Block filters */}
-                    {(['s', 'p', 'd', 'f'] as ElementBlock[]).map((block) => (
+                    {/* Block Quick Filters */}
+                    <div className="hidden sm:flex items-center gap-1 bg-slate-900/90 p-0.5 rounded border border-white/10 text-[10px]">
+                        {['all', 's', 'p', 'd', 'f'].map((b) => (
+                            <button
+                                key={b}
+                                onClick={() => setSelectedBlock(b)}
+                                className={`px-2 py-0.5 rounded uppercase font-bold transition-all ${
+                                    selectedBlock === b
+                                        ? 'bg-cyan-500 text-black shadow-[0_0_8px_#00f0ff]'
+                                        : 'text-slate-400 hover:text-white'
+                                }`}
+                            >
+                                {b === 'all' ? 'All Blocks' : `${b}-block`}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Heatmap Telemetry Mode Toggle */}
+                <div className="flex items-center gap-1 bg-slate-900/90 p-0.5 rounded border border-white/10 text-[10px]">
+                    <span className="px-2 text-slate-500 flex items-center gap-1">
+                        <Activity className="w-3 h-3 text-cyan-400" /> Heatmap:
+                    </span>
+                    {(['category', 'electronegativity', 'ionization', 'radius', 'density'] as HeatmapMode[]).map((mode) => (
                         <button
-                            key={block}
-                            onClick={() => { setActiveBlock(activeBlock === block ? 'all' : block); }}
-                            className={cn(
-                                "px-2 py-0.5 rounded text-xs font-mono transition-all",
-                                activeBlock === block
-                                    ? "bg-primary text-primary-foreground font-bold"
-                                    : "bg-slate-900 text-slate-400 hover:text-white border border-white/5"
-                            )}
+                            key={mode}
+                            onClick={() => setHeatmapMode(mode)}
+                            className={`px-2 py-0.5 rounded uppercase font-bold transition-all ${
+                                heatmapMode === mode
+                                    ? 'bg-white/20 text-white border border-white/30'
+                                    : 'text-slate-400 hover:text-white'
+                            }`}
                         >
-                            {block}-block
+                            {mode.slice(0, 6)}
                         </button>
                     ))}
                 </div>
+            </div>
 
-                {/* Temperature Simulator Slider (0 K to 6000 K) */}
-                <div className="flex items-center gap-3 bg-slate-900/90 px-3 py-1.5 rounded-xl border border-white/10">
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Thermometer className="w-4 h-4 text-orange-400" />
-                        <span className="font-mono font-bold text-white min-w-[70px]">{tempDisplay}</span>
-                    </div>
-
-                    <input
-                        type="range"
-                        min="0"
-                        max="6000"
-                        step="10"
-                        value={currentTemp}
-                        onChange={(e) => setCurrentTemp(Number(e.target.value))}
-                        className="w-24 sm:w-36 accent-primary cursor-pointer"
-                        title="Simulate Temperature"
-                    />
-
-                    {/* Quick Temp Presets */}
-                    <div className="hidden lg:flex items-center gap-1 text-[10px]">
-                        <button onClick={() => setCurrentTemp(0)} className="px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/15 text-slate-300">0K</button>
-                        <button onClick={() => setCurrentTemp(273)} className="px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/15 text-slate-300">0°C</button>
-                        <button onClick={() => setCurrentTemp(298)} className="px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/15 text-slate-300">25°C</button>
-                        <button onClick={() => setCurrentTemp(373)} className="px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/15 text-slate-300">100°C</button>
-                        <button onClick={() => setCurrentTemp(5778)} className="px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/15 text-orange-400 font-bold">Sun</button>
-                    </div>
-
-                    <button
-                        onClick={() => setTempUnit(tempUnit === 'K' ? 'C' : 'K')}
-                        className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/10 text-white hover:bg-white/20"
+            {/* Main Interactive Stage Area */}
+            <div className="flex-1 flex flex-col xl:flex-row gap-2 p-2 overflow-hidden min-h-0">
+                {/* 18-Column Interactive Table Grid (Scrollable on tablet/mobile) */}
+                <div className="flex-1 overflow-auto rounded-xl bg-black/60 border border-white/10 p-3 relative">
+                    <div
+                        className="grid gap-1 min-w-[720px]"
+                        style={{
+                            gridTemplateColumns: 'repeat(18, minmax(36px, 1fr))',
+                            gridTemplateRows: 'repeat(10, minmax(42px, 1fr))',
+                        }}
                     >
-                        °{tempUnit}
-                    </button>
-                </div>
-            </div>
+                        {/* Period and Group Header Indicators */}
+                        {Array.from({ length: 18 }).map((_, i) => (
+                            <div key={`col-${i}`} className="text-center text-[9px] text-slate-500 font-bold self-end pb-0.5" style={{ gridColumn: i + 1, gridRow: 1 }}>
+                                {i + 1}
+                            </div>
+                        ))}
 
-            {/* Category Quick Tags Strip */}
-            <div className="flex-none px-4 py-2 border-b border-white/5 bg-slate-950/40 overflow-x-auto hide-scrollbar flex items-center gap-1.5">
-                {CATEGORIES.slice(1).map((cat) => {
-                    const color = categoryColors[cat as keyof typeof categoryColors];
-                    const isActive = activeCategory === cat;
-                    return (
-                        <button
-                            key={cat}
-                            onClick={() => setActiveCategory(activeCategory === cat ? 'all' : cat)}
-                            className={cn(
-                                "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] whitespace-nowrap transition-all border",
-                                isActive ? "bg-white/15 font-semibold text-white" : "text-slate-400 hover:text-white bg-slate-900/60 border-white/5"
-                            )}
-                            style={{ borderColor: isActive ? color : undefined }}
-                        >
-                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-                            {categoryLabels[cat as keyof typeof categoryLabels]}
-                        </button>
-                    );
-                })}
-            </div>
+                        {/* Element Cells */}
+                        {elements.map((el) => {
+                            const [row, col] = LAYOUT[el.atomicNumber] || [1, 1];
+                            const isFiltered = filteredElements.some((item) => item.atomicNumber === el.atomicNumber);
+                            const isSelected = selectedElement?.atomicNumber === el.atomicNumber;
+                            const isHovered = hoveredElement?.atomicNumber === el.atomicNumber;
+                            const stateAtTemp = getElementStateAtTemp(el.atomicNumber, temperatureK);
+                            const cellColor = getCellColor(el);
 
-            {/* ===== MOBILE VIEW ===== */}
-            <div className="sm:hidden flex-1 overflow-y-auto p-3 space-y-2">
-                <div className="text-xs text-muted-foreground px-1 pb-1">
-                    Showing {filteredElements.length} elements (Tap for 3D model & details):
-                </div>
-                {filteredElements.map((element) => (
-                    <MobileElementCard
-                        key={element.atomicNumber}
-                        element={element}
-                        onTap={() => handleQuickView(element)}
-                        currentTemp={currentTemp}
-                    />
-                ))}
-            </div>
-
-            {/* ===== DESKTOP 18-COLUMN GRID VIEW ===== */}
-            <div className="hidden sm:flex flex-1 overflow-auto p-4 items-center justify-center">
-                <div className="w-full max-w-5xl mx-auto">
-                    {/* Periods 1 to 7 Main Grid */}
-                    <motion.div
-                        initial="hidden"
-                        animate="visible"
-                        variants={{ visible: { transition: { staggerChildren: 0.008 } } }}
-                        className="grid gap-1.5"
-                        style={{ gridTemplateColumns: 'repeat(18, minmax(28px, 1fr))', perspective: 1200 }}
-                    >
-                        {grid.slice(1, 8).map((row, rowIndex) =>
-                            row.slice(1).map((element, colIndex) => (
-                                <div key={`main-${rowIndex}-${colIndex}`} className="aspect-square">
-                                    {element ? (
-                                        <DesktopElementCell
-                                            element={element}
-                                            isSelected={selectedElement?.atomicNumber === element.atomicNumber}
-                                            isDimmed={isElementDimmed(element)}
-                                            onQuickView={() => handleQuickView(element)}
-                                            currentTemp={currentTemp}
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full pointer-events-none" />
+                            return (
+                                <button
+                                    key={el.atomicNumber}
+                                    onClick={() => {
+                                        onSelectElement(el);
+                                        setPopupElement(el);
+                                    }}
+                                    onMouseEnter={() => setHoveredElement(el)}
+                                    onMouseLeave={() => setHoveredElement(null)}
+                                    style={{
+                                        gridRow: row,
+                                        gridColumn: col,
+                                        opacity: isFiltered ? 1.0 : 0.15,
+                                        borderColor: isSelected || isHovered ? '#ffffff' : `${cellColor}40`,
+                                        backgroundColor: isSelected || isHovered ? `${cellColor}30` : `${cellColor}10`,
+                                        boxShadow: isSelected || isHovered ? `0 0 14px ${cellColor}` : 'none',
+                                    }}
+                                    className={cn(
+                                        'relative rounded p-1 flex flex-col items-center justify-between border transition-all text-left group hover:z-30 hover:scale-105',
+                                        isSelected && 'ring-2 ring-white z-20'
                                     )}
-                                </div>
-                            ))
-                        )}
-                    </motion.div>
+                                >
+                                    {/* Number & State Icon */}
+                                    <div className="w-full flex items-center justify-between text-[8px] opacity-75 font-mono leading-none">
+                                        <span>{el.atomicNumber}</span>
+                                        <span className="text-[7px]">
+                                            {stateAtTemp === 'gas' ? '💨' : stateAtTemp === 'liquid' ? '💧' : '🧊'}
+                                        </span>
+                                    </div>
 
-                    {/* Gap between Main Grid and f-block */}
-                    <div className="h-3 sm:h-4" />
+                                    {/* Symbol */}
+                                    <div className="text-sm font-extrabold tracking-tight leading-none my-0.5" style={{ color: cellColor }}>
+                                        {el.symbol}
+                                    </div>
 
-                    {/* Lanthanides Series */}
-                    <div className="flex items-center gap-2 mb-1.5">
-                        <span className="text-[10px] font-mono text-indigo-400 w-12 text-right">57-71 La</span>
-                        <motion.div
-                            initial="hidden"
-                            animate="visible"
-                            variants={{ visible: { transition: { staggerChildren: 0.008, delayChildren: 0.2 } } }}
-                            className="flex-1 grid gap-1.5"
-                            style={{ gridTemplateColumns: 'repeat(15, minmax(28px, 1fr))', perspective: 1200 }}
-                        >
-                            {grid[9].slice(3, 18).map((element, i) => (
-                                <div key={`lanthanide-${i}`} className="aspect-square">
-                                    {element ? (
-                                        <DesktopElementCell
-                                            element={element}
-                                            isSelected={selectedElement?.atomicNumber === element.atomicNumber}
-                                            isDimmed={isElementDimmed(element)}
-                                            onQuickView={() => handleQuickView(element)}
-                                            currentTemp={currentTemp}
-                                        />
-                                    ) : <div />}
-                                </div>
-                            ))}
-                        </motion.div>
+                                    {/* Mass or Heatmap Value */}
+                                    <div className="w-full text-center text-[7.5px] opacity-70 truncate font-mono">
+                                        {heatmapMode === 'electronegativity' && elementProperties[el.atomicNumber]?.electronegativity
+                                            ? `χ ${elementProperties[el.atomicNumber]?.electronegativity}`
+                                            : heatmapMode === 'ionization' && elementProperties[el.atomicNumber]?.ionizationEnergy
+                                            ? `${elementProperties[el.atomicNumber]?.ionizationEnergy}`
+                                            : el.atomicMass.toFixed(1)}
+                                    </div>
+                                </button>
+                            );
+                        })}
+
+                        {/* Lanthanide & Actinide Labels */}
+                        <div style={{ gridRow: 6, gridColumn: 3 }} className="flex items-center justify-center text-[9px] font-bold text-pink-400 bg-pink-500/10 border border-pink-500/30 rounded">
+                            57-71
+                        </div>
+                        <div style={{ gridRow: 7, gridColumn: 3 }} className="flex items-center justify-center text-[9px] font-bold text-red-400 bg-red-500/10 border border-red-500/30 rounded">
+                            89-103
+                        </div>
                     </div>
+                </div>
 
-                    {/* Actinides Series */}
-                    <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono text-rose-400 w-12 text-right">89-103 Ac</span>
-                        <motion.div
-                            initial="hidden"
-                            animate="visible"
-                            variants={{ visible: { transition: { staggerChildren: 0.008, delayChildren: 0.3 } } }}
-                            className="flex-1 grid gap-1.5"
-                            style={{ gridTemplateColumns: 'repeat(15, minmax(28px, 1fr))', perspective: 1200 }}
-                        >
-                            {grid[10].slice(3, 18).map((element, i) => (
-                                <div key={`actinide-${i}`} className="aspect-square">
-                                    {element ? (
-                                        <DesktopElementCell
-                                            element={element}
-                                            isSelected={selectedElement?.atomicNumber === element.atomicNumber}
-                                            isDimmed={isElementDimmed(element)}
-                                            onQuickView={() => handleQuickView(element)}
-                                            currentTemp={currentTemp}
-                                        />
-                                    ) : <div />}
+                {/* Right / Bottom Telemetry Control HUD */}
+                <div className="w-full xl:w-80 flex flex-col gap-2 overflow-y-auto">
+                    {/* Thermal Scrubber Component */}
+                    <ThermalScrubber temperatureK={temperatureK} onTemperatureChange={setTemperatureK} />
+
+                    {/* Active Hovered Element Spectroscopy & Telemetry Card */}
+                    {activeDisplayElement && (
+                        <div className="p-3 rounded-lg bg-black/85 border border-white/10 space-y-2.5">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <div className="text-[10px] text-slate-400 uppercase tracking-wider font-mono">Active Target</div>
+                                    <div className="text-lg font-extrabold text-white flex items-center gap-2">
+                                        <span style={{ color: categoryColors[activeDisplayElement.category] || '#38bdf8' }}>
+                                            {activeDisplayElement.name}
+                                        </span>
+                                        <span className="text-xs text-slate-400 font-mono">#{activeDisplayElement.atomicNumber}</span>
+                                    </div>
+                                    <div className="text-[10px] text-cyan-300 font-mono">
+                                        {categoryLabels[activeDisplayElement.category]} • {getElementBlock(activeDisplayElement.atomicNumber).toUpperCase()}-Block
+                                    </div>
                                 </div>
-                            ))}
-                        </motion.div>
-                    </div>
+
+                                <button
+                                    onClick={() => onSelectElement(activeDisplayElement)}
+                                    className="hardware-btn bg-cyan-500 text-black border-cyan-400 hover:bg-cyan-400 font-bold"
+                                >
+                                    <Atom className="w-3 h-3" /> Explore
+                                </button>
+                            </div>
+
+                            {/* Spectroscopy Real-Time Footprint */}
+                            <SpectroscopyBar element={activeDisplayElement} />
+                        </div>
+                    )}
                 </div>
             </div>
 
-            {/* Quick View Popup Modal */}
+            {/* Element Detail Popup Modal */}
             <AnimatePresence>
-                {quickViewElement && (
-                    <ElementPopup
-                        element={quickViewElement}
-                        onClose={() => setQuickViewElement(null)}
-                        onSelect={handleSelect}
-                        currentTemp={currentTemp}
-                    />
+                {popupElement && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4"
+                        onClick={() => setPopupElement(null)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.9, y: 20 }}
+                            className="bg-slate-950 border border-white/20 rounded-2xl p-5 max-w-md w-full shadow-2xl space-y-4"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex items-start justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div
+                                        className="w-14 h-14 rounded-xl flex flex-col items-center justify-center font-bold border-2"
+                                        style={{
+                                            borderColor: categoryColors[popupElement.category] || '#00f0ff',
+                                            backgroundColor: `${categoryColors[popupElement.category]}20`,
+                                        }}
+                                    >
+                                        <span className="text-xs text-slate-400">{popupElement.atomicNumber}</span>
+                                        <span className="text-xl text-white font-extrabold">{popupElement.symbol}</span>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-bold text-white">{popupElement.name}</h3>
+                                        <p className="text-xs text-cyan-400 font-mono">{categoryLabels[popupElement.category]}</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setPopupElement(null)} className="p-1 rounded hover:bg-white/10 text-slate-400">
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+
+                            <SpectroscopyBar element={popupElement} />
+
+                            <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+                                <div className="p-2 rounded bg-white/5 border border-white/10">
+                                    <span className="text-slate-400">Atomic Mass:</span>
+                                    <div className="font-bold text-white">{popupElement.atomicMass} u</div>
+                                </div>
+                                <div className="p-2 rounded bg-white/5 border border-white/10">
+                                    <span className="text-slate-400">Electron Shells:</span>
+                                    <div className="font-bold text-white">{popupElement.shells.join(' - ')}</div>
+                                </div>
+                                <div className="p-2 rounded bg-white/5 border border-white/10">
+                                    <span className="text-slate-400">Melting Point:</span>
+                                    <div className="font-bold text-white">{elementProperties[popupElement.atomicNumber]?.meltingPoint ?? 'N/A'} K</div>
+                                </div>
+                                <div className="p-2 rounded bg-white/5 border border-white/10">
+                                    <span className="text-slate-400">Boiling Point:</span>
+                                    <div className="font-bold text-white">{elementProperties[popupElement.atomicNumber]?.boilingPoint ?? 'N/A'} K</div>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={() => {
+                                    onSelectElement(popupElement);
+                                    setPopupElement(null);
+                                }}
+                                className="w-full py-2.5 rounded-xl font-mono text-xs font-bold bg-cyan-500 text-black hover:bg-cyan-400 transition-all flex items-center justify-center gap-2"
+                            >
+                                <Atom className="w-4 h-4" /> Launch 3D Quantum Stage
+                            </button>
+                        </motion.div>
+                    </motion.div>
                 )}
             </AnimatePresence>
         </div>

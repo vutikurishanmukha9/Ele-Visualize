@@ -1,520 +1,278 @@
+/* ==========================================================================
+   ELE-VISUALIZE: QUANTUM OBSERVATORY & ATOMIC TELEMETRY OS
+   Design System: SpaceX Telemetry x Raycast Precision x NVIDIA Hardware Craft
+   ========================================================================== */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Global Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-* {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
-}
-
-/* Hybrid System: Linear x Vercel (Ultimate Premium Dark Mode) */
 @layer base {
   :root {
-    --background: 240 10% 4%; /* #010102 roughly */
-    --foreground: 0 0% 97%;
+    /* Pure Carbon Obsidian Canvas */
+    --color-obsidian-0: #030406;
+    --color-obsidian-1: #07090d;
+    --color-obsidian-2: #0e1117;
+    --color-obsidian-3: #151922;
+    --color-obsidian-4: #1d222e;
 
-    --card: 210 5% 6%; /* #0f1011 */
-    --card-foreground: 0 0% 97%;
-    --popover: 210 5% 6%;
-    --popover-foreground: 0 0% 97%;
-
-    --primary: 0 0% 97%; /* Pure White */
-    --primary-foreground: 240 10% 4%;
-
-    --secondary: 210 5% 10%; /* #18191a */
-    --secondary-foreground: 0 0% 97%;
-
-    --muted: 210 5% 10%;
-    --muted-foreground: 220 5% 60%;
-
-    --accent: 0 0% 97%;
-    --accent-foreground: 240 10% 4%;
-
-    /* Element Colors */
-
-    --destructive: 0 60% 50%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 0 0% 100%; /* Border controlled by shadow opacity */
-    --input: 210 5% 10%;
-    --ring: 0 0% 100%; /* White focus ring */
-
-    --radius: 6px;
-
-    /* Strict Tokens */
-    --color-canvas: #010102;
-    --color-surface-1: #0f1011;
-    --color-surface-2: #18191a;
-    --color-ink: #f7f8f8;
-    --color-ink-muted: #8a8f98;
-    --color-accent: #f7f8f8; /* Changed from blue to stark white */
+    /* Architectural Hairlines & Grid */
     --color-hairline: rgba(255, 255, 255, 0.08);
+    --color-hairline-strong: rgba(255, 255, 255, 0.16);
+    --color-hairline-glow: rgba(0, 245, 255, 0.25);
 
+    /* Quantum Telemetry Accents */
+    --color-phosphor-cyan: #00f5ff;
+    --color-phosphor-glow: rgba(0, 245, 255, 0.35);
+    --color-amber-ionization: #ffb700;
+    --color-amber-glow: rgba(255, 183, 0, 0.35);
+    --color-fusion-coral: #ff3355;
+    --color-fusion-glow: rgba(255, 51, 85, 0.35);
+    --color-orbital-violet: #b55fe6;
+    --color-orbital-glow: rgba(181, 95, 230, 0.35);
+    --color-matrix-emerald: #00ff88;
+
+    /* Typography Inks */
+    --color-ink-pure: #ffffff;
+    --color-ink-primary: #f0f2f5;
+    --color-ink-secondary: #9da5b4;
+    --color-ink-muted: #5c6370;
+    --color-ink-dim: #3b4252;
+
+    /* Base mappings */
+    --background: 224 25% 3%;
+    --foreground: 210 20% 98%;
+    --card: 224 25% 6%;
+    --card-foreground: 210 20% 98%;
+    --popover: 224 25% 6%;
+    --popover-foreground: 210 20% 98%;
+    --primary: 187 100% 50%;
+    --primary-foreground: 224 25% 3%;
+    --secondary: 224 20% 12%;
+    --secondary-foreground: 210 20% 98%;
+    --muted: 224 20% 12%;
+    --muted-foreground: 220 12% 65%;
+    --accent: 187 100% 50%;
+    --accent-foreground: 224 25% 3%;
+    --destructive: 348 100% 60%;
+    --destructive-foreground: 210 20% 98%;
+    --border: 224 15% 15%;
+    --input: 224 20% 12%;
+    --ring: 187 100% 50%;
+
+    --font-mono: "JetBrains Mono", "Space Mono", "Courier New", monospace;
     --font-display: "Space Grotesk", sans-serif;
-    --font-body: "Inter", sans-serif;
+    --font-body: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
 
-    --shadow-border: 0px 0px 0px 1px var(--color-hairline);
-    --shadow-card: 0px 0px 0px 1px var(--color-hairline), 0px 4px 8px -2px rgba(0,0,0,0.4);
-    
-    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-    --dur-short: 220ms;
+    --ease-tactile: cubic-bezier(0.16, 1, 0.3, 1);
+    --dur-quick: 140ms;
   }
-}
 
-@layer base {
-  body {
-    background-color: var(--color-canvas);
-    color: var(--color-ink);
+  html, body {
+    background-color: var(--color-obsidian-0);
+    color: var(--color-ink-primary);
     font-family: var(--font-body);
-    letter-spacing: -0.01em;
+    overflow-x: clip;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.01em;
   }
 
-  h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-display);
-    letter-spacing: -0.04em;
-    font-weight: 500;
-  }
-
-  button, input {
-    letter-spacing: 0;
-  }
-
-  button:focus-visible, input:focus-visible {
-    outline: 1px solid var(--color-accent);
-    outline-offset: 2px;
-  }
-
+  /* Custom Precision Scrollbars */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 4px;
+    height: 4px;
   }
   ::-webkit-scrollbar-track {
-    background: var(--color-canvas);
+    background: var(--color-obsidian-1);
   }
   ::-webkit-scrollbar-thumb {
-    background: var(--color-surface-2);
-    border-radius: 99px;
+    background: var(--color-obsidian-4);
+    border-radius: 2px;
   }
   ::-webkit-scrollbar-thumb:hover {
     background: var(--color-ink-muted);
   }
 }
 
+/* ==========================================================================
+   BESPOKE HARDWARE & TELEMETRY UTILITY CLASSES
+   ========================================================================== */
+
 @layer components {
-  /* Layout */
-  .workbench-layout {
-    @apply grid h-screen grid-cols-[280px_minmax(0,1fr)_300px] xl:grid-cols-[300px_minmax(0,1fr)_340px] gap-0 px-0 pt-16 md:px-0;
-    background-color: var(--color-canvas);
+  /* Telemetry Chamber & Panels */
+  .telemetry-panel {
+    background: linear-gradient(180deg, rgba(14, 17, 23, 0.85) 0%, rgba(7, 9, 13, 0.95) 100%);
+    border: 1px solid var(--color-hairline);
+    backdrop-filter: blur(16px);
+    position: relative;
   }
 
-  .workbench-layout.is-tablet {
-    @apply grid-cols-[260px_minmax(0,1fr)];
+  .telemetry-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.15) 50%, transparent 100%);
+    pointer-events: none;
   }
 
-  .workbench-layout.is-mobile {
-    @apply block px-0 pb-20;
-    height: 100dvh;
+  /* Chamfered Architectural Corners */
+  .chamfer-tl-br {
+    clip-path: polygon(
+      10px 0, 100% 0,
+      100% calc(100% - 10px), calc(100% - 10px) 100%,
+      0 100%, 0 10px
+    );
   }
 
-  .workbench-layout.is-zen {
-    @apply grid-cols-[1fr];
+  .chamfer-tr-bl {
+    clip-path: polygon(
+      0 0, calc(100% - 10px) 0,
+      100% 10px, 100% 100%,
+      10px 100%, 0 calc(100% - 10px)
+    );
   }
 
-  .workspace-nav {
-    @apply flex-none flex items-center justify-start gap-2 sm:gap-4 px-2 sm:px-4 h-12 border-b overflow-x-auto hide-scrollbar backdrop-blur-xl touch-pan-x;
-    background-color: rgba(13, 13, 13, 0.7);
-    border-color: var(--color-hairline);
-    -webkit-overflow-scrolling: touch;
+  /* Hardware Corner Ticks */
+  .corner-ticks {
+    position: relative;
+  }
+  .corner-ticks::after {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    width: 6px;
+    height: 6px;
+    border-top: 1.5px solid var(--color-phosphor-cyan);
+    border-left: 1.5px solid var(--color-phosphor-cyan);
+    pointer-events: none;
   }
 
-  .hide-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-  .hide-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-
-  .workspace-tab {
-    @apply flex items-center gap-2 h-full border-b-2 border-transparent text-sm font-medium transition-colors whitespace-nowrap;
-    color: var(--color-ink-muted);
-  }
-
-  .workspace-tab:hover {
-    color: var(--color-ink);
-  }
-
-  .workspace-tab.is-active {
-    border-color: var(--color-primary);
-    color: var(--color-ink);
-  }
-
-  .mobile-dock {
-    @apply fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-around border-t backdrop-blur-lg;
-    background-color: rgba(13, 13, 13, 0.8);
-    border-color: var(--color-hairline);
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-
-  .mobile-dock button {
-    @apply flex flex-col items-center justify-center gap-1 w-full h-full text-[10px] font-medium transition-colors;
-    color: var(--color-ink-muted);
-  }
-
-  .mobile-dock button:active {
-    color: var(--color-ink);
-    background-color: var(--color-surface-hover);
-  }
-
-  .workbench-topbar {
-    @apply fixed left-0 right-0 top-0 z-40 flex h-16 items-center justify-between px-4 backdrop-blur-xl;
-    background-color: rgba(13, 13, 13, 0.85);
-    box-shadow: 0px 1px 0px 0px var(--color-hairline);
-  }
-
-  .workbench-main {
-    background-color: transparent;
-    @apply h-full overflow-hidden flex flex-col;
-    box-shadow: 1px 0px 0px 0px var(--color-hairline);
-  }
-  
-  .discovery-rail, .inspector-panel {
-    background-color: rgba(13, 13, 13, 0.7);
-    @apply backdrop-blur-2xl h-full overflow-hidden flex flex-col z-10;
-    box-shadow: 1px 0px 0px 0px var(--color-hairline);
-  }
-  
-  .inspector-panel {
-    box-shadow: -1px 0px 0px 0px var(--color-hairline);
-  }
-
-  /* Typography / Structural Elements */
-  .surface-heading {
-    @apply flex items-center justify-between p-4;
-    box-shadow: 0px 1px 0px 0px var(--color-hairline);
-  }
-
-  .surface-heading h2 {
-    @apply text-lg;
-    color: var(--color-ink);
-  }
-
-  /* Inspector Sub-components */
-  .stat-grid {
-    @apply grid grid-cols-2 gap-4 p-4 rounded-xl border;
-    background-color: var(--color-surface-1);
-    border-color: var(--color-hairline);
-  }
-  .stat-grid > div {
-    @apply flex flex-col gap-1;
-  }
-  .stat-grid small {
-    @apply text-xs text-muted-foreground;
-  }
-  .stat-grid strong {
-    @apply text-lg font-medium;
-  }
-
-  .detail-list {
-    @apply flex flex-col px-4;
-  }
-  .detail-list > div {
-    @apply flex justify-between items-start py-3 border-b gap-4;
-    border-color: var(--color-hairline);
-  }
-  .detail-list > div:last-child {
-    @apply border-0;
-  }
-  .detail-list span {
-    @apply text-sm text-muted-foreground whitespace-nowrap;
-  }
-  .detail-list strong {
-    @apply text-sm text-right font-medium;
-    word-break: break-word;
-  }
-
-  .learning-card {
-    @apply flex gap-4 p-4 mx-4 rounded-xl border;
-    background-color: var(--color-surface-1);
-    border-color: var(--color-hairline);
-  }
-  .learning-card p {
-    @apply text-sm leading-relaxed text-muted-foreground;
-  }
-
-  /* Controls */
-  .command-trigger {
-    @apply flex h-9 w-full max-w-sm items-center gap-2 px-3 text-left text-sm transition-colors rounded-md;
-    background-color: var(--color-surface-1);
-    color: var(--color-ink-muted);
-    box-shadow: var(--shadow-border);
-  }
-  .command-trigger:hover {
-    color: var(--color-ink);
-    background-color: var(--color-surface-2);
-  }
-
-  .icon-button {
-    @apply inline-flex h-8 w-8 items-center justify-center text-sm transition-colors rounded-md;
-    color: var(--color-ink-muted);
-  }
-  .icon-button:hover {
-    color: var(--color-ink);
-    background-color: var(--color-surface-1);
-  }
-  .icon-button.is-active {
-    color: var(--color-ink);
-    background-color: var(--color-surface-2);
-  }
-
-  .premium-button {
-    @apply inline-flex h-8 items-center justify-center px-4 text-sm font-medium transition-colors rounded-md;
-    background-color: var(--color-ink);
-    color: var(--color-canvas);
-  }
-  .premium-button:hover {
-    background-color: var(--color-ink-muted);
-  }
-
-  .search-field {
-    @apply flex h-10 items-center gap-2 px-4;
-    background-color: var(--color-canvas);
-    box-shadow: 0px 1px 0px 0px var(--color-hairline);
-  }
-  .search-field input {
-    @apply flex-1 bg-transparent text-sm outline-none;
-    color: var(--color-ink);
-  }
-  .search-field input::placeholder {
-    color: var(--color-ink-muted);
-  }
-
-  /* Rail Items */
-  .rail-header {
-    @apply flex items-center justify-between p-4;
-    box-shadow: 0px 1px 0px 0px var(--color-hairline);
-  }
-  .category-strip {
-    @apply flex flex-wrap gap-2 p-4;
-    box-shadow: 0px 1px 0px 0px var(--color-hairline);
-  }
-  .category-strip button {
-    @apply px-2.5 py-1 text-xs transition-colors rounded;
-    color: var(--color-ink-muted);
-    box-shadow: var(--shadow-border);
-  }
-  .category-strip button:hover {
-    color: var(--color-ink);
-    background-color: var(--color-surface-1);
-  }
-  .category-strip button.is-active {
-    background-color: var(--color-surface-2);
-    color: var(--color-ink);
-  }
-
-  .rail-list {
-    @apply flex-1 overflow-auto p-2 space-y-1;
-  }
-  .result-card {
-    @apply flex w-full items-center gap-3 p-2 text-left transition-all duration-300 rounded-md border border-transparent;
-    color: var(--color-ink-muted);
-  }
-  .result-card:hover {
-    background-color: var(--color-surface-1);
-    color: var(--color-ink);
-    @apply translate-x-1 border-primary/20 shadow-glow;
-  }
-  
-  .periodic-tile {
-    @apply flex h-9 w-9 flex-col items-center justify-center font-bold text-sm rounded;
-    background-color: var(--color-surface-1);
-    color: var(--color-ink);
-    box-shadow: var(--shadow-border);
-  }
-  .periodic-tile small {
-    @apply text-[9px] font-normal;
-    color: var(--color-ink-muted);
-  }
-  .molecule-tile {
-    @apply flex h-9 w-12 items-center justify-center font-bold text-sm rounded;
-    background-color: var(--color-surface-1);
-    color: var(--color-ink);
-    box-shadow: var(--shadow-border);
-  }
-
-  /* Stage */
-  .visual-stage {
-    @apply relative flex h-full flex-col overflow-hidden;
-    background: radial-gradient(circle at 50% 45%, rgba(30, 41, 59, 0.45) 0%, rgba(15, 23, 42, 0.75) 45%, rgba(2, 6, 23, 0.98) 100%);
-  }
-  .visual-stage.is-fullscreen {
-    @apply fixed inset-0 z-[70];
-  }
-  .stage-toolbar {
-    @apply flex h-14 items-center justify-between px-4;
-    box-shadow: 0px 1px 0px 0px var(--color-hairline);
-  }
-  .stage-canvas {
-    @apply relative flex-1 flex items-center justify-center w-full h-full overflow-hidden;
-    background: radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.08) 0%, rgba(30, 41, 59, 0.15) 35%, transparent 70%);
-  }
-  .stage-grid {
-    @apply absolute inset-0 pointer-events-none;
+  /* Matrix Grid Lines */
+  .matrix-grid-bg {
     background-image: 
-      radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.14) 0%, transparent 60%),
-      linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-    background-size: 100% 100%, 48px 48px, 48px 48px;
-    mask-image: radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.4) 60%, transparent 80%);
-    -webkit-mask-image: radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.4) 60%, transparent 80%);
-  }
-  .stage-status {
-    @apply flex h-10 items-center gap-4 px-4 text-xs;
-    box-shadow: 0px -1px 0px 0px var(--color-hairline);
-    color: var(--color-ink-muted);
-    background-color: var(--color-surface-1);
+      linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 24px 24px;
   }
 
-  /* Inspector */
-  .inspector-tabs {
-    @apply flex items-center gap-1 p-1 mx-4 mt-4 mb-2 rounded-lg overflow-x-auto;
-    scrollbar-width: none;
-    background-color: var(--color-surface-1);
-    box-shadow: inset 0px 0px 0px 1px var(--color-hairline);
-  }
-  .inspector-tabs::-webkit-scrollbar {
-    display: none;
-  }
-  .inspector-tabs button {
-    @apply flex-1 py-1.5 px-2 text-[9px] uppercase tracking-wider transition-all rounded-md font-medium whitespace-nowrap;
-    color: var(--color-ink-muted);
-  }
-  .inspector-tabs button:hover {
-    color: var(--color-ink);
-  }
-  .inspector-tabs button.is-active {
-    background-color: var(--color-surface-2);
-    color: var(--color-ink);
-    box-shadow: 0px 1px 2px rgba(0,0,0,0.2), inset 0px 0px 0px 1px var(--color-hairline);
-  }
-  .inspector-content {
-    @apply flex-1 overflow-auto p-4 space-y-6;
-  }
-  .hero-element {
-    @apply flex items-center gap-4;
-  }
-  .hero-element > span {
-    @apply flex h-14 w-14 items-center justify-center text-xl font-bold rounded-lg;
-    background-color: var(--color-surface-1);
-    color: var(--color-ink);
-    box-shadow: var(--shadow-border);
-  }
-  .hero-element h3 {
-    @apply text-lg;
-    color: var(--color-ink);
-  }
-  .hero-element p {
-    @apply text-sm;
-    color: var(--color-ink-muted);
+  /* Tactile Hardware Buttons */
+  .hardware-btn {
+    background: var(--color-obsidian-2);
+    border: 1px solid var(--color-hairline);
+    color: var(--color-ink-primary);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 6px 12px;
+    border-radius: 3px;
+    transition: all var(--dur-quick) var(--ease-tactile);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    user-select: none;
+    position: relative;
   }
 
-  .metric-grid {
-    @apply grid grid-cols-2 gap-[1px] rounded-lg overflow-hidden;
-    background-color: var(--color-hairline);
-    box-shadow: var(--shadow-border);
-  }
-  .metric-grid div {
-    @apply p-4 flex flex-col justify-center;
-    background-color: var(--color-surface-1);
-  }
-  .metric-grid small {
-    @apply block text-[11px] uppercase tracking-wider;
-    color: var(--color-ink-muted);
-  }
-  .metric-grid strong {
-    @apply block mt-1 text-sm font-medium;
-    color: var(--color-ink);
+  .hardware-btn:hover {
+    background: var(--color-obsidian-3);
+    border-color: var(--color-hairline-strong);
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.05);
   }
 
-  .learning-card {
-    @apply p-4 text-sm leading-relaxed rounded-md;
-    background-color: var(--color-surface-1);
-    color: var(--color-ink);
-    box-shadow: var(--shadow-border);
+  .hardware-btn:active, .hardware-btn.is-active {
+    transform: translateY(1px);
+    background: var(--color-obsidian-4);
+    border-color: var(--color-phosphor-cyan);
+    color: var(--color-phosphor-cyan);
+    box-shadow: 0 0 16px var(--color-phosphor-glow);
   }
 
-  .command-panel {
-    @apply w-full max-w-xl mx-auto mt-[10vh] overflow-hidden rounded-xl shadow-2xl;
-    background-color: var(--color-canvas);
-    box-shadow: var(--shadow-card);
-  }
-  .command-section {
-    @apply px-3 py-2 text-[11px] uppercase tracking-widest;
-    color: var(--color-ink-muted);
-  }
-  .command-item {
-    @apply flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors;
-    color: var(--color-ink);
-  }
-  .command-item:hover {
-    background-color: var(--color-surface-1);
-  }
-  .element-dot {
-    @apply flex h-5 w-5 items-center justify-center rounded text-[9px] font-bold;
-    background-color: var(--color-surface-2);
-    box-shadow: var(--shadow-border);
-    color: var(--color-ink);
+  .hardware-btn:focus-visible {
+    outline: 2px solid var(--color-phosphor-cyan);
+    outline-offset: 2px;
   }
 
-  .empty-stage {
-    @apply absolute inset-0 flex flex-col items-center justify-center p-8 text-center max-w-md mx-auto space-y-4;
+  /* Status LED dot */
+  .led-indicator {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    display: inline-block;
   }
-  .empty-stage h2 {
-    @apply text-xl font-semibold;
-    color: var(--color-ink);
+  .led-cyan {
+    background-color: var(--color-phosphor-cyan);
+    box-shadow: 0 0 8px var(--color-phosphor-cyan);
   }
-  .empty-stage p {
-    @apply text-sm leading-relaxed mb-6;
-    color: var(--color-ink-muted);
+  .led-amber {
+    background-color: var(--color-amber-ionization);
+    box-shadow: 0 0 8px var(--color-amber-ionization);
   }
-  .empty-stage .brand-mark {
-    @apply flex h-14 w-14 items-center justify-center mb-4 rounded-2xl;
-    background-color: var(--color-surface-1);
-    color: var(--color-ink);
-    box-shadow: var(--shadow-border);
+  .led-coral {
+    background-color: var(--color-fusion-coral);
+    box-shadow: 0 0 8px var(--color-fusion-coral);
   }
-
-  .empty-inspector {
-    @apply flex flex-col items-center justify-center h-full text-center p-8;
-  }
-
-  /* Force Palm / Fist cursors on 3D Canvases */
-  .grab-cursor-canvas canvas {
-    cursor: grab !important;
-  }
-  .grab-cursor-canvas canvas:active {
-    cursor: grabbing !important;
+  .led-emerald {
+    background-color: var(--color-matrix-emerald);
+    box-shadow: 0 0 8px var(--color-matrix-emerald);
   }
 
-  .empty-inspector p {
-    @apply text-sm leading-relaxed;
-    color: var(--color-ink-muted);
+  /* Optical Crosshair Reticle */
+  .crosshair-reticle {
+    position: absolute;
+    pointer-events: none;
+    z-index: 20;
+  }
+  .crosshair-h {
+    width: 20px;
+    height: 1px;
+    background: rgba(0, 245, 255, 0.4);
+  }
+  .crosshair-v {
+    width: 1px;
+    height: 20px;
+    background: rgba(0, 245, 255, 0.4);
+  }
+
+  /* Workbench Master Grid */
+  .quantum-cockpit-layout {
+    display: grid;
+    height: 100vh;
+    height: 100dvh;
+    grid-template-rows: 48px 1fr 32px;
+    overflow: hidden;
+    background: var(--color-obsidian-0);
+  }
+
+  .quantum-workbench-body {
+    display: grid;
+    grid-template-columns: 290px minmax(0, 1fr) 320px;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  @media (max-width: 1200px) {
+    .quantum-workbench-body {
+      grid-template-columns: 260px minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .quantum-workbench-body {
+      display: block;
+      overflow-y: auto;
+      padding-bottom: 64px;
+    }
+  }
+
+  .quantum-workbench-body.is-zen {
+    grid-template-columns: 1fr !important;
   }
 }
