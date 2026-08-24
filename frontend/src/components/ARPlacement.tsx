@@ -16,7 +16,7 @@ interface ARPlacementProps {
     active?: boolean;
 }
 
-export function ARPlacement({ onPlace, active = true }: ARPlacementProps) {
+export function ARPlacement({ onPlace: _onPlace, active = true }: ARPlacementProps) {
     const reticleRef = useRef<THREE.Group>(null);
     const pulseRef = useRef(0);
 

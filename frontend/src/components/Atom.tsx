@@ -31,7 +31,7 @@ export function Atom({ element }: AtomProps) {
     const groupRef = useRef<THREE.Group>(null);
     const color = useMemo(() => getCategoryColor(element.category), [element.category]);
 
-    useFrame((state) => {
+    useFrame((_state) => {
         if (groupRef.current) {
             groupRef.current.rotation.y += 0.001;
             groupRef.current.rotation.z += 0.0005;

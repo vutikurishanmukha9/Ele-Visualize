@@ -14,7 +14,7 @@
  * consume via their useFrame loop to apply transformations in AR space.
  */
 
-import { useRef, useCallback, MutableRefObject } from 'react';
+import { useRef, MutableRefObject } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 

@@ -8,16 +8,9 @@ import {
   EyeOff,
   Hand,
   HelpCircle,
-  Maximize2,
-  Minimize2,
   RefreshCw,
-  Sliders,
-  Sparkles,
   Video,
   VideoOff,
-  Volume2,
-  VolumeX,
-  X,
   Zap,
 } from 'lucide-react';
 import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision';
@@ -56,7 +49,7 @@ export const HandTracker = memo(function HandTracker({
   // Settings & Toggles
   const [showVideo, setShowVideo] = useState(true);
   const [showSkeleton, setShowSkeleton] = useState(true);
-  const [mirrorMode, setMirrorMode] = useState(true);
+  const [mirrorMode, _setMirrorMode] = useState(true);
   const [sensitivity, setSensitivity] = useState(1.0);
   const [showTutorial, setShowTutorial] = useState(false);
 
@@ -339,6 +332,7 @@ export const HandTracker = memo(function HandTracker({
     return () => {
       stopTracking();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const gestureColor = GESTURE_COLORS[currentGesture] || GESTURE_COLORS.none;

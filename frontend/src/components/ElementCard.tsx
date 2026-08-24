@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ChemicalElement, categoryColors, ElementCategory } from '@/data/elements';
+import { ChemicalElement, ElementCategory } from '@/data/elements';
 import { cn } from '@/lib/utils';
 
 interface ElementCardProps {
