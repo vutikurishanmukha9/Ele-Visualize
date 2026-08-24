@@ -138,38 +138,39 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
     };
 
     return (
-        <div className="h-full flex flex-col bg-slate-50 text-slate-900 font-mono select-none overflow-hidden relative matrix-grid-bg">
+        <div className="h-full flex flex-col bg-[#F8FAF8] text-slate-900 font-sans select-none overflow-hidden relative">
             {/* Top Command Telemetry Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-white/95 border-b border-slate-200 backdrop-blur-md z-20 shadow-sm">
-                <div className="flex items-center gap-3 flex-wrap">
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-sky-50 border border-sky-200 text-sky-700 text-xs font-bold shadow-xs">
-                        <Grid3X3 className="w-3.5 h-3.5" />
+            <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-white/80 border-b border-black/[0.06] backdrop-blur-md z-20">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#e6f6ef] border border-[#bce8d5] text-[#087f5b] text-xs font-bold shadow-xs">
+                        <Grid3X3 className="w-3.5 h-3.5 text-[#16a875]" />
                         <span>IUPAC PERIODIC MATRIX</span>
                     </div>
 
                     {/* Search Field */}
                     <div className="relative flex items-center">
-                        <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2 pointer-events-none" />
+                        <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 pointer-events-none" />
                         <input
                             type="text"
                             placeholder="Filter symbol/name..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-7 pr-2 py-1 text-xs bg-slate-100 border border-slate-200 rounded-md outline-none focus:border-sky-500 w-36 text-slate-800 placeholder:text-slate-400"
+                            className="pl-8 pr-3 py-1 text-xs bg-white border border-slate-200/80 rounded-xl outline-none focus:border-[#16a875] w-36 sm:w-44 text-slate-800 placeholder:text-slate-400 shadow-xs"
                         />
                     </div>
 
                     {/* Block Quick Filters */}
-                    <div className="hidden sm:flex items-center gap-1 bg-slate-100 p-0.5 rounded border border-slate-200 text-[10px]">
+                    <div className="hidden sm:flex items-center gap-1 bg-slate-100/80 p-0.5 rounded-xl border border-slate-200/60 text-[10.5px]">
                         {['all', 's', 'p', 'd', 'f'].map((b) => (
                             <button
                                 key={b}
                                 onClick={() => setSelectedBlock(b)}
-                                className={`px-2 py-0.5 rounded uppercase font-bold transition-all ${
+                                className={cn(
+                                    "px-2.5 py-0.5 rounded-lg uppercase font-bold transition-all",
                                     selectedBlock === b
-                                        ? 'bg-sky-600 text-white shadow-sm'
-                                        : 'text-slate-600 hover:text-slate-900'
-                                }`}
+                                        ? "bg-[#e6f6ef] text-[#087f5b] border border-[#bce8d5] shadow-xs"
+                                        : "text-slate-500 hover:text-slate-900"
+                                )}
                             >
                                 {b === 'all' ? 'All' : `${b}-blk`}
                             </button>
@@ -181,27 +182,29 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                 <div className="flex items-center gap-2 flex-wrap">
                     <button
                         onClick={() => setShowTrendsOverlay(!showTrendsOverlay)}
-                        className={`px-2 py-1 rounded border text-[10px] font-bold flex items-center gap-1 transition-all ${
-                            showTrendsOverlay ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-slate-100 text-slate-600 border-slate-200 hover:text-slate-900'
-                        }`}
+                        className={cn(
+                            "px-2.5 py-1 rounded-xl border text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-xs",
+                            showTrendsOverlay ? "bg-amber-100 text-amber-800 border-amber-300" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                        )}
                         title="Toggle Periodic Trend Gradient Vectors"
                     >
-                        <TrendingUp className="w-3 h-3" /> Trends
+                        <TrendingUp className="w-3.5 h-3.5 text-amber-600" /> Trends
                     </button>
 
-                    <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded border border-slate-200 text-[10px]">
-                        <span className="px-1.5 text-slate-500 flex items-center gap-1">
-                            <Activity className="w-3 h-3 text-sky-600" /> Heatmap:
+                    <div className="flex items-center gap-1 bg-slate-100/80 p-0.5 rounded-xl border border-slate-200/60 text-[10.5px]">
+                        <span className="px-2 text-slate-500 flex items-center gap-1 font-semibold">
+                            <Activity className="w-3.5 h-3.5 text-[#16a875]" /> Heatmap:
                         </span>
                         {(['category', 'electronegativity', 'ionization', 'radius', 'density'] as HeatmapMode[]).map((mode) => (
                             <button
                                 key={mode}
                                 onClick={() => setHeatmapMode(mode)}
-                                className={`px-2 py-0.5 rounded uppercase font-bold transition-all ${
+                                className={cn(
+                                    "px-2 py-0.5 rounded-lg uppercase font-bold transition-all",
                                     heatmapMode === mode
-                                        ? 'bg-white text-sky-700 border border-slate-200 shadow-sm'
-                                        : 'text-slate-600 hover:text-slate-900'
-                                }`}
+                                        ? "bg-white text-[#087f5b] border border-slate-200 shadow-xs"
+                                        : "text-slate-500 hover:text-slate-900"
+                                )}
                             >
                                 {mode.slice(0, 4)}
                             </button>
@@ -222,20 +225,20 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                 </div>
             )}
 
-            {/* Main Interactive Stage Area */}
-            <div className="flex-1 flex flex-col xl:flex-row gap-2 p-2 overflow-hidden min-h-0">
-                {/* 18-Column Interactive Table Grid */}
-                <div className="flex-1 overflow-auto rounded-xl bg-white border border-slate-200 p-3 relative shadow-sm">
+            {/* Main Interactive Stage Area - Scrollable Workspace Container */}
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4">
+                {/* 18-Column Interactive Table Grid Hero Container */}
+                <div className="w-full rounded-2xl bg-white/90 border border-black/[0.06] p-4 relative shadow-card overflow-x-auto">
                     <div
-                        className="grid gap-1 min-w-[720px]"
+                        className="grid gap-1.5 min-w-[840px] pb-2"
                         style={{
-                            gridTemplateColumns: 'repeat(18, minmax(36px, 1fr))',
-                            gridTemplateRows: 'repeat(10, minmax(42px, 1fr))',
+                            gridTemplateColumns: 'repeat(18, minmax(42px, 1fr))',
+                            gridTemplateRows: 'repeat(10, minmax(48px, 1fr))',
                         }}
                     >
                         {/* Period and Group Header Indicators */}
                         {Array.from({ length: 18 }).map((_, i) => (
-                            <div key={`col-${i}`} className="text-center text-[9px] text-slate-500 font-bold self-end pb-0.5" style={{ gridColumn: i + 1, gridRow: 1 }}>
+                            <div key={`col-${i}`} className="text-center text-[10px] text-slate-400 font-bold self-end pb-1" style={{ gridColumn: i + 1, gridRow: 1 }}>
                                 {i + 1}
                             </div>
                         ))}
@@ -262,30 +265,30 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                                         gridRow: row,
                                         gridColumn: col,
                                         opacity: isFiltered ? 1.0 : 0.15,
-                                        borderColor: isSelected || isHovered ? '#0284c7' : `${cellColor}50`,
-                                        backgroundColor: isSelected || isHovered ? `${cellColor}25` : `${cellColor}08`,
-                                        boxShadow: isSelected || isHovered ? `0 0 10px ${cellColor}60` : 'none',
+                                        borderColor: isSelected || isHovered ? '#16a875' : `${cellColor}40`,
+                                        backgroundColor: isSelected || isHovered ? `${cellColor}20` : `${cellColor}08`,
+                                        boxShadow: isSelected || isHovered ? `0 0 12px ${cellColor}50` : 'none',
                                     }}
                                     className={cn(
-                                        'relative rounded p-1 flex flex-col items-center justify-between border transition-all text-left group hover:z-30 hover:scale-105',
-                                        isSelected && 'ring-2 ring-sky-500 z-20'
+                                        'relative rounded-xl p-1 flex flex-col items-center justify-between border transition-all text-left group hover:z-30 hover:scale-105 select-none',
+                                        isSelected && 'ring-2 ring-[#16a875] z-20 shadow-sm'
                                     )}
                                 >
                                     {/* Number & State Icon */}
-                                    <div className="w-full flex items-center justify-between text-[8px] text-slate-600 font-mono leading-none">
+                                    <div className="w-full flex items-center justify-between text-[9px] text-slate-500 font-mono leading-none px-0.5">
                                         <span className="font-semibold">{el.atomicNumber}</span>
-                                        <span className="text-[7px]">
+                                        <span className="text-[8px]">
                                             {stateAtTemp === 'gas' ? '💨' : stateAtTemp === 'liquid' ? '💧' : '🧊'}
                                         </span>
                                     </div>
 
                                     {/* Symbol */}
-                                    <div className="text-sm font-extrabold tracking-tight leading-none my-0.5" style={{ color: cellColor }}>
+                                    <div className="text-sm sm:text-base font-extrabold tracking-tight leading-none my-0.5" style={{ color: cellColor }}>
                                         {el.symbol}
                                     </div>
 
                                     {/* Mass or Heatmap Value */}
-                                    <div className="w-full text-center text-[7.5px] text-slate-500 truncate font-mono">
+                                    <div className="w-full text-center text-[8px] text-slate-500 truncate font-mono">
                                         {heatmapMode === 'electronegativity' && elementProperties[el.atomicNumber]?.electronegativity
                                             ? `χ ${elementProperties[el.atomicNumber]?.electronegativity}`
                                             : heatmapMode === 'ionization' && elementProperties[el.atomicNumber]?.ionizationEnergy
@@ -297,25 +300,25 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                         })}
 
                         {/* Lanthanide & Actinide Labels */}
-                        <div style={{ gridRow: 6, gridColumn: 3 }} className="flex items-center justify-center text-[9px] font-bold text-pink-600 bg-pink-50 border border-pink-200 rounded">
+                        <div style={{ gridRow: 6, gridColumn: 3 }} className="flex items-center justify-center text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-xl">
                             57-71
                         </div>
-                        <div style={{ gridRow: 7, gridColumn: 3 }} className="flex items-center justify-center text-[9px] font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded">
+                        <div style={{ gridRow: 7, gridColumn: 3 }} className="flex items-center justify-center text-[10px] font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl">
                             89-103
                         </div>
                     </div>
                 </div>
 
-                {/* Right / Bottom Telemetry Control HUD */}
-                <div className="w-full xl:w-80 flex flex-col gap-2 overflow-y-auto">
-                    {/* Discovery Timeline Scrubber */}
-                    <div className="p-3 rounded-xl bg-white border border-slate-200 space-y-1.5 shadow-sm">
+                {/* Bottom Multi-Column Telemetry & Control Deck */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {/* Discovery Timeline Scrubber Card */}
+                    <div className="p-4 rounded-2xl bg-white/90 border border-black/[0.06] space-y-2.5 shadow-card flex flex-col justify-between">
                         <div className="flex items-center justify-between text-xs">
-                            <span className="flex items-center gap-1 text-slate-600 font-bold uppercase text-[10px]">
-                                <History className="w-3.5 h-3.5 text-sky-600" />
+                            <span className="flex items-center gap-1.5 text-slate-700 font-bold uppercase text-[10px] tracking-wider">
+                                <History className="w-4 h-4 text-[#16a875]" />
                                 Discovery Timeline:
                             </span>
-                            <span className="font-bold text-sky-700 text-xs">
+                            <span className="font-bold text-[#087f5b] text-xs font-mono bg-[#e6f6ef] px-2 py-0.5 rounded-md border border-[#bce8d5]">
                                 {maxYear <= 0 ? 'Ancient Antiquity' : `≤ ${maxYear} CE`}
                             </span>
                         </div>
@@ -326,9 +329,9 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                             step="5"
                             value={maxYear}
                             onChange={(e) => setMaxYear(Number(e.target.value))}
-                            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
+                            className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#16a875]"
                         />
-                        <div className="flex justify-between text-[8.5px] text-slate-400 font-mono">
+                        <div className="flex justify-between text-[9px] text-slate-400 font-mono">
                             <span>1600 (Alchemical)</span>
                             <span>1869 (Mendeleev)</span>
                             <span>2026 (Modern)</span>
@@ -338,50 +341,50 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                     {/* Thermal Scrubber Component */}
                     <ThermalScrubber temperatureK={temperatureK} onTemperatureChange={setTemperatureK} />
 
-                    {/* Active Hovered Element Spectroscopy & Telemetry Card */}
+                    {/* Active Hovered Element Card */}
                     {activeDisplayElement && (
-                        <div className="p-3 rounded-xl bg-white border border-slate-200 space-y-2.5 shadow-sm">
+                        <div className="p-4 rounded-2xl bg-white/90 border border-black/[0.06] space-y-3 shadow-card md:col-span-2 lg:col-span-1">
                             <div className="flex items-start justify-between">
                                 <div>
-                                    <div className="text-[10px] text-slate-500 uppercase tracking-wider font-mono">Active Target</div>
-                                    <div className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-                                        <span style={{ color: categoryColors[activeDisplayElement.category] || '#0284c7' }}>
+                                    <div className="text-[10px] text-slate-400 uppercase tracking-wider font-mono font-semibold">Active Target</div>
+                                    <div className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                                        <span style={{ color: categoryColors[activeDisplayElement.category] || '#16a875' }}>
                                             {activeDisplayElement.name}
                                         </span>
-                                        <span className="text-xs text-slate-500 font-mono">#{activeDisplayElement.atomicNumber}</span>
+                                        <span className="text-xs text-slate-400 font-mono">#{activeDisplayElement.atomicNumber}</span>
                                     </div>
-                                    <div className="text-[10px] text-sky-700 font-mono">
+                                    <div className="text-[11px] font-semibold" style={{ color: categoryColors[activeDisplayElement.category] || '#16a875' }}>
                                         {categoryLabels[activeDisplayElement.category]} • {getElementBlock(activeDisplayElement.atomicNumber).toUpperCase()}-Block
                                     </div>
                                 </div>
 
                                 <button
-                                    onClick={() => onSelectElement(activeDisplayElement)}
-                                    className="hardware-btn bg-sky-600 text-white border-sky-600 hover:bg-sky-700 font-bold px-3 py-1.5 text-xs rounded shadow-sm"
+                                    onClick={() => handleQuickAction('explore', activeDisplayElement)}
+                                    className="emerald-button text-xs font-bold px-3 py-1.5 rounded-xl shadow-xs"
                                 >
-                                    <Atom className="w-3 h-3" /> Explore
+                                    <Atom className="w-3.5 h-3.5" /> Explore
                                 </button>
                             </div>
 
                             {/* Quick Action Dispatch Buttons */}
-                            <div className="grid grid-cols-3 gap-1 pt-1 border-t border-slate-100">
+                            <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-slate-100">
                                 <button
                                     onClick={() => handleQuickAction('compare', activeDisplayElement)}
-                                    className="px-2 py-1 bg-slate-100 hover:bg-sky-50 border border-slate-200 hover:border-sky-300 rounded text-[9px] font-bold text-slate-700 flex items-center justify-center gap-1 transition-colors"
+                                    className="px-2 py-1.5 bg-[#e6f6ef] hover:bg-[#d8f2e6] border border-[#bce8d5] rounded-xl text-[10px] font-bold text-[#087f5b] flex items-center justify-center gap-1 transition-colors"
                                 >
-                                    <GitCompare className="w-3 h-3 text-sky-600" /> Compare
+                                    <GitCompare className="w-3 h-3 text-[#16a875]" /> Compare
                                 </button>
                                 <button
                                     onClick={() => handleQuickAction('reactions', activeDisplayElement)}
-                                    className="px-2 py-1 bg-slate-100 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 rounded text-[9px] font-bold text-slate-700 flex items-center justify-center gap-1 transition-colors"
+                                    className="px-2 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-[10px] font-bold text-amber-900 flex items-center justify-center gap-1 transition-colors"
                                 >
                                     <Zap className="w-3 h-3 text-amber-600" /> React
                                 </button>
                                 <button
                                     onClick={() => handleQuickAction('builder', activeDisplayElement)}
-                                    className="px-2 py-1 bg-slate-100 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 rounded text-[9px] font-bold text-slate-700 flex items-center justify-center gap-1 transition-colors"
+                                    className="px-2 py-1.5 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-xl text-[10px] font-bold text-teal-900 flex items-center justify-center gap-1 transition-colors"
                                 >
-                                    <Boxes className="w-3 h-3 text-emerald-600" /> Build
+                                    <Boxes className="w-3 h-3 text-teal-600" /> Build
                                 </button>
                             </div>
 
