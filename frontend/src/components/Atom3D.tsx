@@ -34,7 +34,7 @@ const SHELL_NAMES = ['K', 'L', 'M', 'N', 'O', 'P', 'Q'];
 
 const ORBIT_POINTS = 80;
 
-// Scientific Laboratory Glowing Core with Optical Glass Transmission and Chromatic Fresnel Refraction
+// Scientific Laboratory Glowing Core with Subsurface Attenuation and Chromatic Fresnel Refraction
 const GlowingSphere = memo(function GlowingSphere({
     color, size, position, glowColor = '#38bdf8'
 }: { color: string; size: number; position?: [number, number, number]; glowColor?: string; emissiveIntensity?: number }) {
@@ -54,20 +54,23 @@ const GlowingSphere = memo(function GlowingSphere({
 
     return (
         <group position={position}>
-            {/* High-Refraction Optical Quartz Core */}
+            {/* High-Refraction Optical Quartz Core with Subsurface Light Attenuation */}
             <Sphere args={[size * 0.96, 32, 32]}>
                 <meshPhysicalMaterial
                     color={color}
                     emissive={color}
                     emissiveIntensity={0.65}
                     metalness={0.12}
-                    roughness={0.08}
+                    roughness={0.06}
                     clearcoat={1.0}
-                    clearcoatRoughness={0.04}
-                    reflectivity={0.95}
-                    transmission={0.65}
-                    ior={1.65}
+                    clearcoatRoughness={0.03}
+                    reflectivity={0.98}
+                    transmission={0.68}
+                    ior={1.68}
                     thickness={1.2}
+                    attenuationColor={glowColor}
+                    attenuationDistance={0.8}
+                    specularIntensity={1.0}
                     depthWrite={true}
                     depthTest={true}
                 />
@@ -80,7 +83,7 @@ const GlowingSphere = memo(function GlowingSphere({
 
 // Volumetric S orbital (spherical quantum harmonic)
 const SOrbital = memo(function SOrbital({ radius, color }: { radius: number; color: string }) {
-    const material = useMemo(() => createVolumetricOrbitalMaterial(color, 0.22, '#ffffff', 0), [color]);
+    const material = useMemo(() => createVolumetricOrbitalMaterial(color, 0.22, '#ffffff', 0, '#38bdf8'), [color]);
 
     useEffect(() => {
         return () => {
@@ -106,7 +109,7 @@ const POrbital = memo(function POrbital({ radius, color, axis }: { radius: numbe
             axis === 'y' ? [0, 0, 0] :
                 [Math.PI / 2, 0, 0];
 
-    const mat = useMemo(() => createVolumetricOrbitalMaterial(color, 0.18, '#ffffff', 1), [color]);
+    const mat = useMemo(() => createVolumetricOrbitalMaterial(color, 0.18, '#ffffff', 1, '#f43f5e'), [color]);
 
     useEffect(() => {
         return () => {
@@ -137,7 +140,7 @@ const DOrbital = memo(function DOrbital({ radius, color, type }: { radius: numbe
 
     const lobeSize = radius * 0.42;
     const lobeOffset = radius * 0.62;
-    const mat = useMemo(() => createVolumetricOrbitalMaterial(color, 0.16, '#ffffff', 2), [color]);
+    const mat = useMemo(() => createVolumetricOrbitalMaterial(color, 0.16, '#ffffff', 2, '#d97706'), [color]);
 
     useEffect(() => {
         return () => {
@@ -165,7 +168,7 @@ const DOrbital = memo(function DOrbital({ radius, color, type }: { radius: numbe
 const FOrbital = memo(function FOrbital({ radius, color, rotation = [0, 0, 0] }: { radius: number; color: string; rotation?: [number, number, number] }) {
     const lobeSize = radius * 0.32;
     const offset = radius * 0.52;
-    const mat = useMemo(() => createVolumetricOrbitalMaterial(color, 0.14, '#ffffff', 3), [color]);
+    const mat = useMemo(() => createVolumetricOrbitalMaterial(color, 0.14, '#ffffff', 3, '#7c3aed'), [color]);
 
     useEffect(() => {
         return () => {
@@ -223,7 +226,7 @@ const OrbitalClouds = memo(function OrbitalClouds({ electrons }: { electrons: nu
     );
 });
 
-// High-fidelity Nucleus with Ruby & Sapphire subatomic gemstones and optical depth
+// High-fidelity Nucleus with Dynamic Particle Morphing, Subsurface Attenuation Gemstones, and Thermal Jiggle
 const Nucleus = memo(function Nucleus({ protons, neutrons, color, symbol, showParticles }: {
     protons: number;
     neutrons: number;
@@ -235,9 +238,10 @@ const Nucleus = memo(function Nucleus({ protons, neutrons, color, symbol, showPa
     const particleMeshesRef = useRef<(THREE.Mesh | null)[]>([]);
     const total = Math.min(protons + neutrons, 48);
 
-    const particles = useMemo(() => {
-        const pts: { pos: [number, number, number]; isProton: boolean; phase: number }[] = [];
-        const phi = Math.PI * (3 - Math.sqrt(5)); // Golden ratio phyllotaxis angle
+    // Compute golden ratio phyllotaxis packing coordinates
+    const targetParticles = useMemo(() => {
+        const pts: { pos: THREE.Vector3; isProton: boolean; phase: number }[] = [];
+        const phi = Math.PI * (3 - Math.sqrt(5)); // Golden angle
 
         for (let i = 0; i < total; i++) {
             const y = 1 - (i / (total - 1 || 1)) * 2;
@@ -246,17 +250,30 @@ const Nucleus = memo(function Nucleus({ protons, neutrons, color, symbol, showPa
             const scale = 0.56;
 
             pts.push({
-                pos: [
+                pos: new THREE.Vector3(
                     Math.cos(theta) * radius * scale,
                     y * scale,
                     Math.sin(theta) * radius * scale
-                ],
+                ),
                 isProton: i < (protons / (protons + neutrons || 1)) * total,
                 phase: i * 1.37
             });
         }
         return pts;
     }, [protons, neutrons, total]);
+
+    // Dynamic morph transition animation when element/nucleons change
+    useEffect(() => {
+        audioEngine.playElementChime(protons);
+
+        if (nucleusRef.current) {
+            gsap.fromTo(
+                nucleusRef.current.scale,
+                { x: 0.3, y: 0.3, z: 0.3 },
+                { x: 1, y: 1, z: 1, duration: 0.75, ease: 'back.out(1.5)', overwrite: true }
+            );
+        }
+    }, [protons, neutrons]);
 
     useFrame(({ clock }, delta) => {
         const t = clock.getElapsedTime();
@@ -269,15 +286,23 @@ const Nucleus = memo(function Nucleus({ protons, neutrons, color, symbol, showPa
             nucleusRef.current.scale.set(pulse, pulse, pulse);
         }
 
-        // Subatomic thermal jiggle
+        // Subatomic thermal Brownian jiggle & smooth particle morph spring
         if (showParticles) {
-            particles.forEach((p, i) => {
+            targetParticles.forEach((p, i) => {
                 const mesh = particleMeshesRef.current[i];
                 if (mesh) {
                     const jx = Math.sin(t * 5.0 + p.phase) * 0.015;
                     const jy = Math.cos(t * 4.5 + p.phase) * 0.015;
                     const jz = Math.sin(t * 5.8 + p.phase) * 0.015;
-                    mesh.position.set(p.pos[0] + jx, p.pos[1] + jy, p.pos[2] + jz);
+
+                    const targetX = p.pos.x + jx;
+                    const targetY = p.pos.y + jy;
+                    const targetZ = p.pos.z + jz;
+
+                    // Smooth spring interpolation toward target
+                    mesh.position.x = THREE.MathUtils.damp(mesh.position.x, targetX, 8.0, delta);
+                    mesh.position.y = THREE.MathUtils.damp(mesh.position.y, targetY, 8.0, delta);
+                    mesh.position.z = THREE.MathUtils.damp(mesh.position.z, targetZ, 8.0, delta);
                 }
             });
         }
@@ -293,26 +318,28 @@ const Nucleus = memo(function Nucleus({ protons, neutrons, color, symbol, showPa
 
             {showParticles ? (
                 <group>
-                    {particles.map((p, i) => (
+                    {targetParticles.map((p, i) => (
                         <Sphere
                             key={i}
                             ref={(el) => { particleMeshesRef.current[i] = el; }}
                             args={[0.13, 24, 24]}
-                            position={p.pos}
+                            position={[p.pos.x, p.pos.y, p.pos.z]}
                         >
-                            {/* Rich Optical Gemstone Materials (Ruby for p+, Sapphire for n0) */}
+                            {/* Rich Optical Gemstone Materials with Subsurface Light Attenuation */}
                             <meshPhysicalMaterial
                                 color={p.isProton ? '#991b1b' : '#0369a1'}
                                 emissive={p.isProton ? '#be123c' : '#0284c7'}
-                                emissiveIntensity={0.35}
-                                metalness={0.15}
-                                roughness={0.06}
-                                transmission={0.65}
-                                ior={1.72}
-                                thickness={0.8}
+                                emissiveIntensity={0.38}
+                                metalness={0.12}
+                                roughness={0.04}
+                                transmission={0.72}
+                                ior={1.85}
+                                thickness={1.0}
+                                attenuationColor={p.isProton ? '#e11d48' : '#38bdf8'}
+                                attenuationDistance={0.5}
                                 clearcoat={1.0}
-                                clearcoatRoughness={0.03}
-                                reflectivity={0.95}
+                                clearcoatRoughness={0.02}
+                                reflectivity={0.98}
                                 depthWrite={true}
                                 depthTest={true}
                             />
@@ -348,7 +375,7 @@ const Nucleus = memo(function Nucleus({ protons, neutrons, color, symbol, showPa
     );
 });
 
-// Interactive Orbital Shell guide rings with hairline precision, telemetry, and electrons locked on the path
+// Interactive Orbital Shell guide rings with multi-layer laser reticles, photon wave packets, and locked electrons
 interface OrbitalShellProps {
     radius: number;
     electronCount: number;
@@ -378,6 +405,7 @@ const OrbitalShell = memo(function OrbitalShell({
 }: OrbitalShellProps) {
     const groupRef = useRef<THREE.Group>(null);
     const electronGroupRef = useRef<THREE.Group>(null);
+    const photonPulseRef = useRef<THREE.Group>(null);
     const shellName = SHELL_NAMES[shellIndex] || `n=${shellIndex + 1}`;
 
     const orbitPoints = useMemo(() => {
@@ -389,13 +417,46 @@ const OrbitalShell = memo(function OrbitalShell({
         return points;
     }, [radius]);
 
+    // Laser-etched reticle graduation ticks (12 quantum phase marks along circumference)
+    const reticleTicks = useMemo(() => {
+        const ticks: { start: THREE.Vector3; end: THREE.Vector3 }[] = [];
+        const tickCount = 12;
+        const tickLength = 0.06;
+        for (let i = 0; i < tickCount; i++) {
+            const angle = (i / tickCount) * Math.PI * 2;
+            const cos = Math.cos(angle);
+            const sin = Math.sin(angle);
+            ticks.push({
+                start: new THREE.Vector3(cos * (radius - tickLength * 0.5), 0, sin * (radius - tickLength * 0.5)),
+                end: new THREE.Vector3(cos * (radius + tickLength * 0.5), 0, sin * (radius + tickLength * 0.5)),
+            });
+        }
+        return ticks;
+    }, [radius]);
+
     const displayCount = Math.min(electronCount, 16);
     const speed = 1.2 / Math.sqrt(shellIndex + 1);
 
-    // Orbiting rotation of electrons along the track
+    // Laser iris ring expansion animation on mount / radius change
+    useEffect(() => {
+        if (groupRef.current) {
+            gsap.fromTo(
+                groupRef.current.scale,
+                { x: 0.1, y: 0.1, z: 0.1 },
+                { x: 1, y: 1, z: 1, duration: 0.7, ease: 'back.out(1.3)', overwrite: true }
+            );
+        }
+    }, [radius, shellIndex]);
+
+    // Orbiting rotation of electrons and photon wave packet along the track
     useFrame((_, delta) => {
-        if (!isPaused && electronGroupRef.current) {
-            electronGroupRef.current.rotation.y += delta * speed * speedMultiplier;
+        if (!isPaused) {
+            if (electronGroupRef.current) {
+                electronGroupRef.current.rotation.y += delta * speed * speedMultiplier;
+            }
+            if (photonPulseRef.current) {
+                photonPulseRef.current.rotation.y += delta * speed * speedMultiplier * 1.5;
+            }
         }
     });
 
@@ -407,7 +468,7 @@ const OrbitalShell = memo(function OrbitalShell({
 
     return (
         <group ref={groupRef} rotation={[tiltX, 0, tiltZ]}>
-            {/* Razor-Sharp Hairline Crystalline Orbital Path */}
+            {/* 1. Primary Razor-Sharp Hairline Crystalline Orbital Path */}
             <Line
                 points={orbitPoints}
                 color={isFocused ? '#ffffff' : isValence ? valenceColor : color}
@@ -416,7 +477,32 @@ const OrbitalShell = memo(function OrbitalShell({
                 opacity={isFocused ? 0.95 : 0.38}
             />
 
-            {/* Rotating Electrons Locked Exactly on the Orbital Track */}
+            {/* 2. Laser-Etched Reticle Graduation Ticks */}
+            {reticleTicks.map((tick, idx) => (
+                <Line
+                    key={idx}
+                    points={[tick.start, tick.end]}
+                    color={isFocused ? '#ffffff' : color}
+                    lineWidth={1.0}
+                    transparent
+                    opacity={isFocused ? 0.8 : 0.22}
+                />
+            ))}
+
+            {/* 3. Travelling De Broglie Photon Wave Packet Pulse */}
+            <group ref={photonPulseRef}>
+                <group position={[radius, 0, 0]}>
+                    <Sphere args={[0.038, 16, 16]}>
+                        <meshBasicMaterial
+                            color={isFocused ? '#ffffff' : isValence ? '#fbbf24' : '#38bdf8'}
+                            transparent
+                            opacity={0.85}
+                        />
+                    </Sphere>
+                </group>
+            </group>
+
+            {/* 4. Rotating Electrons Locked Exactly on the Orbital Track */}
             <group ref={electronGroupRef}>
                 {electronAngles.map((angle, idx) => (
                     <group
@@ -429,13 +515,15 @@ const OrbitalShell = memo(function OrbitalShell({
                                 emissive={isFocused ? '#ffffff' : isValence ? '#d97706' : color}
                                 emissiveIntensity={isFocused ? 1.4 : isValence ? 0.95 : 0.75}
                                 roughness={0.04}
-                                metalness={0.18}
-                                transmission={0.65}
+                                metalness={0.16}
+                                transmission={0.7}
                                 ior={2.1}
-                                thickness={0.7}
+                                thickness={0.9}
+                                attenuationColor={isValence ? '#fbbf24' : '#38bdf8'}
+                                attenuationDistance={0.45}
                                 clearcoat={1.0}
                                 clearcoatRoughness={0.02}
-                                reflectivity={0.95}
+                                reflectivity={0.98}
                             />
                         </Sphere>
                     </group>
@@ -635,10 +723,14 @@ export function Atom3D({
                 {/* 7. Bottom Rim Bounce Light */}
                 <directionalLight position={[0, -10, 4]} intensity={0.6} color="#06b6d4" />
 
-                {/* Ground Stage Halo Pedestal */}
+                {/* Concentric Precision Laboratory Stage Reticle Halo Pedestal */}
                 <mesh position={[0, -5.5, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-                    <ringGeometry args={[1.5, 7.5, 64]} />
+                    <ringGeometry args={[1.2, 7.5, 64]} />
                     <meshBasicMaterial color={color} transparent opacity={0.06} side={THREE.DoubleSide} />
+                </mesh>
+                <mesh position={[0, -5.5, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                    <ringGeometry args={[0.6, 3.2, 48]} />
+                    <meshBasicMaterial color="#ffffff" transparent opacity={0.03} side={THREE.DoubleSide} />
                 </mesh>
 
                 <AtomScene
