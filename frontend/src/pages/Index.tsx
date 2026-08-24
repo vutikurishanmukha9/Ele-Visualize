@@ -174,31 +174,31 @@ function TopBar({
           <Atom className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <div className="truncate text-sm font-bold tracking-wide text-white flex items-center gap-2">
+          <div className="truncate text-sm font-bold tracking-wide text-slate-900 flex items-center gap-2">
             Ele-Visualize
-            <span className="text-[10px] px-1.5 py-0.2 rounded bg-white/10 text-primary font-mono font-normal">v2.0 Pro</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 font-mono font-medium border border-sky-200">v2.0 Pro</span>
           </div>
-          <div className="hidden truncate text-xs text-muted-foreground sm:block">
+          <div className="hidden truncate text-xs text-slate-500 sm:block">
             Scientific workbench for atoms, molecules, reactions, and AR
           </div>
         </div>
       </button>
 
       <button className="command-trigger group" onClick={() => setCommandOpen(!commandOpen)}>
-        <Command className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
+        <Command className="h-4 w-4 text-sky-600 group-hover:scale-110 transition-transform" />
         <span className="truncate">
           {selectedElement ? (
             <span className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full" style={{ backgroundColor: getElementColor(selectedElement) }} />
-              <strong className="text-white">{selectedElement.symbol}</strong> {selectedElement.name}
+              <strong className="text-slate-900">{selectedElement.symbol}</strong> {selectedElement.name}
             </span>
           ) : selectedMolecule ? (
-            <span className="text-white">{selectedMolecule.name}</span>
+            <span className="text-slate-900">{selectedMolecule.name}</span>
           ) : (
             'Search elements, molecules, or commands'
           )}
         </span>
-        <span className="hidden rounded border border-white/10 px-1.5 py-0.5 text-[10px] text-muted-foreground md:inline">/</span>
+        <span className="hidden rounded border border-slate-300 px-1.5 py-0.5 text-[10px] text-slate-500 md:inline">/</span>
       </button>
 
       <div className="flex items-center gap-1.5">
@@ -206,21 +206,20 @@ function TopBar({
           className="icon-button"
           onClick={() => {
             audioEngine.toggleMute();
-            // Trigger state re-render by dispatching custom event or state
           }}
           title={audioEngine.isMuted() ? "Unmute Audio (Ambient & Acoustic Feedback)" : "Mute Audio"}
         >
-          {audioEngine.isMuted() ? <VolumeX className="h-4 w-4 text-slate-500" /> : <Volume2 className="h-4 w-4 text-cyan-400" />}
+          {audioEngine.isMuted() ? <VolumeX className="h-4 w-4 text-slate-400" /> : <Volume2 className="h-4 w-4 text-sky-600" />}
         </button>
         <button className="icon-button hidden sm:inline-flex" onClick={() => setUiDensity(uiDensity === 'comfortable' ? 'compact' : 'comfortable')} title="Toggle density">
           <SlidersHorizontal className="h-4 w-4" />
         </button>
         <button
-          className="px-3.5 py-1.5 text-xs font-semibold text-white bg-primary/20 hover:bg-primary/30 border border-primary/40 rounded-md transition-all shadow-sm flex items-center gap-1.5"
+          className="px-3.5 py-1.5 text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 border border-sky-600 rounded-md transition-all shadow-sm flex items-center gap-1.5"
           onClick={onSave}
           disabled={saveState === 'saving'}
         >
-          <Save className="h-3.5 w-3.5 text-primary" />
+          <Save className="h-3.5 w-3.5 text-white" />
           {saveState === 'saving' ? 'Saving...' : saveState === 'saved' ? 'Saved ✓' : 'Save Session'}
         </button>
       </div>
@@ -254,9 +253,8 @@ function WorkspaceNav() {
           key={id}
           onClick={() => selectWorkspace(id)}
           className={cn('workspace-tab', workspaceMode === id && 'is-active')}
-          title={label}
         >
-          <Icon className="h-4 w-4" />
+          <Icon className="h-3.5 w-3.5" />
           <span>{label}</span>
         </button>
       ))}
@@ -311,20 +309,20 @@ function CommandPalette({
   if (!commandOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm p-3 flex items-start justify-center" onMouseDown={() => setCommandOpen(false)}>
+    <div className="fixed inset-0 z-[80] bg-black/40 backdrop-blur-sm p-3 flex items-start justify-center" onMouseDown={() => setCommandOpen(false)}>
       <motion.div
         initial={{ y: -20, opacity: 0, scale: 0.98 }}
         animate={{ y: 0, opacity: 1, scale: 1 }}
-        className="command-panel bg-slate-950 border border-white/10"
+        className="command-panel bg-white border border-slate-200 text-slate-900 shadow-2xl"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
-          <Search className="h-4 w-4 text-primary" />
+        <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-3">
+          <Search className="h-4 w-4 text-sky-600" />
           <input
             autoFocus
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
-            className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none"
+            className="min-w-0 flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
             placeholder="Search elements, molecules, or commands (e.g. Au, Oxygen, Table)"
           />
           <button className="icon-button" onClick={() => setCommandOpen(false)}>
@@ -333,28 +331,28 @@ function CommandPalette({
         </div>
 
         <div className="max-h-[70vh] overflow-auto p-2">
-          <div className="command-section">Commands</div>
+          <div className="command-section text-slate-500">Commands</div>
           {actions.map(({ label, icon: Icon, run }) => (
             <button
               key={label}
-              className="command-item"
+              className="command-item hover:bg-slate-100 text-slate-800"
               onClick={() => {
                 run();
                 setCommandOpen(false);
               }}
             >
-              <Icon className="h-4 w-4 text-primary" />
+              <Icon className="h-4 w-4 text-sky-600" />
               <span>{label}</span>
             </button>
           ))}
 
-          <div className="command-section">Elements</div>
+          <div className="command-section text-slate-500">Elements</div>
           {filteredElements.slice(0, 8).map((element) => {
             const color = getElementColor(element);
             return (
               <button
                 key={element.atomicNumber}
-                className="command-item hover:bg-slate-900"
+                className="command-item hover:bg-slate-100 text-slate-800"
                 onClick={() => {
                   onSelectElement(element);
                   setCommandOpen(false);
@@ -478,7 +476,7 @@ function DiscoveryRail({
                   {element.symbol}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold text-white">{element.name}</span>
+                  <span className="block truncate text-sm font-semibold text-slate-900">{element.name}</span>
                   <span className="block truncate text-xs text-muted-foreground">
                     <span style={{ color: color }}>{categoryLabels[element.category]}</span> • {element.atomicMass.toFixed(2)} u
                   </span>
@@ -491,7 +489,7 @@ function DiscoveryRail({
             <button key={molecule.formula} className="result-card" onClick={() => onSelectMolecule(molecule)}>
               <span className="molecule-tile">{molecule.formula}</span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-semibold text-white">{molecule.name}</span>
+                <span className="block truncate text-sm font-semibold text-slate-900">{molecule.name}</span>
                 <span className="block truncate text-xs text-muted-foreground">{molecule.atoms.length} atoms • {molecule.bonds.length} bonds</span>
               </span>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -545,7 +543,7 @@ function VisualStage({
   const [enableBloom, setEnableBloom] = useState(true);
   const [spaceFilling, setSpaceFilling] = useState(false);
 
-  const stageColor = selectedElement ? getElementColor(selectedElement) : '#38bdf8';
+  const stageColor = selectedElement ? getElementColor(selectedElement) : '#0284c7';
   const stageTitle = selectedElement
     ? `${selectedElement.name} (${selectedElement.symbol}) • #${selectedElement.atomicNumber}`
     : selectedMolecule
@@ -567,7 +565,7 @@ function VisualStage({
   return (
     <section className={cn('visual-stage relative', isFullscreen && 'is-fullscreen')}>
       {/* Top Stage Toolbar */}
-      <div className="stage-toolbar flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2 bg-slate-950/80 backdrop-blur-md border-b border-white/10">
+      <div className="stage-toolbar flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm">
         <div className="min-w-0 flex items-center gap-2">
           {selectedElement && (
             <span
@@ -576,18 +574,18 @@ function VisualStage({
             />
           )}
           <div className="min-w-0">
-            <div className="truncate text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-mono flex items-center gap-2">
+            <div className="truncate text-[10px] uppercase tracking-[0.2em] text-slate-500 font-mono flex items-center gap-2">
               <span>{workspaceMode === 'lab' ? 'AR & Gesture Lab' : 'Quantum Visual Stage'}</span>
               {zenMode && (
-                <span className="bg-primary/20 text-primary px-1.5 py-0.2 rounded text-[9px] font-bold">MAX 3D</span>
+                <span className="bg-sky-100 text-sky-700 px-1.5 py-0.5 rounded text-[9px] font-bold">MAX 3D</span>
               )}
             </div>
-            <div className="truncate text-sm font-bold text-white flex items-center gap-2">
+            <div className="truncate text-sm font-bold text-slate-900 flex items-center gap-2">
               {stageTitle}
               {selectedElement && (
                 <span
-                  className="hidden md:inline text-[10px] font-mono px-2 py-0.5 rounded-full"
-                  style={{ backgroundColor: `${stageColor}20`, color: stageColor }}
+                  className="hidden md:inline text-[10px] font-mono px-2 py-0.5 rounded-full border border-sky-200"
+                  style={{ backgroundColor: `${stageColor}15`, color: stageColor }}
                 >
                   {categoryLabels[selectedElement.category]}
                 </span>
@@ -599,24 +597,24 @@ function VisualStage({
         {/* Action controls */}
         <div className="flex items-center gap-1.5">
           {/* Camera Presets (3D / Top / Side / Reset) */}
-          <div className="hidden sm:flex items-center gap-1 bg-slate-900/80 p-0.5 rounded-lg border border-white/10 mr-1">
+          <div className="hidden sm:flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 mr-1">
             <button
               onClick={() => setCameraPreset('3d')}
-              className={cn("px-2 py-1 text-[10px] font-mono rounded transition-colors", cameraPreset === '3d' ? "bg-white/20 text-white font-bold" : "text-slate-400 hover:text-white")}
+              className={cn("px-2 py-1 text-[10px] font-mono rounded transition-colors", cameraPreset === '3d' ? "bg-white text-sky-700 font-bold shadow-sm" : "text-slate-600 hover:text-slate-900")}
               title="Perspective 3D Angle"
             >
               3D
             </button>
             <button
               onClick={() => setCameraPreset('top')}
-              className={cn("px-2 py-1 text-[10px] font-mono rounded transition-colors", cameraPreset === 'top' ? "bg-white/20 text-white font-bold" : "text-slate-400 hover:text-white")}
+              className={cn("px-2 py-1 text-[10px] font-mono rounded transition-colors", cameraPreset === 'top' ? "bg-white text-sky-700 font-bold shadow-sm" : "text-slate-600 hover:text-slate-900")}
               title="Top / Polar View"
             >
               Top
             </button>
             <button
               onClick={() => setCameraPreset('side')}
-              className={cn("px-2 py-1 text-[10px] font-mono rounded transition-colors", cameraPreset === 'side' ? "bg-white/20 text-white font-bold" : "text-slate-400 hover:text-white")}
+              className={cn("px-2 py-1 text-[10px] font-mono rounded transition-colors", cameraPreset === 'side' ? "bg-white text-sky-700 font-bold shadow-sm" : "text-slate-600 hover:text-slate-900")}
               title="Equator / Side View"
             >
               Side
@@ -627,11 +625,11 @@ function VisualStage({
 
           {/* Auto-Orbit Rotation Toggle */}
           <button
-            className={cn('icon-button', autoRotate && 'is-active bg-primary/20 text-primary')}
+            className={cn('icon-button', autoRotate && 'is-active bg-sky-100 text-sky-700 border-sky-300')}
             onClick={() => setAutoRotate(!autoRotate)}
             title={autoRotate ? "Disable Auto-Rotation" : "Enable Cinematic Auto-Orbit"}
           >
-            <RotateCcw className={cn("h-4 w-4", autoRotate && "animate-spin text-primary")} />
+            <RotateCcw className={cn("h-4 w-4", autoRotate && "animate-spin text-sky-600")} />
           </button>
 
           {/* Bloom Postprocessing Glow Toggle */}
@@ -838,10 +836,10 @@ function VisualStage({
       </div>
 
       {/* Bottom Stage Status & Controls Bar */}
-      <div className="stage-status flex items-center justify-between px-4 py-2 bg-slate-950/90 border-t border-white/10 text-xs font-mono text-slate-400">
+      <div className="stage-status flex items-center justify-between px-4 py-2 bg-white/90 border-t border-slate-200 text-xs font-mono text-slate-600 shadow-inner">
         <div className="flex items-center gap-3">
-          <span>Zoom: <strong className="text-white">{zoomLevel.toFixed(1)}x</strong></span>
-          <span className="hidden sm:inline text-slate-600">|</span>
+          <span>Zoom: <strong className="text-slate-900">{zoomLevel.toFixed(1)}x</strong></span>
+          <span className="hidden sm:inline text-slate-300">|</span>
           <div className="flex items-center gap-1.5">
             <span className="hidden sm:inline">Speed:</span>
             <input
@@ -852,9 +850,9 @@ function VisualStage({
               step="0.1"
               value={animationSpeed}
               onChange={(event) => setAnimationSpeed(Number(event.target.value))}
-              className="w-20 sm:w-28 accent-primary cursor-pointer"
+              className="w-20 sm:w-28 accent-sky-600 cursor-pointer"
             />
-            <span className="text-white font-bold">{animationSpeed.toFixed(1)}x</span>
+            <span className="text-slate-900 font-bold">{animationSpeed.toFixed(1)}x</span>
           </div>
         </div>
 
@@ -867,11 +865,12 @@ function VisualStage({
                 key={idx}
                 className={cn(
                   "px-1.5 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer hover:scale-110",
-                  selectedShellIdx === idx ? "bg-white text-black shadow-md scale-110" : "bg-white/10 text-slate-300"
+                  selectedShellIdx === idx ? "bg-sky-600 text-white shadow-sm scale-110" : "bg-slate-100 text-slate-700 border border-slate-200"
                 )}
                 onClick={() => setSelectedShellIdx(selectedShellIdx === idx ? null : idx)}
+                title={`Shell n=${idx + 1}: ${count} electrons (Click to isolate)`}
               >
-                {['K', 'L', 'M', 'N', 'O', 'P', 'Q'][idx]}:{count}
+                K{idx + 1}:{count}
               </span>
             ))}
           </div>
@@ -1456,7 +1455,7 @@ export default function Index() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex flex-col"
+            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex flex-col"
             onClick={() => setMobileDrawer('none')}
           >
             <motion.div
@@ -1464,12 +1463,12 @@ export default function Index() {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 250 }}
-              className="w-[88vw] max-w-sm h-full bg-slate-950 border-r border-white/10 flex flex-col shadow-2xl"
+              className="w-[88vw] max-w-sm h-full bg-white border-r border-slate-200 flex flex-col shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between p-3 border-b border-white/10 bg-slate-900/60">
-                <span className="text-xs font-bold text-white uppercase tracking-wider">Browse Elements</span>
-                <button className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white" onClick={() => setMobileDrawer('none')}>
+              <div className="flex items-center justify-between p-3 border-b border-slate-200 bg-slate-50">
+                <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">Browse Elements</span>
+                <button className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-900" onClick={() => setMobileDrawer('none')}>
                   <X className="h-4 w-4" />
                 </button>
               </div>
@@ -1496,7 +1495,7 @@ export default function Index() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex flex-col justify-end"
+            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex flex-col justify-end"
             onClick={() => setMobileDrawer('none')}
           >
             <motion.div
@@ -1504,12 +1503,12 @@ export default function Index() {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 250 }}
-              className="w-full max-h-[85vh] bg-slate-950 border-t border-white/10 rounded-t-2xl flex flex-col shadow-2xl overflow-hidden"
+              className="w-full max-h-[85vh] bg-white border-t border-slate-200 rounded-t-2xl flex flex-col shadow-2xl overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between p-3 border-b border-white/10 bg-slate-900/60">
-                <span className="text-xs font-bold text-white uppercase tracking-wider">Element Details & Bohr Model</span>
-                <button className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white" onClick={() => setMobileDrawer('none')}>
+              <div className="flex items-center justify-between p-3 border-b border-slate-200 bg-slate-50">
+                <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">Element Details & Bohr Model</span>
+                <button className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-900" onClick={() => setMobileDrawer('none')}>
                   <X className="h-4 w-4" />
                 </button>
               </div>

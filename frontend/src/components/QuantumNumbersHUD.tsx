@@ -19,42 +19,42 @@ export const QuantumNumbersHUD = memo(function QuantumNumbersHUD({ element, clas
   const orbitalType = lSymbols[l] || 's';
 
   return (
-    <div className={`p-3 rounded-lg bg-black/85 border border-white/10 font-mono select-none ${className}`}>
+    <div className={`p-3 rounded-xl bg-white border border-slate-200 font-mono select-none shadow-sm ${className}`}>
       {/* Title */}
-      <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-wider mb-2">
-        <span className="font-bold text-white flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+      <div className="flex items-center justify-between text-[10px] text-slate-500 uppercase tracking-wider mb-2">
+        <span className="font-bold text-slate-900 flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-purple-600 animate-pulse" />
           Valence Quantum State
         </span>
-        <span className="text-purple-300 font-bold">
+        <span className="text-purple-700 font-bold">
           Orbital: {n}{orbitalType}
         </span>
       </div>
 
       {/* 4 Fundamental Quantum Numbers Grid */}
       <div className="grid grid-cols-4 gap-1.5 text-center mb-2.5">
-        <div className="p-1.5 rounded bg-white/5 border border-white/10">
+        <div className="p-1.5 rounded-lg bg-slate-50 border border-slate-200">
           <div className="text-[9px] text-slate-500">Principal</div>
-          <div className="text-xs font-bold text-cyan-300">n = {n}</div>
+          <div className="text-xs font-bold text-sky-700">n = {n}</div>
         </div>
-        <div className="p-1.5 rounded bg-white/5 border border-white/10">
+        <div className="p-1.5 rounded-lg bg-slate-50 border border-slate-200">
           <div className="text-[9px] text-slate-500">Azimuthal</div>
-          <div className="text-xs font-bold text-purple-300">l = {l} ({orbitalType})</div>
+          <div className="text-xs font-bold text-purple-700">l = {l} ({orbitalType})</div>
         </div>
-        <div className="p-1.5 rounded bg-white/5 border border-white/10">
+        <div className="p-1.5 rounded-lg bg-slate-50 border border-slate-200">
           <div className="text-[9px] text-slate-500">Magnetic</div>
-          <div className="text-xs font-bold text-amber-300">mₗ = 0</div>
+          <div className="text-xs font-bold text-amber-700">mₗ = 0</div>
         </div>
-        <div className="p-1.5 rounded bg-white/5 border border-white/10">
+        <div className="p-1.5 rounded-lg bg-slate-50 border border-slate-200">
           <div className="text-[9px] text-slate-500">Spin</div>
-          <div className="text-xs font-bold text-emerald-300">mₛ = +½</div>
+          <div className="text-xs font-bold text-emerald-700">mₛ = +½</div>
         </div>
       </div>
 
       {/* Electron Configuration Shorthand & Shell Matrix */}
-      <div className="flex items-center justify-between text-[11px] px-2 py-1 rounded bg-slate-900/90 border border-white/10">
-        <span className="text-slate-400">Config:</span>
-        <span className="font-bold text-white tracking-wide">
+      <div className="flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-lg bg-slate-100 border border-slate-200">
+        <span className="text-slate-500">Config:</span>
+        <span className="font-bold text-slate-900 tracking-wide font-mono">
           {props?.electronConfiguration || element.shells.join(' • ')}
         </span>
       </div>

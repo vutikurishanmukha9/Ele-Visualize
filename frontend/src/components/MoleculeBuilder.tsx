@@ -297,32 +297,32 @@ export const MoleculeBuilder = memo(function MoleculeBuilder({ onClose }: Molecu
     };
 
     return (
-        <div className="h-full flex flex-col p-3 gap-3 bg-slate-950 font-mono text-white select-none overflow-y-auto matrix-grid-bg">
+        <div className="h-full flex flex-col p-3 gap-3 bg-slate-50 font-mono text-slate-900 select-none overflow-y-auto matrix-grid-bg">
             {/* Header Telemetry */}
-            <div className="flex items-center justify-between p-2.5 rounded-lg bg-black/80 border border-white/10">
+            <div className="flex items-center justify-between p-3 rounded-xl bg-white border border-slate-200 shadow-sm">
                 <div className="flex items-center gap-2">
-                    <Atom className="w-4 h-4 text-emerald-400 animate-spin" />
-                    <span className="font-bold text-xs tracking-wider uppercase text-emerald-300">
+                    <Atom className="w-4 h-4 text-emerald-600 animate-spin" />
+                    <span className="font-bold text-xs tracking-wider uppercase text-emerald-700">
                         INTERACTIVE 2D/3D MOLECULAR SYNTHESIZER
                     </span>
                 </div>
                 {onClose && (
-                    <button onClick={onClose} className="p-1 rounded hover:bg-white/10 text-slate-400">
+                    <button onClick={onClose} className="p-1 rounded hover:bg-slate-100 text-slate-500">
                         <X className="w-4 h-4" />
                     </button>
                 )}
             </div>
 
             {/* Quick Templates & Status Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-black/80 border border-white/10 text-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-white border border-slate-200 text-xs shadow-sm">
                 <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold">Preset Templates:</span>
+                    <span className="text-[10px] text-slate-500 uppercase font-bold">Preset Templates:</span>
                     <div className="flex gap-1.5 flex-wrap">
                         {TEMPLATES.map((tmpl) => (
                             <button
                                 key={tmpl.name}
                                 onClick={() => loadTemplate(tmpl)}
-                                className="px-2 py-1 rounded bg-slate-900 hover:bg-emerald-500/20 border border-white/10 hover:border-emerald-400/50 text-[10px] font-bold text-slate-200 hover:text-emerald-300 transition-colors"
+                                className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-[10px] font-bold text-slate-700 hover:text-emerald-800 transition-colors"
                             >
                                 {tmpl.name} ({tmpl.formula})
                             </button>
@@ -333,14 +333,14 @@ export const MoleculeBuilder = memo(function MoleculeBuilder({ onClose }: Molecu
                 <div className="flex items-center gap-2">
                     <button
                         onClick={handleAutoBond}
-                        className="px-2.5 py-1 rounded bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 text-emerald-300 text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-sm"
+                        className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-sm"
                     >
                         <Wand2 className="w-3 h-3" />
                         Auto-Bond Solver
                     </button>
                     <button
                         onClick={handleClear}
-                        className="px-2.5 py-1 rounded bg-rose-500/20 hover:bg-rose-500/30 border border-rose-400/40 text-rose-300 text-[11px] font-bold flex items-center gap-1.5 transition-all"
+                        className="px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-[11px] font-bold flex items-center gap-1.5 transition-all"
                     >
                         <Trash2 className="w-3 h-3" />
                         Clear
@@ -351,12 +351,12 @@ export const MoleculeBuilder = memo(function MoleculeBuilder({ onClose }: Molecu
             {/* Main Stage Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 flex-1 min-h-[460px]">
                 {/* Palette Sidebar */}
-                <div className="p-3 rounded-xl bg-black/80 border border-white/10 space-y-3">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold">Element Palette</span>
+                <div className="p-3.5 rounded-xl bg-white border border-slate-200 space-y-3 shadow-sm">
+                    <span className="text-[10px] text-slate-500 uppercase font-bold">Element Palette</span>
                     <div className="grid grid-cols-3 gap-2">
                         {Object.keys(VALENCE).slice(0, 9).map((sym) => {
                             const isSelected = selectedPaletteAtom === sym;
-                            const color = ELEMENT_COLORS[sym] || '#38bdf8';
+                            const color = ELEMENT_COLORS[sym] || '#0284c7';
                             return (
                                 <button
                                     key={sym}
@@ -364,19 +364,19 @@ export const MoleculeBuilder = memo(function MoleculeBuilder({ onClose }: Molecu
                                     className={cn(
                                         "p-2.5 rounded-lg flex flex-col items-center justify-center border font-bold transition-all",
                                         isSelected
-                                            ? "bg-emerald-500/20 border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.3)] scale-105"
-                                            : "bg-white/5 border-white/10 hover:border-white/20 text-slate-300"
+                                            ? "bg-emerald-50 border-emerald-500 shadow-sm scale-105"
+                                            : "bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-700"
                                     )}
                                 >
                                     <span className="text-base font-extrabold" style={{ color }}>{sym}</span>
-                                    <span className="text-[8px] text-slate-400 font-mono">v:{VALENCE[sym]}</span>
+                                    <span className="text-[8px] text-slate-500 font-mono">v:{VALENCE[sym]}</span>
                                 </button>
                             );
                         })}
                     </div>
 
-                    <div className="p-2.5 rounded-lg bg-slate-900/60 border border-white/5 space-y-1 text-[10px] text-slate-400">
-                        <p className="font-bold text-white uppercase">How To Assemble:</p>
+                    <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1 text-[10px] text-slate-600">
+                        <p className="font-bold text-slate-900 uppercase">How To Assemble:</p>
                         <p>1. Click canvas to place selected atom.</p>
                         <p>2. Click first atom, then second atom to form a covalent bond.</p>
                     </div>
@@ -386,9 +386,9 @@ export const MoleculeBuilder = memo(function MoleculeBuilder({ onClose }: Molecu
                 <div
                     ref={canvasRef}
                     onClick={handleCanvasClick}
-                    className="lg:col-span-3 rounded-xl bg-slate-900/90 border border-white/15 relative overflow-hidden cursor-crosshair min-h-[380px] shadow-2xl"
+                    className="lg:col-span-3 rounded-xl bg-slate-100/90 border border-slate-300 relative overflow-hidden cursor-crosshair min-h-[380px] shadow-inner"
                     style={{
-                        backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.04) 0%, transparent 80%)',
+                        backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(2, 132, 199, 0.04) 0%, transparent 80%)',
                     }}
                 >
                     {/* SVG Bonds */}
@@ -404,7 +404,7 @@ export const MoleculeBuilder = memo(function MoleculeBuilder({ onClose }: Molecu
                                     y1={a1.y}
                                     x2={a2.x}
                                     y2={a2.y}
-                                    stroke="#38bdf8"
+                                    stroke="#0284c7"
                                     strokeWidth="4"
                                     strokeLinecap="round"
                                     opacity="0.85"
@@ -422,9 +422,9 @@ export const MoleculeBuilder = memo(function MoleculeBuilder({ onClose }: Molecu
                                 key={atom.id}
                                 onClick={(e) => handleAtomClick(atom.id, e)}
                                 className={cn(
-                                    "absolute w-12 h-12 -ml-6 -mt-6 rounded-full flex flex-col items-center justify-center font-extrabold cursor-pointer transition-transform shadow-xl border-2 select-none",
-                                    isSelected && "ring-4 ring-cyan-400 scale-110",
-                                    isSatisfied ? "border-emerald-400/80" : "border-amber-400/80 animate-pulse"
+                                    "absolute w-12 h-12 -ml-6 -mt-6 rounded-full flex flex-col items-center justify-center font-extrabold cursor-pointer transition-transform shadow-md border-2 select-none",
+                                    isSelected && "ring-4 ring-sky-500 scale-110",
+                                    isSatisfied ? "border-emerald-500" : "border-amber-500 animate-pulse"
                                 )}
                                 style={{
                                     left: atom.x,
@@ -434,7 +434,7 @@ export const MoleculeBuilder = memo(function MoleculeBuilder({ onClose }: Molecu
                                 }}
                             >
                                 <span className="text-sm font-black leading-none">{atom.symbol}</span>
-                                <span className="text-[8px] font-mono leading-none mt-0.5 opacity-80">
+                                <span className="text-[8px] font-mono leading-none mt-0.5 opacity-85">
                                     {atom.bonds}/{atom.maxBonds}
                                 </span>
                             </div>
@@ -442,20 +442,20 @@ export const MoleculeBuilder = memo(function MoleculeBuilder({ onClose }: Molecu
                     })}
 
                     {/* Bottom Status Overlay */}
-                    <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between p-2.5 rounded-lg bg-black/85 border border-white/10 backdrop-blur-md text-xs">
+                    <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between p-2.5 rounded-lg bg-white/95 border border-slate-200 backdrop-blur-md text-xs shadow-md">
                         <div className="flex items-center gap-2">
-                            <span className="text-[10px] text-slate-400 uppercase">Formula:</span>
-                            <span className="font-bold text-emerald-300 text-sm">{chemicalFormula}</span>
+                            <span className="text-[10px] text-slate-500 uppercase">Formula:</span>
+                            <span className="font-bold text-emerald-700 text-sm">{chemicalFormula}</span>
                         </div>
 
                         <div className="flex items-center gap-2">
                             {validation.isValid ? (
-                                <span className="flex items-center gap-1 text-emerald-400 font-bold text-[11px]">
+                                <span className="flex items-center gap-1 text-emerald-700 font-bold text-[11px]">
                                     <Check className="w-3.5 h-3.5" />
                                     {validation.message}
                                 </span>
                             ) : (
-                                <span className="flex items-center gap-1 text-amber-400 font-bold text-[11px]">
+                                <span className="flex items-center gap-1 text-amber-700 font-bold text-[11px]">
                                     <AlertTriangle className="w-3.5 h-3.5" />
                                     {validation.message}
                                 </span>

@@ -1,5 +1,4 @@
-/* Hallmark · genre: atmospheric · macrostructure: Workbench · theme: Bloom · enrichment: Tier-A Quantum Studio · nav: N5 Floating Pill · footer: Ft2 Inline Single-Line */
-/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 · states: default · hover · focus · active · disabled · loading · error · success */
+/* Hallmark · genre: atmospheric · macrostructure: Workbench · theme: Scientific Light Laboratory · enrichment: Tier-A Quantum Studio */
 
 @tailwind base;
 @tailwind components;
@@ -14,79 +13,79 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(15, 23, 42, 0.15);
   border-radius: 10px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(15, 23, 42, 0.3);
 }
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+  scrollbar-color: rgba(15, 23, 42, 0.15) transparent;
 }
 
 html, body {
   overflow-x: clip;
 }
 
-/* Atmospheric System: Quantum Workbench Studio */
+/* Atmospheric System: Quantum Workbench Studio - Light Theme */
 @layer base {
   :root {
-    --background: 240 10% 4%; /* #010102 roughly */
-    --foreground: 0 0% 97%;
+    --background: 210 20% 98%; /* #f8fafc */
+    --foreground: 222 47% 11%; /* #0f172a */
 
-    --card: 210 5% 6%; /* #0f1011 */
-    --card-foreground: 0 0% 97%;
-    --popover: 210 5% 6%;
-    --popover-foreground: 0 0% 97%;
+    --card: 0 0% 100%; /* #ffffff */
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
 
-    --primary: 187 100% 50%; /* Phosphor Cyan #00f5ff */
-    --primary-foreground: 240 10% 4%;
+    --primary: 199 89% 48%; /* Scientific Precision Azure #0284c7 */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 5% 10%; /* #18191a */
-    --secondary-foreground: 0 0% 97%;
+    --secondary: 210 40% 96%; /* #f1f5f9 */
+    --secondary-foreground: 222 47% 11%;
 
-    --muted: 210 5% 10%;
-    --muted-foreground: 220 5% 60%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%; /* #64748b */
 
-    --accent: 187 100% 50%;
-    --accent-foreground: 240 10% 4%;
+    --accent: 199 89% 48%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 60% 50%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 100%;
-    --input: 210 5% 10%;
-    --ring: 187 100% 50%;
+    --border: 214 32% 91%; /* #e2e8f0 */
+    --input: 214 32% 91%;
+    --ring: 199 89% 48%;
 
     --radius: 8px;
 
-    /* Strict Tokens */
-    --color-canvas: #040507;
-    --color-surface-1: #0b0d12;
-    --color-surface-2: #141720;
-    --color-ink: #f7f8f8;
-    --color-ink-muted: #8a8f98;
-    --color-accent: #00f5ff;
-    --color-hairline: rgba(255, 255, 255, 0.08);
-    --color-hairline-strong: rgba(255, 255, 255, 0.16);
+    /* Strict Tokens - Light Mode */
+    --color-canvas: #f8fafc;
+    --color-surface-1: #ffffff;
+    --color-surface-2: #f1f5f9;
+    --color-ink: #0f172a;
+    --color-ink-muted: #64748b;
+    --color-accent: #0284c7;
+    --color-hairline: rgba(15, 23, 42, 0.08);
+    --color-hairline-strong: rgba(15, 23, 42, 0.16);
 
     /* Telemetry Accents */
-    --color-phosphor-cyan: #00f5ff;
-    --color-phosphor-glow: rgba(0, 245, 255, 0.35);
-    --color-amber-ionization: #ffb700;
-    --color-amber-glow: rgba(255, 183, 0, 0.35);
-    --color-fusion-coral: #ff3355;
-    --color-fusion-glow: rgba(255, 51, 85, 0.35);
-    --color-orbital-violet: #b55fe6;
-    --color-matrix-emerald: #00ff88;
+    --color-phosphor-cyan: #0284c7;
+    --color-phosphor-glow: rgba(2, 132, 199, 0.2);
+    --color-amber-ionization: #d97706;
+    --color-amber-glow: rgba(217, 119, 6, 0.2);
+    --color-fusion-coral: #e11d48;
+    --color-fusion-glow: rgba(225, 29, 72, 0.2);
+    --color-orbital-violet: #7c3aed;
+    --color-matrix-emerald: #059669;
 
     --font-display: "Space Grotesk", sans-serif;
     --font-body: "Inter", sans-serif;
     --font-mono: "JetBrains Mono", monospace;
 
     --shadow-border: 0px 0px 0px 1px var(--color-hairline);
-    --shadow-card: 0px 0px 0px 1px var(--color-hairline), 0px 4px 12px -2px rgba(0,0,0,0.6);
+    --shadow-card: 0px 1px 3px rgba(15, 23, 42, 0.08), 0px 4px 16px -2px rgba(15, 23, 42, 0.04);
     
     --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
     --dur-short: 180ms;
@@ -106,7 +105,7 @@ html, body {
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
     letter-spacing: -0.04em;
-    font-weight: 500;
+    font-weight: 600;
   }
 
   button, input {
@@ -114,7 +113,7 @@ html, body {
   }
 
   button:focus-visible, input:focus-visible {
-    outline: 1px solid var(--color-accent);
+    outline: 2px solid var(--color-accent);
     outline-offset: 2px;
   }
 
@@ -126,11 +125,11 @@ html, body {
     background: var(--color-canvas);
   }
   ::-webkit-scrollbar-thumb {
-    background: var(--color-surface-2);
+    background: #cbd5e1;
     border-radius: 99px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--color-ink-muted);
+    background: #94a3b8;
   }
 }
 
@@ -156,7 +155,7 @@ html, body {
 
   .workspace-nav {
     @apply flex-none flex items-center justify-start gap-2 sm:gap-4 px-2 sm:px-4 h-12 border-b overflow-x-auto hide-scrollbar backdrop-blur-xl touch-pan-x;
-    background-color: rgba(11, 13, 18, 0.85);
+    background-color: rgba(255, 255, 255, 0.9);
     border-color: var(--color-hairline);
     -webkit-overflow-scrolling: touch;
   }
@@ -180,13 +179,13 @@ html, body {
 
   .workspace-tab.is-active {
     border-color: var(--color-accent);
-    color: #ffffff;
-    text-shadow: 0 0 12px var(--color-phosphor-glow);
+    color: var(--color-accent);
+    font-weight: 700;
   }
 
   .mobile-dock {
     @apply fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-around border-t backdrop-blur-lg;
-    background-color: rgba(11, 13, 18, 0.92);
+    background-color: rgba(255, 255, 255, 0.95);
     border-color: var(--color-hairline);
     padding-bottom: env(safe-area-inset-bottom);
   }
@@ -203,7 +202,7 @@ html, body {
 
   .workbench-topbar {
     @apply fixed left-0 right-0 top-0 z-40 flex h-16 items-center justify-between px-4 backdrop-blur-xl;
-    background-color: rgba(11, 13, 18, 0.9);
+    background-color: rgba(255, 255, 255, 0.92);
     box-shadow: 0px 1px 0px 0px var(--color-hairline);
   }
 
@@ -214,7 +213,7 @@ html, body {
   }
   
   .discovery-rail, .inspector-panel {
-    background-color: rgba(11, 13, 18, 0.85);
+    background-color: rgba(255, 255, 255, 0.9);
     @apply backdrop-blur-2xl h-full overflow-hidden flex flex-col z-10;
     box-shadow: 1px 0px 0px 0px var(--color-hairline);
   }
@@ -226,13 +225,13 @@ html, body {
   /* Controls */
   .command-trigger {
     @apply flex h-9 w-full max-w-sm items-center gap-2 px-3 text-left text-xs font-mono transition-colors rounded-md;
-    background-color: var(--color-surface-1);
+    background-color: var(--color-surface-2);
     color: var(--color-ink-muted);
     box-shadow: var(--shadow-border);
   }
   .command-trigger:hover {
     color: var(--color-ink);
-    background-color: var(--color-surface-2);
+    background-color: #e2e8f0;
   }
 
   .icon-button {
@@ -241,21 +240,21 @@ html, body {
   }
   .icon-button:hover {
     color: var(--color-ink);
-    background-color: var(--color-surface-1);
+    background-color: var(--color-surface-2);
   }
   .icon-button:active, .icon-button.is-active {
     color: var(--color-accent);
-    background-color: var(--color-surface-2);
+    background-color: #e0f2fe;
     transform: translateY(1px);
   }
 
   .premium-button {
     @apply inline-flex h-8 items-center justify-center px-3.5 text-xs font-mono font-bold transition-all rounded-md;
     background-color: var(--color-accent);
-    color: #000000;
+    color: #ffffff;
   }
   .premium-button:hover {
-    background-color: #38bdf8;
+    background-color: #0369a1;
     box-shadow: 0 0 16px var(--color-phosphor-glow);
   }
 
@@ -288,12 +287,13 @@ html, body {
   }
   .category-strip button:hover {
     color: var(--color-ink);
-    background-color: var(--color-surface-1);
+    background-color: var(--color-surface-2);
   }
   .category-strip button.is-active {
-    background-color: var(--color-surface-2);
+    background-color: #e0f2fe;
     color: var(--color-accent);
     box-shadow: 0 0 8px var(--color-phosphor-glow);
+    font-weight: 700;
   }
 
   .rail-list {
@@ -302,16 +302,17 @@ html, body {
   .result-card {
     @apply flex w-full items-center gap-3 p-2 text-left transition-all duration-200 rounded-md border border-transparent;
     color: var(--color-ink-muted);
+    background-color: var(--color-surface-1);
   }
   .result-card:hover {
-    background-color: var(--color-surface-1);
+    background-color: var(--color-surface-2);
     color: var(--color-ink);
-    @apply translate-x-1 border-primary/20 shadow-glow;
+    @apply translate-x-1 border-primary/30 shadow-sm;
   }
   
   .periodic-tile {
     @apply flex h-9 w-9 flex-col items-center justify-center font-bold text-sm rounded;
-    background-color: var(--color-surface-1);
+    background-color: var(--color-surface-2);
     color: var(--color-ink);
     box-shadow: var(--shadow-border);
   }
@@ -321,7 +322,7 @@ html, body {
   }
   .molecule-tile {
     @apply flex h-9 w-12 items-center justify-center font-bold text-sm rounded;
-    background-color: var(--color-surface-1);
+    background-color: var(--color-surface-2);
     color: var(--color-ink);
     box-shadow: var(--shadow-border);
   }
@@ -329,7 +330,7 @@ html, body {
   /* Stage */
   .visual-stage {
     @apply relative flex h-full flex-col overflow-hidden;
-    background: radial-gradient(circle at 50% 45%, rgba(30, 41, 59, 0.45) 0%, rgba(15, 23, 42, 0.75) 45%, rgba(2, 6, 23, 0.98) 100%);
+    background: radial-gradient(circle at 50% 45%, #ffffff 0%, #f1f5f9 60%, #e2e8f0 100%);
   }
   .visual-stage.is-fullscreen {
     @apply fixed inset-0 z-[70];
@@ -340,17 +341,17 @@ html, body {
   }
   .stage-canvas {
     @apply relative flex-1 flex items-center justify-center w-full h-full overflow-hidden;
-    background: radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.08) 0%, rgba(30, 41, 59, 0.15) 35%, transparent 70%);
+    background: radial-gradient(circle at 50% 50%, rgba(2, 132, 199, 0.04) 0%, rgba(241, 245, 249, 0.4) 40%, transparent 80%);
   }
   .stage-grid {
     @apply absolute inset-0 pointer-events-none;
     background-image: 
-      radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.14) 0%, transparent 60%),
-      linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+      radial-gradient(circle at 50% 50%, rgba(2, 132, 199, 0.06) 0%, transparent 60%),
+      linear-gradient(to right, rgba(15, 23, 42, 0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(15, 23, 42, 0.03) 1px, transparent 1px);
     background-size: 100% 100%, 48px 48px, 48px 48px;
-    mask-image: radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.4) 60%, transparent 80%);
-    -webkit-mask-image: radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.4) 60%, transparent 80%);
+    mask-image: radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.3) 60%, transparent 80%);
+    -webkit-mask-image: radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.3) 60%, transparent 80%);
   }
   .stage-status {
     @apply flex h-10 items-center gap-4 px-4 text-xs font-mono;
@@ -363,7 +364,7 @@ html, body {
   .inspector-tabs {
     @apply flex items-center gap-1 p-1 mx-3 mt-3 mb-2 rounded-lg overflow-x-auto;
     scrollbar-width: none;
-    background-color: var(--color-surface-1);
+    background-color: var(--color-surface-2);
     box-shadow: inset 0px 0px 0px 1px var(--color-hairline);
   }
   .inspector-tabs::-webkit-scrollbar {
@@ -377,9 +378,10 @@ html, body {
     color: var(--color-ink);
   }
   .inspector-tabs button.is-active {
-    background-color: var(--color-surface-2);
+    background-color: var(--color-surface-1);
     color: var(--color-accent);
-    box-shadow: 0px 1px 2px rgba(0,0,0,0.2), inset 0px 0px 0px 1px var(--color-hairline);
+    box-shadow: 0px 1px 2px rgba(15, 23, 42, 0.08), inset 0px 0px 0px 1px var(--color-hairline);
+    font-weight: 700;
   }
   .inspector-content {
     @apply flex-1 overflow-auto p-3 space-y-4;
@@ -430,7 +432,7 @@ html, body {
 
   .command-panel {
     @apply w-full max-w-xl mx-auto mt-[10vh] overflow-hidden rounded-xl shadow-2xl;
-    background-color: var(--color-canvas);
+    background-color: var(--color-surface-1);
     box-shadow: var(--shadow-card);
   }
   .command-section {
@@ -442,7 +444,7 @@ html, body {
     color: var(--color-ink);
   }
   .command-item:hover {
-    background-color: var(--color-surface-1);
+    background-color: var(--color-surface-2);
   }
   .element-dot {
     @apply flex h-5 w-5 items-center justify-center rounded text-[9px] font-bold font-mono;
@@ -479,7 +481,7 @@ html, body {
 
   /* ==================== HARDWARE TELEMETRY UTILITIES ==================== */
   .telemetry-panel {
-    background: linear-gradient(180deg, rgba(14, 17, 23, 0.85) 0%, rgba(7, 9, 13, 0.95) 100%);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%);
     border: 1px solid var(--color-hairline);
     backdrop-filter: blur(16px);
     position: relative;
@@ -502,9 +504,10 @@ html, body {
   }
 
   .matrix-grid-bg {
+    background-color: #f8fafc;
     background-image: 
-      linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      linear-gradient(to right, rgba(15, 23, 42, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(15, 23, 42, 0.05) 1px, transparent 1px);
     background-size: 24px 24px;
   }
 
@@ -528,14 +531,14 @@ html, body {
   .hardware-btn:hover {
     background: var(--color-surface-2);
     border-color: var(--color-hairline-strong);
-    color: #ffffff;
+    color: var(--color-accent);
   }
 
   .hardware-btn:active, .hardware-btn.is-active {
     transform: translateY(1px);
-    background: var(--color-surface-2);
+    background: #e0f2fe;
     border-color: var(--color-accent);
     color: var(--color-accent);
-    box-shadow: 0 0 12px var(--color-phosphor-glow);
+    box-shadow: 0 0 8px var(--color-phosphor-glow);
   }
 }

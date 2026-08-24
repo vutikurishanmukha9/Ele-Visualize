@@ -96,25 +96,25 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
     };
 
     return (
-        <div className="h-full flex flex-col bg-slate-950/90 text-white font-mono select-none overflow-hidden relative matrix-grid-bg">
+        <div className="h-full flex flex-col bg-slate-50 text-slate-900 font-mono select-none overflow-hidden relative matrix-grid-bg">
             {/* Top Command Telemetry Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-black/80 border-b border-white/10 backdrop-blur-md z-20">
+            <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-white/90 border-b border-slate-200 backdrop-blur-md z-20 shadow-sm">
                 <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-bold">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-sky-500/10 border border-sky-500/30 text-sky-600 text-xs font-bold">
                         <Grid3X3 className="w-3.5 h-3.5" />
                         <span>QUANTUM SPECTROMETRY MATRIX</span>
                     </div>
 
                     {/* Block Quick Filters */}
-                    <div className="hidden sm:flex items-center gap-1 bg-slate-900/90 p-0.5 rounded border border-white/10 text-[10px]">
+                    <div className="hidden sm:flex items-center gap-1 bg-slate-100 p-0.5 rounded border border-slate-200 text-[10px]">
                         {['all', 's', 'p', 'd', 'f'].map((b) => (
                             <button
                                 key={b}
                                 onClick={() => setSelectedBlock(b)}
                                 className={`px-2 py-0.5 rounded uppercase font-bold transition-all ${
                                     selectedBlock === b
-                                        ? 'bg-cyan-500 text-black shadow-[0_0_8px_#00f0ff]'
-                                        : 'text-slate-400 hover:text-white'
+                                        ? 'bg-sky-600 text-white shadow-sm'
+                                        : 'text-slate-600 hover:text-slate-900'
                                 }`}
                             >
                                 {b === 'all' ? 'All Blocks' : `${b}-block`}
@@ -124,9 +124,9 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                 </div>
 
                 {/* Heatmap Telemetry Mode Toggle */}
-                <div className="flex items-center gap-1 bg-slate-900/90 p-0.5 rounded border border-white/10 text-[10px]">
+                <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded border border-slate-200 text-[10px]">
                     <span className="px-2 text-slate-500 flex items-center gap-1">
-                        <Activity className="w-3 h-3 text-cyan-400" /> Heatmap:
+                        <Activity className="w-3 h-3 text-sky-600" /> Heatmap:
                     </span>
                     {(['category', 'electronegativity', 'ionization', 'radius', 'density'] as HeatmapMode[]).map((mode) => (
                         <button
@@ -134,8 +134,8 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                             onClick={() => setHeatmapMode(mode)}
                             className={`px-2 py-0.5 rounded uppercase font-bold transition-all ${
                                 heatmapMode === mode
-                                    ? 'bg-white/20 text-white border border-white/30'
-                                    : 'text-slate-400 hover:text-white'
+                                    ? 'bg-white text-sky-700 border border-slate-200 shadow-sm'
+                                    : 'text-slate-600 hover:text-slate-900'
                             }`}
                         >
                             {mode.slice(0, 6)}
@@ -147,7 +147,7 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
             {/* Main Interactive Stage Area */}
             <div className="flex-1 flex flex-col xl:flex-row gap-2 p-2 overflow-hidden min-h-0">
                 {/* 18-Column Interactive Table Grid (Scrollable on tablet/mobile) */}
-                <div className="flex-1 overflow-auto rounded-xl bg-black/60 border border-white/10 p-3 relative">
+                <div className="flex-1 overflow-auto rounded-xl bg-white border border-slate-200 p-3 relative shadow-sm">
                     <div
                         className="grid gap-1 min-w-[720px]"
                         style={{
@@ -183,19 +183,19 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                                     style={{
                                         gridRow: row,
                                         gridColumn: col,
-                                        opacity: isFiltered ? 1.0 : 0.15,
-                                        borderColor: isSelected || isHovered ? '#ffffff' : `${cellColor}40`,
-                                        backgroundColor: isSelected || isHovered ? `${cellColor}30` : `${cellColor}10`,
-                                        boxShadow: isSelected || isHovered ? `0 0 14px ${cellColor}` : 'none',
+                                        opacity: isFiltered ? 1.0 : 0.2,
+                                        borderColor: isSelected || isHovered ? '#0284c7' : `${cellColor}50`,
+                                        backgroundColor: isSelected || isHovered ? `${cellColor}25` : `${cellColor}08`,
+                                        boxShadow: isSelected || isHovered ? `0 0 10px ${cellColor}60` : 'none',
                                     }}
                                     className={cn(
                                         'relative rounded p-1 flex flex-col items-center justify-between border transition-all text-left group hover:z-30 hover:scale-105',
-                                        isSelected && 'ring-2 ring-white z-20'
+                                        isSelected && 'ring-2 ring-sky-500 z-20'
                                     )}
                                 >
                                     {/* Number & State Icon */}
-                                    <div className="w-full flex items-center justify-between text-[8px] opacity-75 font-mono leading-none">
-                                        <span>{el.atomicNumber}</span>
+                                    <div className="w-full flex items-center justify-between text-[8px] text-slate-600 font-mono leading-none">
+                                        <span className="font-semibold">{el.atomicNumber}</span>
                                         <span className="text-[7px]">
                                             {stateAtTemp === 'gas' ? '💨' : stateAtTemp === 'liquid' ? '💧' : '🧊'}
                                         </span>
@@ -207,7 +207,7 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                                     </div>
 
                                     {/* Mass or Heatmap Value */}
-                                    <div className="w-full text-center text-[7.5px] opacity-70 truncate font-mono">
+                                    <div className="w-full text-center text-[7.5px] text-slate-500 truncate font-mono">
                                         {heatmapMode === 'electronegativity' && elementProperties[el.atomicNumber]?.electronegativity
                                             ? `χ ${elementProperties[el.atomicNumber]?.electronegativity}`
                                             : heatmapMode === 'ionization' && elementProperties[el.atomicNumber]?.ionizationEnergy
@@ -219,10 +219,10 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                         })}
 
                         {/* Lanthanide & Actinide Labels */}
-                        <div style={{ gridRow: 6, gridColumn: 3 }} className="flex items-center justify-center text-[9px] font-bold text-pink-400 bg-pink-500/10 border border-pink-500/30 rounded">
+                        <div style={{ gridRow: 6, gridColumn: 3 }} className="flex items-center justify-center text-[9px] font-bold text-pink-600 bg-pink-50 border border-pink-200 rounded">
                             57-71
                         </div>
-                        <div style={{ gridRow: 7, gridColumn: 3 }} className="flex items-center justify-center text-[9px] font-bold text-red-400 bg-red-500/10 border border-red-500/30 rounded">
+                        <div style={{ gridRow: 7, gridColumn: 3 }} className="flex items-center justify-center text-[9px] font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded">
                             89-103
                         </div>
                     </div>
@@ -235,24 +235,24 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
 
                     {/* Active Hovered Element Spectroscopy & Telemetry Card */}
                     {activeDisplayElement && (
-                        <div className="p-3 rounded-lg bg-black/85 border border-white/10 space-y-2.5">
+                        <div className="p-3 rounded-xl bg-white border border-slate-200 space-y-2.5 shadow-sm">
                             <div className="flex items-start justify-between">
                                 <div>
-                                    <div className="text-[10px] text-slate-400 uppercase tracking-wider font-mono">Active Target</div>
-                                    <div className="text-lg font-extrabold text-white flex items-center gap-2">
-                                        <span style={{ color: categoryColors[activeDisplayElement.category] || '#38bdf8' }}>
+                                    <div className="text-[10px] text-slate-500 uppercase tracking-wider font-mono">Active Target</div>
+                                    <div className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                                        <span style={{ color: categoryColors[activeDisplayElement.category] || '#0284c7' }}>
                                             {activeDisplayElement.name}
                                         </span>
-                                        <span className="text-xs text-slate-400 font-mono">#{activeDisplayElement.atomicNumber}</span>
+                                        <span className="text-xs text-slate-500 font-mono">#{activeDisplayElement.atomicNumber}</span>
                                     </div>
-                                    <div className="text-[10px] text-cyan-300 font-mono">
+                                    <div className="text-[10px] text-sky-700 font-mono">
                                         {categoryLabels[activeDisplayElement.category]} • {getElementBlock(activeDisplayElement.atomicNumber).toUpperCase()}-Block
                                     </div>
                                 </div>
 
                                 <button
                                     onClick={() => onSelectElement(activeDisplayElement)}
-                                    className="hardware-btn bg-cyan-500 text-black border-cyan-400 hover:bg-cyan-400 font-bold"
+                                    className="hardware-btn bg-sky-600 text-white border-sky-600 hover:bg-sky-700 font-bold px-3 py-1.5 text-xs rounded"
                                 >
                                     <Atom className="w-3 h-3" /> Explore
                                 </button>
@@ -272,14 +272,14 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4"
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
                         onClick={() => setPopupElement(null)}
                     >
                         <motion.div
                             initial={{ scale: 0.9, y: 20 }}
                             animate={{ scale: 1, y: 0 }}
                             exit={{ scale: 0.9, y: 20 }}
-                            className="bg-slate-950 border border-white/20 rounded-2xl p-5 max-w-md w-full shadow-2xl space-y-4"
+                            className="bg-white border border-slate-200 rounded-2xl p-5 max-w-md w-full shadow-2xl space-y-4 text-slate-900"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="flex items-start justify-between">
@@ -287,19 +287,19 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                                     <div
                                         className="w-14 h-14 rounded-xl flex flex-col items-center justify-center font-bold border-2"
                                         style={{
-                                            borderColor: categoryColors[popupElement.category] || '#00f0ff',
-                                            backgroundColor: `${categoryColors[popupElement.category]}20`,
+                                            borderColor: categoryColors[popupElement.category] || '#0284c7',
+                                            backgroundColor: `${categoryColors[popupElement.category]}15`,
                                         }}
                                     >
-                                        <span className="text-xs text-slate-400">{popupElement.atomicNumber}</span>
-                                        <span className="text-xl text-white font-extrabold">{popupElement.symbol}</span>
+                                        <span className="text-xs text-slate-500">{popupElement.atomicNumber}</span>
+                                        <span className="text-xl font-extrabold" style={{ color: categoryColors[popupElement.category] || '#0284c7' }}>{popupElement.symbol}</span>
                                     </div>
                                     <div>
-                                        <h3 className="text-lg font-bold text-white">{popupElement.name}</h3>
-                                        <p className="text-xs text-cyan-400 font-mono">{categoryLabels[popupElement.category]}</p>
+                                        <h3 className="text-lg font-bold text-slate-900">{popupElement.name}</h3>
+                                        <p className="text-xs text-sky-700 font-mono">{categoryLabels[popupElement.category]}</p>
                                     </div>
                                 </div>
-                                <button onClick={() => setPopupElement(null)} className="p-1 rounded hover:bg-white/10 text-slate-400">
+                                <button onClick={() => setPopupElement(null)} className="p-1 rounded hover:bg-slate-100 text-slate-500">
                                     <X className="w-4 h-4" />
                                 </button>
                             </div>
@@ -307,21 +307,21 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                             <SpectroscopyBar element={popupElement} />
 
                             <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                                <div className="p-2 rounded bg-white/5 border border-white/10">
-                                    <span className="text-slate-400">Atomic Mass:</span>
-                                    <div className="font-bold text-white">{popupElement.atomicMass} u</div>
+                                <div className="p-2 rounded bg-slate-50 border border-slate-200">
+                                    <span className="text-slate-500">Atomic Mass:</span>
+                                    <div className="font-bold text-slate-900">{popupElement.atomicMass} u</div>
                                 </div>
-                                <div className="p-2 rounded bg-white/5 border border-white/10">
-                                    <span className="text-slate-400">Electron Shells:</span>
-                                    <div className="font-bold text-white">{popupElement.shells.join(' - ')}</div>
+                                <div className="p-2 rounded bg-slate-50 border border-slate-200">
+                                    <span className="text-slate-500">Electron Shells:</span>
+                                    <div className="font-bold text-slate-900">{popupElement.shells.join(' - ')}</div>
                                 </div>
-                                <div className="p-2 rounded bg-white/5 border border-white/10">
-                                    <span className="text-slate-400">Melting Point:</span>
-                                    <div className="font-bold text-white">{elementProperties[popupElement.atomicNumber]?.meltingPoint ?? 'N/A'} K</div>
+                                <div className="p-2 rounded bg-slate-50 border border-slate-200">
+                                    <span className="text-slate-500">Melting Point:</span>
+                                    <div className="font-bold text-slate-900">{elementProperties[popupElement.atomicNumber]?.meltingPoint ?? 'N/A'} K</div>
                                 </div>
-                                <div className="p-2 rounded bg-white/5 border border-white/10">
-                                    <span className="text-slate-400">Boiling Point:</span>
-                                    <div className="font-bold text-white">{elementProperties[popupElement.atomicNumber]?.boilingPoint ?? 'N/A'} K</div>
+                                <div className="p-2 rounded bg-slate-50 border border-slate-200">
+                                    <span className="text-slate-500">Boiling Point:</span>
+                                    <div className="font-bold text-slate-900">{elementProperties[popupElement.atomicNumber]?.boilingPoint ?? 'N/A'} K</div>
                                 </div>
                             </div>
 

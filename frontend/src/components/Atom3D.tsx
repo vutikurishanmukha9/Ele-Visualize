@@ -305,10 +305,10 @@ const Nucleus = memo(function Nucleus({ protons, neutrons, color, symbol, showPa
                     ))}
                     {/* Proton / Neutron counter badge with occlusion */}
                     <Html center distanceFactor={5} position={[0, -0.95, 0]} occlude>
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-950/90 border border-white/20 text-[10px] font-mono pointer-events-none backdrop-blur-md whitespace-nowrap shadow-2xl">
-                            <span className="text-rose-400 font-semibold">{protons}p⁺</span>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/95 border border-slate-300 text-[10px] font-mono pointer-events-none backdrop-blur-md whitespace-nowrap shadow-md">
+                            <span className="text-rose-600 font-bold">{protons}p⁺</span>
                             <span className="text-slate-400">•</span>
-                            <span className="text-cyan-400 font-semibold">{neutrons}n⁰</span>
+                            <span className="text-sky-700 font-bold">{neutrons}n⁰</span>
                         </div>
                     </Html>
                 </group>
@@ -493,7 +493,7 @@ const OrbitalShell = memo(function OrbitalShell({
                 <div
                     onMouseEnter={() => onHover && onHover(shellIndex)}
                     onMouseLeave={() => onHover && onHover(null)}
-                    className="cursor-pointer select-none px-2 py-0.5 rounded-md bg-slate-950/80 border border-white/15 hover:border-primary/60 text-[9px] font-mono text-slate-300 hover:text-white transition-all backdrop-blur-md shadow-lg"
+                    className="cursor-pointer select-none px-2 py-0.5 rounded-md bg-white/95 border border-slate-300 hover:border-sky-500 text-[9px] font-mono text-slate-700 hover:text-sky-800 transition-all backdrop-blur-md shadow-md"
                     title={`Shell ${shellName} (n=${shellIndex + 1}): ${electronCount} electrons`}
                 >
                     {shellName}:{electronCount}e⁻

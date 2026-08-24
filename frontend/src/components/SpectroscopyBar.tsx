@@ -135,23 +135,23 @@ export const SpectroscopyBar = memo(function SpectroscopyBar({ element, classNam
   };
 
   return (
-    <div className={`p-3 rounded-xl bg-black/85 border border-white/10 font-mono select-none space-y-2.5 ${className}`}>
+    <div className={`p-3 rounded-xl bg-white border border-slate-200 font-mono select-none space-y-2.5 shadow-sm ${className}`}>
       {/* Telemetry Header */}
-      <div className="flex items-center justify-between text-[11px] text-slate-400 uppercase tracking-wider">
-        <span className="flex items-center gap-2 font-bold text-white">
-          <Zap className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+      <div className="flex items-center justify-between text-[11px] text-slate-500 uppercase tracking-wider">
+        <span className="flex items-center gap-2 font-bold text-slate-900">
+          <Zap className="w-3.5 h-3.5 text-sky-600 animate-pulse" />
           Optical Emission Spectroscopy
         </span>
-        <span className="text-cyan-300 font-bold">
+        <span className="text-sky-700 font-bold">
           {activeLine ? `${activeLine.wavelength} nm` : `${spectralLines.length} Lines`}
         </span>
       </div>
 
       {/* Spectrum Continuous Film Strip */}
-      <div className="relative h-7 rounded-lg bg-slate-950 border border-white/20 overflow-hidden flex items-center shadow-inner cursor-crosshair">
+      <div className="relative h-7 rounded-lg bg-slate-950 border border-slate-800 overflow-hidden flex items-center shadow-inner cursor-crosshair">
         {/* Continuous Rainbow dispersion substrate */}
         <div
-          className="absolute inset-0 opacity-25"
+          className="absolute inset-0 opacity-30"
           style={{
             background: 'linear-gradient(90deg, #4b0082 0%, #0000ff 20%, #00ff00 45%, #ffff00 65%, #ff7f00 80%, #ff0000 100%)',
           }}
@@ -182,7 +182,7 @@ export const SpectroscopyBar = memo(function SpectroscopyBar({ element, classNam
         })}
 
         {/* Axis Reference Ticks */}
-        <div className="absolute inset-x-0 bottom-0.5 flex justify-between px-2 text-[8px] text-slate-500 pointer-events-none">
+        <div className="absolute inset-x-0 bottom-0.5 flex justify-between px-2 text-[8px] text-slate-400 pointer-events-none">
           <span>380nm</span>
           <span>480nm</span>
           <span>580nm</span>
@@ -193,22 +193,22 @@ export const SpectroscopyBar = memo(function SpectroscopyBar({ element, classNam
 
       {/* Selected Spectral Line Detail Inspector */}
       {activeLine && (
-        <div className="grid grid-cols-3 gap-2 p-2 rounded-lg bg-slate-900/80 border border-white/10 text-xs">
+        <div className="grid grid-cols-3 gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-xs">
           <div className="flex flex-col">
-            <span className="text-[9px] text-slate-400 uppercase">Photon Energy (E)</span>
-            <span className="font-bold text-cyan-300">
+            <span className="text-[9px] text-slate-500 uppercase">Photon Energy (E)</span>
+            <span className="font-bold text-sky-700">
               {(1239.84 / activeLine.wavelength).toFixed(3)} eV
             </span>
           </div>
           <div className="flex flex-col">
-            <span className="text-[9px] text-slate-400 uppercase">Frequency (ν)</span>
-            <span className="font-bold text-purple-300">
+            <span className="text-[9px] text-slate-500 uppercase">Frequency (ν)</span>
+            <span className="font-bold text-purple-700">
               {((2.9979e5) / activeLine.wavelength).toFixed(1)} THz
             </span>
           </div>
           <div className="flex flex-col">
-            <span className="text-[9px] text-slate-400 uppercase">Transition</span>
-            <span className="font-bold text-amber-300 truncate" title={activeLine.transition}>
+            <span className="text-[9px] text-slate-500 uppercase">Transition</span>
+            <span className="font-bold text-amber-700 truncate" title={activeLine.transition}>
               {activeLine.transition || 'Atomic Shell'}
             </span>
           </div>
