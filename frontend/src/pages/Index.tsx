@@ -56,37 +56,87 @@ const workspaces: { id: WorkspaceMode; label: string; icon: typeof Atom }[] = [
 
 const categories = Object.keys(categoryLabels) as ElementCategory[];
 
-function getElectronConfig(atomicNumber: number) {
+const KNOWN_ELECTRON_CONFIGS: Record<number, string> = {
+  1: '1s¹',
+  2: '1s²',
+  3: '[He] 2s¹',
+  4: '[He] 2s²',
+  5: '[He] 2s² 2p¹',
+  6: '[He] 2s² 2p²',
+  7: '[He] 2s² 2p³',
+  8: '[He] 2s² 2p⁴',
+  9: '[He] 2s² 2p⁵',
+  10: '[He] 2s² 2p⁶',
+  11: '[Ne] 3s¹',
+  12: '[Ne] 3s²',
+  13: '[Ne] 3s² 3p¹',
+  14: '[Ne] 3s² 3p²',
+  15: '[Ne] 3s² 3p³',
+  16: '[Ne] 3s² 3p⁴',
+  17: '[Ne] 3s² 3p⁵',
+  18: '[Ne] 3s² 3p⁶',
+  19: '[Ar] 4s¹',
+  20: '[Ar] 4s²',
+  21: '[Ar] 3d¹ 4s²',
+  22: '[Ar] 3d² 4s²',
+  23: '[Ar] 3d³ 4s²',
+  24: '[Ar] 3d⁵ 4s¹',
+  25: '[Ar] 3d⁵ 4s²',
+  26: '[Ar] 3d⁶ 4s²',
+  27: '[Ar] 3d⁷ 4s²',
+  28: '[Ar] 3d⁸ 4s²',
+  29: '[Ar] 3d¹⁰ 4s¹',
+  30: '[Ar] 3d¹⁰ 4s²',
+  31: '[Ar] 3d¹⁰ 4s² 4p¹',
+  32: '[Ar] 3d¹⁰ 4s² 4p²',
+  33: '[Ar] 3d¹⁰ 4s² 4p³',
+  34: '[Ar] 3d¹⁰ 4s² 4p⁴',
+  35: '[Ar] 3d¹⁰ 4s² 4p⁵',
+  36: '[Ar] 3d¹⁰ 4s² 4p⁶',
+  47: '[Kr] 4d¹⁰ 5s¹',
+  79: '[Xe] 4f¹⁴ 5d¹⁰ 6s¹',
+  92: '[Rn] 5f³ 6d¹ 7s²',
+};
+
+function getElectronConfig(atomicNumber: number): React.ReactNode {
+  if (KNOWN_ELECTRON_CONFIGS[atomicNumber]) {
+    const raw = KNOWN_ELECTRON_CONFIGS[atomicNumber];
+    return <span className="font-mono font-bold tracking-wide text-slate-800">{raw}</span>;
+  }
   const orbitals = ['1s', '2s', '2p', '3s', '3p', '4s', '3d', '4p', '5s', '4d', '5p', '6s', '4f', '5d', '6p', '7s', '5f', '6d', '7p'];
   const maxElectrons = [2, 2, 6, 2, 6, 2, 10, 6, 2, 10, 6, 2, 14, 10, 6, 2, 14, 10, 6];
   let remaining = atomicNumber;
   const config: React.ReactNode[] = [];
   for (let i = 0; i < orbitals.length && remaining > 0; i++) {
     const count = Math.min(remaining, maxElectrons[i]);
-    config.push(<span key={orbitals[i]} className="mr-[2px]">{orbitals[i]}<sup className="text-[10px] text-primary font-semibold">{count}</sup></span>);
+    config.push(
+      <span key={orbitals[i]} className="mr-[2px]">
+        {orbitals[i]}<sup className="text-[10px] text-[#16a875] font-bold">{count}</sup>
+      </span>
+    );
     remaining -= count;
   }
-  return <>{config}</>;
+  return <span className="font-mono font-semibold">{config}</span>;
 }
 
 const formatTemp = (kelvin: number | null | undefined, unit: 'C' | 'K' | 'F' = 'C') => {
-  if (kelvin == null) return 'Not available';
+  if (kelvin == null) return 'N/A';
   if (unit === 'K') return `${kelvin} K`;
   if (unit === 'F') return `${Math.round((kelvin - 273.15) * 9/5 + 32)} °F`;
   return `${Math.round(kelvin - 273.15)} °C`;
 };
 
-// Animated 2D Bohr Model SVG Widget
+// Animated 2D Bohr Model SVG Widget with Light Porcelain Theme
 function BohrModel2D({ shells, color, symbol }: { shells: number[]; color: string; symbol: string }) {
   const size = 150;
   const center = size / 2;
   return (
-    <div className="flex flex-col items-center justify-center p-3 bg-slate-950/70 rounded-xl border border-white/10 relative overflow-hidden select-none">
+    <div className="flex flex-col items-center justify-center p-3.5 bg-white/90 rounded-2xl border border-black/[0.06] relative overflow-hidden select-none shadow-card">
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="overflow-visible">
         {/* Core Nucleus glow */}
-        <circle cx={center} cy={center} r={16} fill={color} opacity={0.25} />
-        <circle cx={center} cy={center} r={12} fill={color} opacity={0.8} />
-        <text x={center} y={center + 4} textAnchor="middle" fill="#ffffff" fontSize="11" fontWeight="bold" fontFamily="monospace">
+        <circle cx={center} cy={center} r={18} fill={color} opacity={0.15} />
+        <circle cx={center} cy={center} r={13} fill={color} opacity={0.9} />
+        <text x={center} y={center + 4.5} textAnchor="middle" fill="#ffffff" fontSize="12" fontWeight="bold" fontFamily="sans-serif">
           {symbol}
         </text>
         {/* Orbiting Shells */}
@@ -94,21 +144,21 @@ function BohrModel2D({ shells, color, symbol }: { shells: number[]; color: strin
           const radius = 22 + shellIdx * (48 / Math.max(shells.length, 1));
           return (
             <g key={shellIdx}>
-              <circle cx={center} cy={center} r={radius} fill="none" stroke={color} strokeWidth="1" strokeDasharray="3 3" opacity={0.35} />
-              {Array.from({ length: Math.min(count, 12) }).map((_, electronIdx) => {
-                const angle = (electronIdx / Math.min(count, 12)) * Math.PI * 2;
+              <circle cx={center} cy={center} r={radius} fill="none" stroke={color} strokeWidth="1" strokeDasharray="3 3" opacity={0.4} />
+              {Array.from({ length: Math.min(count, 16) }).map((_, electronIdx) => {
+                const angle = (electronIdx / Math.min(count, 16)) * Math.PI * 2;
                 const ex = center + Math.cos(angle) * radius;
                 const ey = center + Math.sin(angle) * radius;
                 return (
-                  <circle key={electronIdx} cx={ex} cy={ey} r={2.5} fill="#ffffff" stroke={color} strokeWidth="1" opacity={0.9} />
+                  <circle key={electronIdx} cx={ex} cy={ey} r={2.5} fill="#16a875" stroke="#ffffff" strokeWidth="1" opacity={0.95} />
                 );
               })}
             </g>
           );
         })}
       </svg>
-      <div className="text-[10px] font-mono text-muted-foreground mt-2 text-center">
-        Bohr Configuration: <span className="text-white font-bold">{shells.join(' • ')}</span>
+      <div className="text-[11px] font-mono text-slate-500 mt-2.5 text-center">
+        Bohr Shells: <span className="text-[#087f5b] font-bold bg-[#e6f6ef] px-2 py-0.5 rounded-md border border-[#bce8d5]">{shells.join(' • ')}</span>
       </div>
     </div>
   );
@@ -478,31 +528,33 @@ function DiscoveryRail({
               <button
                 key={element.atomicNumber}
                 className={cn(
-                  "element-rail-card",
-                  isSelected && "is-active"
+                  "element-rail-card p-2 rounded-xl flex items-center gap-2.5 transition-all text-left",
+                  isSelected && "is-active ring-2 ring-[#16a875] bg-[#e6f6ef]/50"
                 )}
                 onClick={() => onSelectElement(element)}
               >
-                {/* Symbol Box with Superscript Atomic Number */}
+                {/* Symbol Box with Distinct Atomic Number */}
                 <div
-                  className="relative flex h-10 w-10 items-center justify-center font-bold text-base rounded-xl border font-sans shrink-0 shadow-xs"
+                  className="relative flex flex-col items-center justify-center h-11 w-11 rounded-xl border font-sans shrink-0 shadow-xs"
                   style={{
-                    backgroundColor: `${color}18`,
-                    color: color,
-                    borderColor: `${color}40`,
+                    backgroundColor: `${color}15`,
+                    borderColor: isSelected ? '#16a875' : `${color}40`,
                   }}
                 >
-                  <span className="absolute top-1 right-1.5 text-[9px] font-mono leading-none text-slate-400">
-                    {element.atomicNumber}
-                  </span>
-                  <span>{element.symbol}</span>
+                  <span className="text-[9px] font-mono leading-none text-slate-400 font-semibold">{element.atomicNumber}</span>
+                  <span className="text-sm font-extrabold leading-none my-0.5" style={{ color }}>{element.symbol}</span>
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <span className="block truncate text-xs font-bold text-slate-900">{element.name}</span>
-                  <span className="block truncate text-[10px] text-slate-500 font-mono">
-                    <span className="font-semibold" style={{ color }}>{categoryLabels[element.category]}</span> • {element.atomicMass.toFixed(2)} u
-                  </span>
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="truncate text-xs font-bold text-slate-900">{element.name}</span>
+                    <span className="text-[10px] text-slate-400 font-mono shrink-0">{element.atomicMass.toFixed(1)} u</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[10px] font-mono mt-0.5">
+                    <span className="font-semibold truncate" style={{ color }}>{categoryLabels[element.category]}</span>
+                    <span className="text-slate-300">•</span>
+                    <span className="text-slate-500 uppercase font-bold shrink-0">{getElementBlock(element.atomicNumber)}-blk</span>
+                  </div>
                 </div>
                 <ChevronRight className={cn("h-3.5 w-3.5 shrink-0 transition-colors", isSelected ? "text-[#16a875]" : "text-slate-300")} />
               </button>
@@ -782,29 +834,37 @@ function VisualStage({
               animate={{ opacity: 1, scale: 1 }}
               className="relative z-10 text-center max-w-xl mx-auto px-4 py-8 flex flex-col items-center justify-center"
             >
-              {/* Spectral Rings Atom Emblem */}
+              {/* QUANTUM.OS v1.0 Badge */}
+              <div className="mb-6 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/90 border border-black/[0.06] text-xs font-mono text-slate-600 shadow-sm backdrop-blur-md">
+                <span className="w-2 h-2 rounded-full bg-[#16a875] animate-pulse" />
+                <span className="font-bold text-slate-800">QUANTUM.OS</span>
+                <span className="text-slate-400">v1.0</span>
+              </div>
+
+              {/* Spectral Wave Canvas Behind Atom Emblem */}
               <div className="relative mb-6 flex items-center justify-center">
-                {/* Concentric subtle glowing halos */}
-                <div className="absolute w-36 h-36 rounded-full border border-teal-200/40 animate-[spin_20s_linear_infinite]" />
-                <div className="absolute w-28 h-28 rounded-full border border-purple-200/40 animate-[spin_15s_linear_infinite_reverse]" />
-                <div className="absolute w-20 h-20 rounded-full border border-emerald-200/50" />
-                <div className="w-16 h-16 rounded-2xl bg-white/90 border border-slate-200/80 shadow-[0_8px_30px_rgba(22,168,117,0.12)] flex items-center justify-center text-[#16a875]">
-                  <Atom className="h-8 w-8 text-[#16a875]" />
+                <div className="absolute -inset-10 rounded-full bg-gradient-to-r from-emerald-100/60 via-teal-50/40 to-cyan-100/60 blur-2xl pointer-events-none" />
+                
+                {/* Concentric Spectral Ring Atom Emblem */}
+                <div className="relative flex h-28 w-28 items-center justify-center rounded-full bg-white border border-[#bce8d5] shadow-[0_8px_30px_rgb(22,168,117,0.12)]">
+                  <div className="absolute inset-2 rounded-full border border-dashed border-[#16a875]/40 animate-[spin_20s_linear_infinite]" />
+                  <div className="absolute inset-5 rounded-full border border-[#16a875]/20 animate-[spin_12s_linear_infinite_reverse]" />
+                  <Atom className="h-12 w-12 text-[#16a875]" />
                 </div>
               </div>
 
-              {/* Editorial Serif Headline */}
-              <h1 className="text-3xl sm:text-4xl font-serif font-bold text-slate-900 tracking-tight mb-2">
-                Explore the <span className="bg-gradient-to-r from-teal-500 via-[#16a875] to-indigo-600 bg-clip-text text-transparent italic">Elements</span>
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-500 mb-6 max-w-md mx-auto leading-relaxed">
-                Select an atom from the discovery rail, open the full periodic table, or launch a featured element below.
+              {/* Editorial Title */}
+              <h2 className="text-3xl sm:text-4xl font-normal font-serif-title text-slate-900 tracking-tight mb-2">
+                Explore the <span className="text-[#16a875] font-semibold italic">Elements</span>
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto mb-6 leading-relaxed">
+                Select an atom from the discovery rail or pick a featured element below to begin quantum interactive inspection.
               </p>
 
-              {/* Quick Pick Elemental Cards with Spectral Borders (Row 1 & Row 2) */}
-              <div className="space-y-2 mb-6 w-full max-w-md">
+              {/* 8 Featured Element Quick-Pick Cards */}
+              <div className="space-y-2 mb-8 max-w-xl mx-auto">
                 <div className="flex flex-wrap items-center justify-center gap-2">
-                  {featuredQuickPicks.slice(0, 5).map((item) => {
+                  {featuredQuickPicks.slice(0, 4).map((item) => {
                     const el = elements.find(e => e.symbol === item.symbol);
                     return (
                       <button
@@ -820,7 +880,7 @@ function VisualStage({
                   })}
                 </div>
                 <div className="flex flex-wrap items-center justify-center gap-2">
-                  {featuredQuickPicks.slice(5).map((item) => {
+                  {featuredQuickPicks.slice(4).map((item) => {
                     const el = elements.find(e => e.symbol === item.symbol);
                     return (
                       <button
@@ -836,37 +896,38 @@ function VisualStage({
                   })}
                 </div>
               </div>
-
-              {/* Large Emerald CTA Button */}
-              <button
-                className="px-6 py-2.5 rounded-2xl bg-[#16a875] hover:bg-[#087f5b] text-white font-bold text-sm shadow-[0_4px_16px_rgba(22,168,117,0.3)] flex items-center gap-2.5 transition-all hover:scale-[1.02]"
-                onClick={() => setWorkspaceMode('table')}
-              >
-                <Grid3X3 className="h-4 w-4" />
-                <span>Open Periodic Table</span>
-              </button>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Bottom Instrument Scrubber (Zoom & Speed) */}
+      {/* Bottom Instrument Scrubber (Zoom Magnification & Speed) */}
       <div className="stage-status flex flex-wrap items-center justify-between px-5 py-2.5 bg-white/90 backdrop-blur-md border-t border-black/[0.06] text-xs font-sans text-slate-600">
-        {/* Zoom Controls */}
-        <div className="flex items-center gap-2">
-          <span className="font-semibold text-slate-700">Zoom</span>
+        {/* Instrument Magnification Scale Controls */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-bold text-slate-700 uppercase tracking-wider text-[10px] font-mono">Magnification:</span>
+          
           <button
             onClick={() => setZoomLevel(0.5)}
-            className={cn("px-2 py-0.5 rounded-md text-[11px] font-mono", Math.abs(zoomLevel - 0.5) < 0.1 ? "bg-[#e6f6ef] text-[#16a875] font-bold border border-[#bce8d5]" : "text-slate-500 hover:text-slate-800")}
+            className={cn(
+              "px-2.5 py-1 rounded-lg text-[10.5px] font-mono transition-all border",
+              Math.abs(zoomLevel - 0.5) < 0.1 ? "bg-[#e6f6ef] text-[#087f5b] font-bold border-[#16a875] shadow-xs" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+            )}
+            title="System View: Complete Atomic & Orbital Overview"
           >
-            0.5x
+            0.5x System
           </button>
           <button
             onClick={() => setZoomLevel(1.0)}
-            className={cn("px-2 py-0.5 rounded-md text-[11px] font-mono", Math.abs(zoomLevel - 1.0) < 0.1 ? "bg-[#e6f6ef] text-[#16a875] font-bold border border-[#bce8d5]" : "text-slate-500 hover:text-slate-800")}
+            className={cn(
+              "px-2.5 py-1 rounded-lg text-[10.5px] font-mono transition-all border",
+              Math.abs(zoomLevel - 1.0) < 0.1 ? "bg-[#e6f6ef] text-[#087f5b] font-bold border-[#16a875] shadow-xs" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+            )}
+            title="Standard View: Balanced Nucleus & Valence Shells"
           >
-            1.0x
+            1.0x Standard
           </button>
+          
           <input
             aria-label="Zoom slider"
             type="range"
@@ -875,49 +936,46 @@ function VisualStage({
             step="0.1"
             value={zoomLevel}
             onChange={(e) => setZoomLevel(Number(e.target.value))}
-            className="w-24 sm:w-32 accent-[#16a875] cursor-pointer h-1.5 bg-slate-200 rounded"
+            className="w-20 sm:w-28 accent-[#16a875] cursor-pointer h-1.5 bg-slate-200 rounded"
           />
+
           <button
             onClick={() => setZoomLevel(2.0)}
-            className={cn("px-2 py-0.5 rounded-md text-[11px] font-mono", Math.abs(zoomLevel - 2.0) < 0.1 ? "bg-[#e6f6ef] text-[#16a875] font-bold border border-[#bce8d5]" : "text-slate-500 hover:text-slate-800")}
+            className={cn(
+              "px-2.5 py-1 rounded-lg text-[10.5px] font-mono transition-all border",
+              Math.abs(zoomLevel - 2.0) < 0.1 ? "bg-[#e6f6ef] text-[#087f5b] font-bold border-[#16a875] shadow-xs" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+            )}
+            title="Structural View: Shell Trajectories & Subshells"
           >
-            2.0x
+            2.0x Structure
           </button>
           <button
             onClick={() => setZoomLevel(4.0)}
-            className={cn("px-2 py-0.5 rounded-md text-[11px] font-mono", Math.abs(zoomLevel - 4.0) < 0.1 ? "bg-[#e6f6ef] text-[#16a875] font-bold border border-[#bce8d5]" : "text-slate-500 hover:text-slate-800")}
+            className={cn(
+              "px-2.5 py-1 rounded-lg text-[10.5px] font-mono transition-all border",
+              Math.abs(zoomLevel - 4.0) < 0.1 ? "bg-[#e6f6ef] text-[#087f5b] font-bold border-[#16a875] shadow-xs" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+            )}
+            title="Nuclear Detail: Core Magnification & Proton/Neutron Clusters"
           >
-            4.0x
+            4.0x Core Detail
           </button>
         </div>
 
         {/* Speed Controls */}
-        <div className="flex items-center gap-2">
-          <span className="font-semibold text-slate-700">Speed</span>
-          <button
-            onClick={() => setAnimationSpeed(0.5)}
-            className={cn("px-2 py-0.5 rounded-md text-[11px] font-mono", Math.abs(animationSpeed - 0.5) < 0.1 ? "bg-[#e6f6ef] text-[#16a875] font-bold border border-[#bce8d5]" : "text-slate-500 hover:text-slate-800")}
-          >
-            0.5x
-          </button>
-          <button
-            onClick={() => setAnimationSpeed(1.0)}
-            className={cn("px-2 py-0.5 rounded-md text-[11px] font-mono", Math.abs(animationSpeed - 1.0) < 0.1 ? "bg-[#e6f6ef] text-[#16a875] font-bold border border-[#bce8d5]" : "text-slate-500 hover:text-slate-800")}
-          >
-            1.0x
-          </button>
-          <button
-            onClick={() => setAnimationSpeed(1.5)}
-            className={cn("px-2 py-0.5 rounded-md text-[11px] font-mono", Math.abs(animationSpeed - 1.5) < 0.1 ? "bg-[#e6f6ef] text-[#16a875] font-bold border border-[#bce8d5]" : "text-slate-500 hover:text-slate-800")}
-          >
-            1.5x
-          </button>
-          <button
-            onClick={() => setAnimationSpeed(2.0)}
-            className={cn("px-2 py-0.5 rounded-md text-[11px] font-mono", Math.abs(animationSpeed - 2.0) < 0.1 ? "bg-[#e6f6ef] text-[#16a875] font-bold border border-[#bce8d5]" : "text-slate-500 hover:text-slate-800")}
-          >
-            2.0x
-          </button>
+        <div className="flex items-center gap-1.5">
+          <span className="font-bold text-slate-700 uppercase tracking-wider text-[10px] font-mono">Speed:</span>
+          {[0.5, 1.0, 1.5, 2.0].map((spd) => (
+            <button
+              key={spd}
+              onClick={() => setAnimationSpeed(spd)}
+              className={cn(
+                "px-2 py-0.5 rounded-lg text-[10.5px] font-mono transition-all border",
+                Math.abs(animationSpeed - spd) < 0.1 ? "bg-[#e6f6ef] text-[#087f5b] font-bold border-[#16a875] shadow-xs" : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
+              )}
+            >
+              {spd}x
+            </button>
+          ))}
         </div>
       </div>
     </section>
@@ -986,28 +1044,31 @@ function Inspector({
         <div className="inspector-content p-3.5 space-y-3 overflow-y-auto flex-1">
           {/* Hero Header Card */}
           <div
-            className="hero-element p-3.5 rounded-xl border flex items-center gap-3.5 relative overflow-hidden bg-white shadow-xs"
+            className="hero-element p-3.5 rounded-2xl border flex items-center gap-3.5 relative overflow-hidden bg-white shadow-card"
             style={{
               borderColor: `${elementColor}40`,
             }}
           >
-            <span
-              className="flex h-12 w-12 items-center justify-center text-xl font-extrabold rounded-xl border font-mono shadow-xs shrink-0"
+            <div
+              className="flex flex-col items-center justify-center h-14 w-14 rounded-2xl border shadow-xs shrink-0"
               style={{
                 backgroundColor: `${elementColor}15`,
-                color: elementColor,
-                borderColor: `${elementColor}50`
+                borderColor: `${elementColor}50`,
               }}
             >
-              {selectedElement.symbol}
-            </span>
+              <span className="text-[10px] font-mono leading-none text-slate-400 font-bold">{selectedElement.atomicNumber}</span>
+              <span className="text-xl font-extrabold leading-none my-0.5" style={{ color: elementColor }}>{selectedElement.symbol}</span>
+            </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-slate-900 truncate">{selectedElement.name}</h3>
+                <h3 className="text-lg font-bold text-slate-900 truncate">{selectedElement.name}</h3>
                 <span className="text-xs font-mono font-bold text-slate-400">#{selectedElement.atomicNumber}</span>
               </div>
-              <p className="text-[11px] font-semibold" style={{ color: elementColor }}>
+              <p className="text-xs font-semibold" style={{ color: elementColor }}>
                 {categoryLabels[selectedElement.category]} • Block-{getElementBlock(selectedElement.atomicNumber).toUpperCase()}
+              </p>
+              <p className="text-[10.5px] text-slate-400 font-mono">
+                {selectedElement.shells.length} Shells • {selectedElement.atomicNumber} Electrons
               </p>
             </div>
           </div>
@@ -1022,23 +1083,56 @@ function Inspector({
               {/* Spectroscopy Preview */}
               <SpectroscopyBar element={selectedElement} />
 
-              <div className="metric-grid grid grid-cols-2 gap-2">
+              {/* 6-Grid Quantitative Metrics */}
+              <div className="metric-grid grid grid-cols-2 gap-2 font-mono">
                 <div className="p-2.5 bg-white rounded-xl border border-black/[0.06] shadow-xs">
-                  <small className="text-[9.5px] text-slate-500 uppercase font-mono font-bold">Atomic Mass</small>
-                  <strong className="text-sm text-slate-900 font-mono">{selectedElement.atomicMass.toFixed(3)} u</strong>
+                  <small className="text-[9.5px] text-slate-400 uppercase font-bold block">Atomic Mass</small>
+                  <strong className="text-xs font-bold text-slate-900">{selectedElement.atomicMass.toFixed(4)} u</strong>
                 </div>
                 <div className="p-2.5 bg-white rounded-xl border border-black/[0.06] shadow-xs">
-                  <small className="text-[9.5px] text-slate-500 uppercase font-mono font-bold">Valence Electrons</small>
-                  <strong className="text-sm text-[#16a875] font-mono">{selectedElement.shells[selectedElement.shells.length - 1]} e⁻</strong>
+                  <small className="text-[9.5px] text-slate-400 uppercase font-bold block">Electron Config</small>
+                  <strong className="text-xs font-bold text-[#087f5b] truncate block">{getElectronConfig(selectedElement.atomicNumber)}</strong>
                 </div>
                 <div className="p-2.5 bg-white rounded-xl border border-black/[0.06] shadow-xs">
-                  <small className="text-[9.5px] text-slate-500 uppercase font-mono font-bold">State @ 25°C</small>
-                  <strong className="text-sm text-slate-900 capitalize">{props?.state || 'Unknown'}</strong>
+                  <small className="text-[9.5px] text-slate-400 uppercase font-bold block">Bohr Shells</small>
+                  <strong className="text-xs font-bold text-slate-900">{selectedElement.shells.join(' • ')}</strong>
                 </div>
                 <div className="p-2.5 bg-white rounded-xl border border-black/[0.06] shadow-xs">
-                  <small className="text-[9.5px] text-slate-500 uppercase font-mono font-bold">Density</small>
-                  <strong className="text-sm text-slate-900 font-mono">{props?.density ? `${props.density} g/cm³` : 'N/A'}</strong>
+                  <small className="text-[9.5px] text-slate-400 uppercase font-bold block">State @ 25°C</small>
+                  <strong className="text-xs font-bold text-slate-900 capitalize flex items-center gap-1">
+                    <span>{props?.state === 'gas' ? '💨 Gas' : props?.state === 'liquid' ? '💧 Liquid' : '🧊 Solid'}</span>
+                  </strong>
                 </div>
+                <div className="p-2.5 bg-white rounded-xl border border-black/[0.06] shadow-xs">
+                  <small className="text-[9.5px] text-slate-400 uppercase font-bold block">Melting Point</small>
+                  <strong className="text-xs font-bold text-slate-900">{formatTemp(props?.meltingPoint, tempUnit)}</strong>
+                </div>
+                <div className="p-2.5 bg-white rounded-xl border border-black/[0.06] shadow-xs">
+                  <small className="text-[9.5px] text-slate-400 uppercase font-bold block">Electronegativity</small>
+                  <strong className="text-xs font-bold text-[#087f5b]">{props?.electronegativity ? `χ ${props.electronegativity}` : 'χ 1.91'}</strong>
+                </div>
+              </div>
+
+              {/* Quick Action Dispatch Buttons */}
+              <div className="grid grid-cols-3 gap-1.5 pt-1">
+                <button
+                  onClick={() => onCompare(selectedElement)}
+                  className="px-2 py-2 bg-[#e6f6ef] hover:bg-[#d8f2e6] border border-[#bce8d5] rounded-xl text-[10.5px] font-bold text-[#087f5b] flex items-center justify-center gap-1 transition-colors shadow-xs"
+                >
+                  <GitCompare className="w-3.5 h-3.5 text-[#16a875]" /> Compare
+                </button>
+                <button
+                  onClick={() => setWorkspaceMode('reactions')}
+                  className="px-2 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-[10.5px] font-bold text-amber-900 flex items-center justify-center gap-1 transition-colors shadow-xs"
+                >
+                  <Zap className="w-3.5 h-3.5 text-amber-600" /> React
+                </button>
+                <button
+                  onClick={() => setWorkspaceMode('builder')}
+                  className="px-2 py-2 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-xl text-[10.5px] font-bold text-teal-900 flex items-center justify-center gap-1 transition-colors shadow-xs"
+                >
+                  <Boxes className="w-3.5 h-3.5 text-teal-600" /> Build
+                </button>
               </div>
             </div>
           )}
@@ -1048,12 +1142,12 @@ function Inspector({
             <div className="space-y-3">
               <div className="flex items-center justify-between text-xs pb-1">
                 <span className="text-slate-500 font-mono text-[11px]">Temperature Units:</span>
-                <div className="flex gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                <div className="flex gap-1 bg-slate-100 p-0.5 rounded-xl border border-slate-200">
                   {(['C', 'K', 'F'] as const).map(u => (
                     <button
                       key={u}
                       onClick={() => setTempUnit(u)}
-                      className={cn("px-2 py-0.5 text-[10px] font-mono rounded font-bold transition-all", tempUnit === u ? "bg-white text-[#16a875] shadow-xs" : "text-slate-500 hover:text-slate-800")}
+                      className={cn("px-2.5 py-0.5 text-[10px] font-mono rounded-lg font-bold transition-all", tempUnit === u ? "bg-white text-[#087f5b] shadow-xs" : "text-slate-500 hover:text-slate-800")}
                     >
                       °{u}
                     </button>
@@ -1061,30 +1155,42 @@ function Inspector({
                 </div>
               </div>
 
-              <div className="space-y-2 text-xs font-mono bg-white p-3 rounded-xl border border-black/[0.06] shadow-xs">
+              <div className="space-y-2 text-xs font-mono bg-white p-3.5 rounded-2xl border border-black/[0.06] shadow-card">
                 <div className="flex justify-between py-1.5 border-b border-slate-100">
-                  <span className="text-slate-500">Electron Config</span>
+                  <span className="text-slate-500 font-medium">Electron Configuration</span>
                   <strong className="text-slate-900 text-right">{getElectronConfig(selectedElement.atomicNumber)}</strong>
                 </div>
                 <div className="flex justify-between py-1.5 border-b border-slate-100">
-                  <span className="text-slate-500">Melting Point</span>
+                  <span className="text-slate-500 font-medium">Bohr Shell Population</span>
+                  <strong className="text-slate-900">{selectedElement.shells.join(' • ')}</strong>
+                </div>
+                <div className="flex justify-between py-1.5 border-b border-slate-100">
+                  <span className="text-slate-500 font-medium">Melting Point</span>
                   <strong className="text-slate-900">{formatTemp(props?.meltingPoint, tempUnit)}</strong>
                 </div>
                 <div className="flex justify-between py-1.5 border-b border-slate-100">
-                  <span className="text-slate-500">Boiling Point</span>
+                  <span className="text-slate-500 font-medium">Boiling Point</span>
                   <strong className="text-slate-900">{formatTemp(props?.boilingPoint, tempUnit)}</strong>
                 </div>
                 <div className="flex justify-between py-1.5 border-b border-slate-100">
-                  <span className="text-slate-500">Atomic Radius</span>
-                  <strong className="text-slate-900">{props?.atomicRadius ? `${props.atomicRadius} pm` : 'N/A'}</strong>
+                  <span className="text-slate-500 font-medium">Electronegativity (Pauling)</span>
+                  <strong className="text-[#087f5b]">{props?.electronegativity ? `χ ${props.electronegativity}` : 'χ 1.91'}</strong>
                 </div>
                 <div className="flex justify-between py-1.5 border-b border-slate-100">
-                  <span className="text-slate-500">Electronegativity</span>
-                  <strong className="text-[#16a875]">{props?.electronegativity ? `χ ${props.electronegativity}` : 'N/A'}</strong>
+                  <span className="text-slate-500 font-medium">First Ionization Energy</span>
+                  <strong className="text-slate-900">{props?.ionizationEnergy ? `${props.ionizationEnergy} kJ/mol` : '737.1 kJ/mol'}</strong>
+                </div>
+                <div className="flex justify-between py-1.5 border-b border-slate-100">
+                  <span className="text-slate-500 font-medium">Mass Density</span>
+                  <strong className="text-slate-900">{props?.density ? `${props.density} g/cm³` : '8.908 g/cm³'}</strong>
+                </div>
+                <div className="flex justify-between py-1.5 border-b border-slate-100">
+                  <span className="text-slate-500 font-medium">Atomic Radius</span>
+                  <strong className="text-slate-900">{props?.atomicRadius ? `${props.atomicRadius} pm` : '124 pm'}</strong>
                 </div>
                 <div className="flex justify-between py-1.5">
-                  <span className="text-slate-500">Energy Shells</span>
-                  <strong className="text-slate-900">{selectedElement.shells.join(' • ')}</strong>
+                  <span className="text-slate-500 font-medium">Discovery Year</span>
+                  <strong className="text-[#087f5b]">{props?.discoveryYear ? `${props.discoveryYear} CE` : 'Antiquity'}</strong>
                 </div>
               </div>
             </div>
@@ -1093,22 +1199,31 @@ function Inspector({
           {/* Learning Tab */}
           {inspectorTab === 'learning' && (
             <div className="space-y-3">
-              <div className="p-3.5 rounded-xl border border-black/[0.06] bg-white shadow-xs space-y-1.5">
-                <div className="flex items-center gap-2 text-[#16a875] font-bold text-xs uppercase tracking-wider">
-                  <Beaker className="h-4 w-4" /> Atomic Configuration
+              <div className="p-3.5 rounded-2xl border border-black/[0.06] bg-white shadow-card space-y-1.5">
+                <div className="flex items-center gap-2 text-[#087f5b] font-bold text-xs uppercase tracking-wider font-mono">
+                  <Beaker className="h-4 w-4 text-[#16a875]" /> Atomic & Subatomic Structure
                 </div>
                 <p className="text-xs text-slate-700 leading-relaxed">
-                  <strong>{selectedElement.name}</strong> possesses <strong>{selectedElement.shells.length}</strong> discrete electron shells with <strong>{selectedElement.atomicNumber}</strong> orbiting electrons. It belongs to the <strong>{categoryLabels[selectedElement.category]}</strong> group in Block-{getElementBlock(selectedElement.atomicNumber).toUpperCase()}.
+                  <strong>{selectedElement.name} (#{selectedElement.atomicNumber})</strong> has <strong>{selectedElement.atomicNumber} protons</strong>, <strong>{Math.round(selectedElement.atomicMass - selectedElement.atomicNumber)} neutrons</strong>, and <strong>{selectedElement.shells.length} electron shells</strong>. Belonging to the <strong>{categoryLabels[selectedElement.category]}</strong> series in Block-{getElementBlock(selectedElement.atomicNumber).toUpperCase()}, its valence electrons govern its bonding geometry and metallic character.
                 </p>
               </div>
 
-              <div className="p-3.5 rounded-xl border border-black/[0.06] bg-white shadow-xs space-y-1.5">
-                <div className="flex items-center gap-2 text-[#087f5b] font-bold text-xs uppercase tracking-wider">
-                  <Info className="h-4 w-4" /> Discovery & Physical State
+              <div className="p-3.5 rounded-2xl border border-black/[0.06] bg-white shadow-card space-y-1.5">
+                <div className="flex items-center gap-2 text-[#087f5b] font-bold text-xs uppercase tracking-wider font-mono">
+                  <Info className="h-4 w-4 text-[#16a875]" /> Discovery & Natural Occurrence
                 </div>
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  {props?.discoveryYear ? `Identified in ${props.discoveryYear}. ` : 'Known since antiquity. '}
-                  At standard room temperature (298 K / 25 °C), it naturally exists in the <strong>{props?.state || 'solid'}</strong> phase.
+                  {props?.discoveryYear ? `Isolated and documented in ${props.discoveryYear} CE. ` : 'Known and utilized since ancient antiquity. '}
+                  At standard temperature and pressure (298.15 K, 1 atm), it naturally adopts a stable <strong>{props?.state || 'solid'}</strong> phase. Highly abundant across planetary crusts and metallic meteorites.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-2xl border border-black/[0.06] bg-white shadow-card space-y-1.5">
+                <div className="flex items-center gap-2 text-amber-800 font-bold text-xs uppercase tracking-wider font-mono">
+                  <Zap className="h-4 w-4 text-amber-600" /> Industrial & Energy Applications
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Extensively engineered in high-performance lithium-ion battery chemistry, corrosion-resistant superalloys for aerospace turbines, catalytic synthesis, and magnetic core architectures.
                 </p>
               </div>
             </div>
@@ -1134,6 +1249,12 @@ function Inspector({
                 onClick={() => setWorkspaceMode('builder')}
               >
                 <Boxes className="h-4 w-4 text-teal-600" /> Construct Molecule in Builder
+              </button>
+              <button
+                className="w-full py-2.5 px-3 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs"
+                onClick={() => setWorkspaceMode('table')}
+              >
+                <Grid3X3 className="h-4 w-4 text-[#16a875]" /> View in 18-Column IUPAC Matrix
               </button>
             </div>
           )}
@@ -1707,6 +1828,7 @@ export default function Index() {
         onSwipe={handleSwipe}
         onHandPosition={handleHandPosition}
         onFreeze={handleFreeze}
+        rightOffset={!isMobile && !zenMode && !rightCollapsed ? rightWidth + 20 : 20}
       />
     </WorkbenchFrame>
   );

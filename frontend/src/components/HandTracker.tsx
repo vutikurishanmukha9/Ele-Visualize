@@ -25,6 +25,7 @@ export interface HandTrackerProps {
   onSwipe?: (direction: 'left' | 'right' | 'up' | 'down') => void;
   onHandPosition?: (x: number, y: number, roll?: number) => void;
   onFreeze?: (isFrozen: boolean) => void;
+  rightOffset?: number;
 }
 
 export const HandTracker = memo(function HandTracker({
@@ -33,6 +34,7 @@ export const HandTracker = memo(function HandTracker({
   onSwipe,
   onHandPosition,
   onFreeze,
+  rightOffset,
 }: HandTrackerProps) {
   // UI State
   const [isExpanded, setIsExpanded] = useState(false);
@@ -375,12 +377,13 @@ export const HandTracker = memo(function HandTracker({
         dragMomentum={false}
         className={cn(
           'fixed z-40 rounded-2xl overflow-hidden shadow-lg backdrop-blur-xl border transition-all select-none',
-          'bottom-4 right-4 sm:bottom-6 sm:right-6',
+          'bottom-4 sm:bottom-6',
           'bg-white/90 border-black/[0.08] text-slate-900',
           isTracking ? 'ring-2 ring-[#16a875]/40 shadow-[0_10px_25px_-5px_rgba(22,168,117,0.25)]' : 'shadow-[0_4px_20px_-2px_rgba(15,30,25,0.08)]'
         )}
         style={{
           width: isExpanded ? 300 : 250,
+          right: rightOffset !== undefined ? rightOffset : 24,
         }}
       >
         {/* Widget Header */}
