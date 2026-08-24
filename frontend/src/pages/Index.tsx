@@ -5,15 +5,10 @@ import {
   Beaker,
   BookOpen,
   Boxes,
-  Camera,
-  Check,
   ChevronRight,
   Command,
   Compass,
-  Eye,
-  Flame,
   FlaskConical,
-  Gauge,
   GitCompare,
   Grid3X3,
   Hand,
@@ -23,13 +18,11 @@ import {
   Minimize2,
   Pause,
   Play,
-  Plus,
   RotateCcw,
   Save,
   Search,
   SlidersHorizontal,
   Sparkles,
-  Thermometer,
   Trash2,
   X,
   Zap,
@@ -45,10 +38,9 @@ import { PeriodicTableGrid } from '@/components/PeriodicTableGrid';
 import { ReactionSimulator } from '@/components/ReactionSimulator';
 import { SpectroscopyBar } from '@/components/SpectroscopyBar';
 import { QuantumNumbersHUD } from '@/components/QuantumNumbersHUD';
-import { ThermalScrubber } from '@/components/ThermalScrubber';
 import { xrStore } from '@/components/VisualizerCanvas';
 import { elementProperties } from '@/data/elementProperties';
-import { categoryLabels, categoryColors, categoryGlows, getElementColor, getElementBlock, ChemicalElement, ElementCategory, elements } from '@/data/elements';
+import { categoryLabels, categoryColors, getElementColor, getElementBlock, ChemicalElement, ElementCategory, elements } from '@/data/elements';
 import { Molecule, molecules } from '@/data/molecules';
 import { cn } from '@/lib/utils';
 import { sendProductEvent } from '@/lib/productSocket';
@@ -1197,18 +1189,15 @@ export default function Index() {
     viewMode,
     workspaceMode,
     zenMode,
-    zoomLevel,
     addRecentItem,
     addSavedSession,
     addToComparisonBasket,
     removeSavedSession,
-    setCommandOpen,
     setComparisonBasket,
     setIsMobile,
     setMainViewMode,
     setMobileDrawer,
     setSavedSessions,
-    setSearchQuery,
     setSelectedElement,
     setSelectedMolecule,
     setShowOrbitals,
@@ -1348,7 +1337,7 @@ export default function Index() {
     isFrozen.current = frozen;
   }, []);
 
-  const handleHandPosition = useCallback((x: number, y: number, roll?: number) => {
+  const handleHandPosition = useCallback((x: number, y: number) => {
     handPositionX.current = x;
     handPositionY.current = y;
     isHandControlled.current = true;

@@ -149,11 +149,11 @@ function PhysicsAtom({ atom, isSelected, canBond, onSelect, positionRef }: Physi
 function BondLine({ from, to, type }: { from: THREE.Vector3; to: THREE.Vector3; type: string }) {
     const midpoint = useMemo(() => {
         return new THREE.Vector3().addVectors(from, to).multiplyScalar(0.5);
-    }, [from.x, from.y, from.z, to.x, to.y, to.z]);
+    }, [from, to]);
 
     const direction = useMemo(() => {
         return new THREE.Vector3().subVectors(to, from);
-    }, [from.x, from.y, from.z, to.x, to.y, to.z]);
+    }, [from, to]);
 
     const length = direction.length();
     const quaternion = useMemo(() => {

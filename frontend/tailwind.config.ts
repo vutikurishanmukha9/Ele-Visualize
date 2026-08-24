@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import tailwindcssAnimate from "tailwindcss-animate";
 
 export default {
   darkMode: ["class"],
@@ -62,16 +63,22 @@ export default {
         },
         // Element category colors
         element: {
-          alkali: "hsl(var(--alkali-metal))",
-          alkaline: "hsl(var(--alkaline-earth))",
-          transition: "hsl(var(--transition-metal))",
-          post: "hsl(var(--post-transition))",
-          metalloid: "hsl(var(--metalloid))",
-          nonmetal: "hsl(var(--nonmetal))",
-          halogen: "hsl(var(--halogen))",
-          noble: "hsl(var(--noble-gas))",
-          lanthanide: "hsl(var(--lanthanide))",
-          actinide: "hsl(var(--actinide))",
+          hydrogen: "#FFFFFF",
+          carbon: "#909090",
+          nitrogen: "#3050F8",
+          oxygen: "#FF0D0D",
+          fluorine: "#90E050",
+          chlorine: "#1FF01F",
+          bromine: "#A62929",
+          iodine: "#940094",
+          noble: "#40E0D0",
+          alkali: "#7B68EE",
+          alkaline: "#00CED1",
+          transition: "#FFA500",
+          postTransition: "#9370DB",
+          metalloid: "#20B2AA",
+          actinide: "#C71585",
+          lanthanide: "#FF69B4",
         },
         glow: {
           primary: "hsl(var(--glow-primary))",
@@ -94,16 +101,17 @@ export default {
           to: { height: "0" },
         },
         "fade-in": {
-          from: { opacity: "0", transform: "translateY(10px)" },
-          to: { opacity: "1", transform: "translateY(0)" },
+          "0%": { opacity: "0", transform: "translateY(10px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
         },
         "scale-in": {
-          from: { opacity: "0", transform: "scale(0.95)" },
-          to: { opacity: "1", transform: "scale(1)" },
+          "0%": { transform: "scale(0.95)", opacity: "0" },
+          "100%": { transform: "scale(1)", opacity: "1" },
         },
         shimmer: {
-          "0%": { backgroundPosition: "-200% 0" },
-          "100%": { backgroundPosition: "200% 0" },
+          "100%": {
+            transform: "translateX(100%)",
+          },
         },
       },
       animation: {
@@ -120,5 +128,5 @@ export default {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [tailwindcssAnimate],
 } satisfies Config;

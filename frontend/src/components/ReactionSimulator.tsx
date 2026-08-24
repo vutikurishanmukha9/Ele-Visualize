@@ -1,9 +1,9 @@
 import { useState, useCallback, useMemo, memo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { reactions, Reaction, findReaction, getReactiveElements } from '@/data/reactions';
+import { motion } from 'framer-motion';
+import { findReaction, getReactiveElements } from '@/data/reactions';
 import { elements, getCategoryColor } from '@/data/elements';
 import { cn } from '@/lib/utils';
-import { Zap, Flame, Snowflake, Sparkles, Play, RotateCcw, X, Activity, Thermometer } from 'lucide-react';
+import { Zap, Play, RotateCcw, X, Activity, Thermometer } from 'lucide-react';
 
 interface ReactionSimulatorProps {
     onClose?: () => void;

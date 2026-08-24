@@ -1,9 +1,8 @@
 import { useState, useCallback, useMemo, memo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { elements } from '@/data/elements';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
-import { Trash2, Save, RotateCcw, Link2, X, Check, AlertTriangle, Atom, Plus, Minus } from 'lucide-react';
+import { Trash2, Save, RotateCcw, X, Check, AlertTriangle, Atom, Plus } from 'lucide-react';
 
 interface MoleculeBuilderProps {
     onClose?: () => void;

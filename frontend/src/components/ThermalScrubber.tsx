@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Thermometer, Zap } from 'lucide-react';
+import { Thermometer } from 'lucide-react';
 
 interface ThermalScrubberProps {
   temperatureK: number;

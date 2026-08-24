@@ -313,7 +313,9 @@ export const HandTracker = memo(function HandTracker({
     if (handLandmarkerRef.current) {
       try {
         handLandmarkerRef.current.close();
-      } catch {}
+      } catch (err) {
+        console.debug('HandLandmarker close error:', err);
+      }
       handLandmarkerRef.current = null;
     }
 

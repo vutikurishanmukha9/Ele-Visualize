@@ -1,9 +1,9 @@
 import { memo, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { elements, ChemicalElement, categoryLabels, categoryColors, getElementBlock, ElementBlock } from '../data/elements';
+import { elements, ChemicalElement, categoryLabels, categoryColors, getElementBlock } from '../data/elements';
 import { elementProperties, getElementStateAtTemp } from '../data/elementProperties';
 import { cn } from '@/lib/utils';
-import { X, ExternalLink, Atom, Grid3X3, Thermometer, Sparkles, Layers, Sliders, Activity } from 'lucide-react';
+import { X, Atom, Grid3X3, Activity } from 'lucide-react';
 import { SpectroscopyBar } from './SpectroscopyBar';
 import { ThermalScrubber } from './ThermalScrubber';
 
@@ -36,27 +36,12 @@ const LAYOUT: Record<number, [number, number]> = {
     97: [10, 11], 98: [10, 12], 99: [10, 13], 100: [10, 14], 101: [10, 15], 102: [10, 16], 103: [10, 17],
 };
 
-const CATEGORIES = [
-    'all',
-    'alkali-metal',
-    'alkaline-earth',
-    'transition-metal',
-    'post-transition',
-    'metalloid',
-    'nonmetal',
-    'halogen',
-    'noble-gas',
-    'lanthanide',
-    'actinide',
-];
-
 type HeatmapMode = 'category' | 'electronegativity' | 'ionization' | 'radius' | 'density';
 
 export const PeriodicTableGrid = memo(function PeriodicTableGrid({
     selectedElement,
     onSelectElement,
 }: PeriodicTableGridProps) {
-    const [selectedCategory, setSelectedCategory] = useState('all');
     const [selectedBlock, setSelectedBlock] = useState<string>('all');
     const [temperatureK, setTemperatureK] = useState(298); // 25°C standard room temp
     const [heatmapMode, setHeatmapMode] = useState<HeatmapMode>('category');
@@ -66,12 +51,10 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
     // Filter elements
     const filteredElements = useMemo(() => {
         return elements.filter((el) => {
-            const matchesCat = selectedCategory === 'all' || el.category === selectedCategory;
             const block = getElementBlock(el.atomicNumber);
-            const matchesBlock = selectedBlock === 'all' || block === selectedBlock;
-            return matchesCat && matchesBlock;
+            return selectedBlock === 'all' || block === selectedBlock;
         });
-    }, [selectedCategory, selectedBlock]);
+    }, [selectedBlock]);
 
     // Active element preview
     const activeDisplayElement = hoveredElement || selectedElement || elements[0];

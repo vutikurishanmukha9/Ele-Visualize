@@ -1,8 +1,7 @@
-import { memo, useMemo, useState } from 'react';
+import { memo, useMemo } from 'react';
 import { ChemicalElement, elements, categoryColors } from '../data/elements';
 import { elementProperties } from '../data/elementProperties';
-import { X, ArrowRight, Sparkles, Scale, Zap, ShieldAlert, Cpu } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { X, Sparkles, Scale } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 
 interface ComparisonModeProps {
@@ -68,7 +67,6 @@ export const ComparisonMode = memo(function ComparisonMode({
     onRemoveElement,
 }: ComparisonModeProps) {
     const { setComparisonSlot } = useAppStore();
-    const [searchQuery, setSearchQuery] = useState('');
 
     const props1 = element1 ? elementProperties[element1.atomicNumber] : null;
     const props2 = element2 ? elementProperties[element2.atomicNumber] : null;
