@@ -3,9 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { elements, ChemicalElement, categoryLabels, categoryColors, getElementBlock } from '../data/elements';
 import { elementProperties, getElementStateAtTemp } from '../data/elementProperties';
 import { cn } from '@/lib/utils';
-import { X, Atom, Grid3X3, Activity } from 'lucide-react';
+import { X, Atom, Grid3X3, Activity, Search, GitCompare, Zap, Boxes, History, ArrowUpRight, TrendingUp } from 'lucide-react';
 import { SpectroscopyBar } from './SpectroscopyBar';
 import { ThermalScrubber } from './ThermalScrubber';
+import { useAppStore } from '@/store/useAppStore';
+import { audioEngine } from '@/lib/audioEngine';
 
 interface PeriodicTableGridProps {
     selectedElement: ChemicalElement | null;
@@ -38,23 +40,53 @@ const LAYOUT: Record<number, [number, number]> = {
 
 type HeatmapMode = 'category' | 'electronegativity' | 'ionization' | 'radius' | 'density';
 
+// Approximate Discovery Timeline Years
+const DISCOVERY_YEARS: Record<number, number> = {
+    1: 1766, 2: 1868, 3: 1817, 4: 1798, 5: 1808, 6: -3000, 7: 1772, 8: 1774, 9: 1886, 10: 1898,
+    11: 1807, 12: 1755, 13: 1825, 14: 1823, 15: 1669, 16: -2000, 17: 1774, 18: 1894,
+    19: 1807, 20: 1808, 21: 1879, 22: 1791, 23: 1801, 24: 1797, 25: 1774, 26: -3500,
+    27: 1735, 28: 1751, 29: -5000, 30: -1000, 31: 1875, 32: 1886, 33: -1250, 34: 1817,
+    35: 1826, 36: 1898, 37: 1861, 38: 1787, 39: 1794, 40: 1789, 41: 1801, 42: 1778,
+    43: 1937, 44: 1844, 45: 1803, 46: 1803, 47: -3000, 48: 1817, 49: 1863, 50: -3000,
+    51: -3000, 52: 1782, 53: 1811, 54: 1898, 55: 1860, 56: 1772, 57: 1839,
+    72: 1923, 73: 1802, 74: 1781, 75: 1925, 76: 1803, 77: 1803, 78: 1735, 79: -4000,
+    80: -1500, 81: 1861, 82: -3000, 83: 1753, 84: 1898, 85: 1940, 86: 1900, 87: 1939,
+    88: 1898, 89: 1899, 90: 1829, 91: 1913, 92: 1789, 93: 1940, 94: 1940, 95: 1944,
+    96: 1944, 97: 1949, 98: 1950, 99: 1952, 100: 1952, 101: 1955, 102: 1958, 103: 1961,
+    104: 1964, 105: 1970, 106: 1974, 107: 1981, 108: 1984, 109: 1982, 110: 1994, 111: 1994,
+    112: 1996, 113: 2003, 114: 1998, 115: 2003, 116: 2000, 117: 2010, 118: 2002
+};
+
 export const PeriodicTableGrid = memo(function PeriodicTableGrid({
     selectedElement,
     onSelectElement,
 }: PeriodicTableGridProps) {
+    const { setWorkspaceMode, setCompareElement1, setSelectedElement } = useAppStore();
     const [selectedBlock, setSelectedBlock] = useState<string>('all');
     const [temperatureK, setTemperatureK] = useState(298); // 25°C standard room temp
     const [heatmapMode, setHeatmapMode] = useState<HeatmapMode>('category');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [maxYear, setMaxYear] = useState<number>(2026);
     const [hoveredElement, setHoveredElement] = useState<ChemicalElement | null>(null);
     const [popupElement, setPopupElement] = useState<ChemicalElement | null>(null);
+    const [showTrendsOverlay, setShowTrendsOverlay] = useState(false);
 
-    // Filter elements
+    // Filter elements based on Block, Search, and Discovery Year
     const filteredElements = useMemo(() => {
+        const query = searchQuery.trim().toLowerCase();
         return elements.filter((el) => {
             const block = getElementBlock(el.atomicNumber);
-            return selectedBlock === 'all' || block === selectedBlock;
+            const matchesBlock = selectedBlock === 'all' || block === selectedBlock;
+            const matchesSearch = !query ||
+                el.name.toLowerCase().includes(query) ||
+                el.symbol.toLowerCase().includes(query) ||
+                el.atomicNumber.toString() === query;
+            const year = DISCOVERY_YEARS[el.atomicNumber] ?? 2026;
+            const matchesYear = year <= maxYear;
+
+            return matchesBlock && matchesSearch && matchesYear;
         });
-    }, [selectedBlock]);
+    }, [selectedBlock, searchQuery, maxYear]);
 
     // Active element preview
     const activeDisplayElement = hoveredElement || selectedElement || elements[0];
@@ -62,47 +94,69 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
     // Compute cell background color dynamically based on heatmap
     const getCellColor = (element: ChemicalElement) => {
         const props = elementProperties[element.atomicNumber];
-        const baseColor = categoryColors[element.category] || '#38bdf8';
+        const baseColor = categoryColors[element.category] || '#0284c7';
 
         if (heatmapMode === 'electronegativity') {
             const en = props?.electronegativity;
-            if (!en) return '#334155';
+            if (!en) return '#94a3b8';
             const ratio = Math.max(0, Math.min(1, (en - 0.7) / (4.0 - 0.7)));
-            return `hsl(${Math.round(240 - ratio * 240)}, 85%, 50%)`;
+            return `hsl(${Math.round(210 - ratio * 210)}, 90%, 48%)`;
         }
 
         if (heatmapMode === 'ionization') {
             const ie = props?.ionizationEnergy;
-            if (!ie) return '#334155';
+            if (!ie) return '#94a3b8';
             const ratio = Math.max(0, Math.min(1, (ie - 350) / (2400 - 350)));
-            return `hsl(${Math.round(280 - ratio * 280)}, 90%, 55%)`;
+            return `hsl(${Math.round(280 - ratio * 280)}, 90%, 50%)`;
         }
 
         if (heatmapMode === 'radius') {
             const r = props?.atomicRadius;
-            if (!r) return '#334155';
+            if (!r) return '#94a3b8';
             const ratio = Math.max(0, Math.min(1, (r - 30) / (280 - 30)));
-            return `hsl(${Math.round(180 + ratio * 140)}, 85%, 50%)`;
+            return `hsl(${Math.round(180 + ratio * 140)}, 85%, 45%)`;
         }
 
         if (heatmapMode === 'density') {
             const d = props?.density;
-            if (!d) return '#334155';
+            if (!d) return '#94a3b8';
             const ratio = Math.max(0, Math.min(1, d / 22.6));
-            return `hsl(${Math.round(45 + ratio * 280)}, 90%, 50%)`;
+            return `hsl(${Math.round(35 + ratio * 280)}, 90%, 45%)`;
         }
 
         return baseColor;
     };
 
+    // Quick action dispatchers
+    const handleQuickAction = (action: 'explore' | 'compare' | 'reactions' | 'builder', el: ChemicalElement) => {
+        audioEngine.playClick(920);
+        setSelectedElement(el);
+        if (action === 'compare') {
+            setCompareElement1(el);
+        }
+        setWorkspaceMode(action);
+    };
+
     return (
         <div className="h-full flex flex-col bg-slate-50 text-slate-900 font-mono select-none overflow-hidden relative matrix-grid-bg">
             {/* Top Command Telemetry Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-white/90 border-b border-slate-200 backdrop-blur-md z-20 shadow-sm">
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-sky-500/10 border border-sky-500/30 text-sky-600 text-xs font-bold">
+            <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-white/95 border-b border-slate-200 backdrop-blur-md z-20 shadow-sm">
+                <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-sky-50 border border-sky-200 text-sky-700 text-xs font-bold shadow-xs">
                         <Grid3X3 className="w-3.5 h-3.5" />
-                        <span>QUANTUM SPECTROMETRY MATRIX</span>
+                        <span>IUPAC PERIODIC MATRIX</span>
+                    </div>
+
+                    {/* Search Field */}
+                    <div className="relative flex items-center">
+                        <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2 pointer-events-none" />
+                        <input
+                            type="text"
+                            placeholder="Filter symbol/name..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-7 pr-2 py-1 text-xs bg-slate-100 border border-slate-200 rounded-md outline-none focus:border-sky-500 w-36 text-slate-800 placeholder:text-slate-400"
+                        />
                     </div>
 
                     {/* Block Quick Filters */}
@@ -117,36 +171,60 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                                         : 'text-slate-600 hover:text-slate-900'
                                 }`}
                             >
-                                {b === 'all' ? 'All Blocks' : `${b}-block`}
+                                {b === 'all' ? 'All' : `${b}-blk`}
                             </button>
                         ))}
                     </div>
                 </div>
 
-                {/* Heatmap Telemetry Mode Toggle */}
-                <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded border border-slate-200 text-[10px]">
-                    <span className="px-2 text-slate-500 flex items-center gap-1">
-                        <Activity className="w-3 h-3 text-sky-600" /> Heatmap:
-                    </span>
-                    {(['category', 'electronegativity', 'ionization', 'radius', 'density'] as HeatmapMode[]).map((mode) => (
-                        <button
-                            key={mode}
-                            onClick={() => setHeatmapMode(mode)}
-                            className={`px-2 py-0.5 rounded uppercase font-bold transition-all ${
-                                heatmapMode === mode
-                                    ? 'bg-white text-sky-700 border border-slate-200 shadow-sm'
-                                    : 'text-slate-600 hover:text-slate-900'
-                            }`}
-                        >
-                            {mode.slice(0, 6)}
-                        </button>
-                    ))}
+                {/* Heatmap & Trends Toggle */}
+                <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                        onClick={() => setShowTrendsOverlay(!showTrendsOverlay)}
+                        className={`px-2 py-1 rounded border text-[10px] font-bold flex items-center gap-1 transition-all ${
+                            showTrendsOverlay ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-slate-100 text-slate-600 border-slate-200 hover:text-slate-900'
+                        }`}
+                        title="Toggle Periodic Trend Gradient Vectors"
+                    >
+                        <TrendingUp className="w-3 h-3" /> Trends
+                    </button>
+
+                    <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded border border-slate-200 text-[10px]">
+                        <span className="px-1.5 text-slate-500 flex items-center gap-1">
+                            <Activity className="w-3 h-3 text-sky-600" /> Heatmap:
+                        </span>
+                        {(['category', 'electronegativity', 'ionization', 'radius', 'density'] as HeatmapMode[]).map((mode) => (
+                            <button
+                                key={mode}
+                                onClick={() => setHeatmapMode(mode)}
+                                className={`px-2 py-0.5 rounded uppercase font-bold transition-all ${
+                                    heatmapMode === mode
+                                        ? 'bg-white text-sky-700 border border-slate-200 shadow-sm'
+                                        : 'text-slate-600 hover:text-slate-900'
+                                }`}
+                            >
+                                {mode.slice(0, 4)}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
+            {/* Periodic Trends Overlay Banner */}
+            {showTrendsOverlay && (
+                <div className="px-3 py-1.5 bg-amber-50 border-b border-amber-200 flex flex-wrap items-center justify-between text-[11px] text-amber-900 z-10 gap-2">
+                    <span className="flex items-center gap-1.5 font-bold">
+                        <TrendingUp className="w-3.5 h-3.5 text-amber-600" /> Periodic Law Vectors:
+                    </span>
+                    <span>↗ <strong>Electronegativity & Ionization:</strong> Increases Left → Right & Bottom → Top</span>
+                    <span>↙ <strong>Atomic Radius:</strong> Increases Right → Left & Top → Bottom</span>
+                    <span>↘ <strong>Metallic Character:</strong> Increases toward bottom-left (Fr)</span>
+                </div>
+            )}
+
             {/* Main Interactive Stage Area */}
             <div className="flex-1 flex flex-col xl:flex-row gap-2 p-2 overflow-hidden min-h-0">
-                {/* 18-Column Interactive Table Grid (Scrollable on tablet/mobile) */}
+                {/* 18-Column Interactive Table Grid */}
                 <div className="flex-1 overflow-auto rounded-xl bg-white border border-slate-200 p-3 relative shadow-sm">
                     <div
                         className="grid gap-1 min-w-[720px]"
@@ -183,7 +261,7 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                                     style={{
                                         gridRow: row,
                                         gridColumn: col,
-                                        opacity: isFiltered ? 1.0 : 0.2,
+                                        opacity: isFiltered ? 1.0 : 0.15,
                                         borderColor: isSelected || isHovered ? '#0284c7' : `${cellColor}50`,
                                         backgroundColor: isSelected || isHovered ? `${cellColor}25` : `${cellColor}08`,
                                         boxShadow: isSelected || isHovered ? `0 0 10px ${cellColor}60` : 'none',
@@ -230,6 +308,33 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
 
                 {/* Right / Bottom Telemetry Control HUD */}
                 <div className="w-full xl:w-80 flex flex-col gap-2 overflow-y-auto">
+                    {/* Discovery Timeline Scrubber */}
+                    <div className="p-3 rounded-xl bg-white border border-slate-200 space-y-1.5 shadow-sm">
+                        <div className="flex items-center justify-between text-xs">
+                            <span className="flex items-center gap-1 text-slate-600 font-bold uppercase text-[10px]">
+                                <History className="w-3.5 h-3.5 text-sky-600" />
+                                Discovery Timeline:
+                            </span>
+                            <span className="font-bold text-sky-700 text-xs">
+                                {maxYear <= 0 ? 'Ancient Antiquity' : `≤ ${maxYear} CE`}
+                            </span>
+                        </div>
+                        <input
+                            type="range"
+                            min="1600"
+                            max="2026"
+                            step="5"
+                            value={maxYear}
+                            onChange={(e) => setMaxYear(Number(e.target.value))}
+                            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
+                        />
+                        <div className="flex justify-between text-[8.5px] text-slate-400 font-mono">
+                            <span>1600 (Alchemical)</span>
+                            <span>1869 (Mendeleev)</span>
+                            <span>2026 (Modern)</span>
+                        </div>
+                    </div>
+
                     {/* Thermal Scrubber Component */}
                     <ThermalScrubber temperatureK={temperatureK} onTemperatureChange={setTemperatureK} />
 
@@ -252,9 +357,31 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
 
                                 <button
                                     onClick={() => onSelectElement(activeDisplayElement)}
-                                    className="hardware-btn bg-sky-600 text-white border-sky-600 hover:bg-sky-700 font-bold px-3 py-1.5 text-xs rounded"
+                                    className="hardware-btn bg-sky-600 text-white border-sky-600 hover:bg-sky-700 font-bold px-3 py-1.5 text-xs rounded shadow-sm"
                                 >
                                     <Atom className="w-3 h-3" /> Explore
+                                </button>
+                            </div>
+
+                            {/* Quick Action Dispatch Buttons */}
+                            <div className="grid grid-cols-3 gap-1 pt-1 border-t border-slate-100">
+                                <button
+                                    onClick={() => handleQuickAction('compare', activeDisplayElement)}
+                                    className="px-2 py-1 bg-slate-100 hover:bg-sky-50 border border-slate-200 hover:border-sky-300 rounded text-[9px] font-bold text-slate-700 flex items-center justify-center gap-1 transition-colors"
+                                >
+                                    <GitCompare className="w-3 h-3 text-sky-600" /> Compare
+                                </button>
+                                <button
+                                    onClick={() => handleQuickAction('reactions', activeDisplayElement)}
+                                    className="px-2 py-1 bg-slate-100 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 rounded text-[9px] font-bold text-slate-700 flex items-center justify-center gap-1 transition-colors"
+                                >
+                                    <Zap className="w-3 h-3 text-amber-600" /> React
+                                </button>
+                                <button
+                                    onClick={() => handleQuickAction('builder', activeDisplayElement)}
+                                    className="px-2 py-1 bg-slate-100 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 rounded text-[9px] font-bold text-slate-700 flex items-center justify-center gap-1 transition-colors"
+                                >
+                                    <Boxes className="w-3 h-3 text-emerald-600" /> Build
                                 </button>
                             </div>
 
@@ -325,15 +452,18 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                                 </div>
                             </div>
 
-                            <button
-                                onClick={() => {
-                                    onSelectElement(popupElement);
-                                    setPopupElement(null);
-                                }}
-                                className="w-full py-2.5 rounded-xl font-mono text-xs font-bold bg-cyan-500 text-black hover:bg-cyan-400 transition-all flex items-center justify-center gap-2"
-                            >
-                                <Atom className="w-4 h-4" /> Launch 3D Quantum Stage
-                            </button>
+                            {/* 1-Click Launch Actions in Popup */}
+                            <div className="flex gap-2 pt-2 border-t border-slate-100">
+                                <button
+                                    onClick={() => {
+                                        setPopupElement(null);
+                                        handleQuickAction('explore', popupElement);
+                                    }}
+                                    className="flex-1 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+                                >
+                                    <ArrowUpRight className="w-3.5 h-3.5" /> 3D Quantum Stage
+                                </button>
+                            </div>
                         </motion.div>
                     </motion.div>
                 )}

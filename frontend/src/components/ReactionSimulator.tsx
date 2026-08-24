@@ -1,17 +1,147 @@
-import { useState, useCallback, useMemo, memo } from 'react';
-import { findReaction, getReactiveElements } from '@/data/reactions';
+import { useState, useCallback, useMemo, memo, useEffect, useRef } from 'react';
+import { findReaction, getReactiveElements, calculateGibbsFreeEnergy, calculateMolecularVelocity, reactions as ALL_REACTIONS, Reaction } from '@/data/reactions';
 import { elements, getCategoryColor } from '@/data/elements';
-import { Zap, X, Activity, Thermometer, Flame } from 'lucide-react';
+import { Zap, X, Activity, Thermometer, Flame, Scale } from 'lucide-react';
 import { audioEngine } from '@/lib/audioEngine';
 
 interface ReactionSimulatorProps {
     onClose?: () => void;
 }
 
+// Interactive 2D/3D Particle Collision Chamber Canvas
+const CollisionChamber = memo(function CollisionChamber({
+    reactants,
+    temperatureK,
+    isReacting,
+}: {
+    reactants: string[];
+    temperatureK: number;
+    isReacting: boolean;
+}) {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        let animId: number;
+        const width = (canvas.width = canvas.parentElement?.clientWidth || 400);
+        const height = (canvas.height = 160);
+
+        // Particle speed scaling
+        const speedScale = Math.sqrt(temperatureK / 298) * 2.2;
+
+        interface Particle {
+            x: number;
+            y: number;
+            vx: number;
+            vy: number;
+            radius: number;
+            color: string;
+            symbol: string;
+        }
+
+        const colors: Record<string, string> = { H: '#38bdf8', O: '#ef4444', C: '#334155', Na: '#eab308', Cl: '#10b981', N: '#8b5cf6', Fe: '#f97316' };
+
+        const particles: Particle[] = [];
+        const count = 16;
+        for (let i = 0; i < count; i++) {
+            const sym = reactants[i % (reactants.length || 1)] || 'H';
+            particles.push({
+                x: Math.random() * (width - 40) + 20,
+                y: Math.random() * (height - 40) + 20,
+                vx: (Math.random() - 0.5) * speedScale,
+                vy: (Math.random() - 0.5) * speedScale,
+                radius: 9,
+                color: colors[sym] || '#0284c7',
+                symbol: sym,
+            });
+        }
+
+        const render = () => {
+            ctx.clearRect(0, 0, width, height);
+
+            // Container background
+            ctx.fillStyle = isReacting ? 'rgba(254, 243, 199, 0.6)' : 'rgba(241, 245, 249, 0.9)';
+            ctx.fillRect(0, 0, width, height);
+
+            // Draw chamber grid
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 1;
+            for (let x = 0; x < width; x += 30) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+
+            // Update & draw particles
+            particles.forEach((p, idx) => {
+                p.x += p.vx;
+                p.y += p.vy;
+
+                // Bounce walls
+                if (p.x < p.radius || p.x > width - p.radius) p.vx *= -1;
+                if (p.y < p.radius || p.y > height - p.radius) p.vy *= -1;
+
+                // Particle glow
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = isReacting ? 14 : 4;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                // Text label
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 8px monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(p.symbol, p.x, p.y);
+
+                // Collision flash connecting lines
+                for (let j = idx + 1; j < particles.length; j++) {
+                    const p2 = particles[j];
+                    const dx = p.x - p2.x;
+                    const dy = p.y - p2.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 32) {
+                        ctx.beginPath();
+                        ctx.moveTo(p.x, p.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.strokeStyle = isReacting ? '#f59e0b' : 'rgba(2, 132, 199, 0.4)';
+                        ctx.lineWidth = isReacting ? 2.5 : 1;
+                        ctx.stroke();
+                    }
+                }
+            });
+
+            animId = requestAnimationFrame(render);
+        };
+
+        render();
+
+        return () => cancelAnimationFrame(animId);
+    }, [reactants, temperatureK, isReacting]);
+
+    return (
+        <div className="rounded-xl overflow-hidden border border-slate-200 shadow-inner relative">
+            <canvas ref={canvasRef} className="w-full h-36 block" />
+            <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-white/90 border border-slate-200 text-[9px] font-mono text-slate-700 font-bold backdrop-blur-xs">
+                Kinetic Collision Chamber • v_rms: {calculateMolecularVelocity(18, temperatureK)} m/s
+            </div>
+        </div>
+    );
+});
+
 export const ReactionSimulator = memo(function ReactionSimulator({ onClose }: ReactionSimulatorProps) {
     const [selectedElements, setSelectedElements] = useState<string[]>(['H', 'O']);
     const [isReacting, setIsReacting] = useState(false);
     const [reactionTempK, setReactionTempK] = useState(298);
+    const [reactantMassGrams, setReactantMassGrams] = useState<number>(10);
 
     const reactiveElements = useMemo(() => getReactiveElements(), []);
 
@@ -32,6 +162,24 @@ export const ReactionSimulator = memo(function ReactionSimulator({ onClose }: Re
         return findReaction(selectedElements);
     }, [selectedElements]);
 
+    // Thermodynamic Calculations (ΔH, ΔS, ΔG, Spontaneity, K_eq)
+    const thermo = useMemo(() => {
+        if (!currentReaction) return null;
+        return calculateGibbsFreeEnergy(currentReaction, reactionTempK);
+    }, [currentReaction, reactionTempK]);
+
+    // Stoichiometric Theoretical Yield Calculation
+    const yieldStats = useMemo(() => {
+        if (!currentReaction) return null;
+        // Approximation: 10g reactant produces theoretical product
+        const moles = reactantMassGrams / 18.0;
+        const theoreticalProductGrams = (moles * 18.0).toFixed(2);
+        return {
+            moles: moles.toFixed(3),
+            theoreticalProductGrams,
+        };
+    }, [currentReaction, reactantMassGrams]);
+
     const handleTriggerReaction = () => {
         if (!currentReaction) return;
         setIsReacting(true);
@@ -39,18 +187,14 @@ export const ReactionSimulator = memo(function ReactionSimulator({ onClose }: Re
         setTimeout(() => setIsReacting(false), 2400);
     };
 
-    // Calculate Arrhenius relative reaction velocity multiplier
-    const rateMultiplier = useMemo(() => {
-        const Ea = 45; // kJ/mol approx
-        const R = 8.314e-3; // kJ/mol*K
-        const k = Math.exp(-Ea / (R * reactionTempK));
-        const kRef = Math.exp(-Ea / (R * 298));
-        return (k / kRef).toFixed(2);
-    }, [reactionTempK]);
-
     const handleTempChange = (newTemp: number) => {
         setReactionTempK(newTemp);
         audioEngine.updateThermalHum(newTemp);
+    };
+
+    const handleLoadPreset = (rxn: Reaction) => {
+        audioEngine.playClick(880);
+        setSelectedElements(rxn.reactants);
     };
 
     return (
@@ -60,7 +204,7 @@ export const ReactionSimulator = memo(function ReactionSimulator({ onClose }: Re
                 <div className="flex items-center gap-2">
                     <Zap className="w-4 h-4 text-amber-500 animate-pulse" />
                     <span className="font-bold text-xs tracking-wider uppercase text-amber-700">
-                        THERMOCHEMICAL REACTOR & KINETICS SIMULATOR
+                        THERMOCHEMICAL KINETIC REACTOR & COLLISION CHAMBER
                     </span>
                 </div>
                 {onClose && (
@@ -76,10 +220,10 @@ export const ReactionSimulator = memo(function ReactionSimulator({ onClose }: Re
                 <div className="p-3.5 rounded-xl bg-white border border-slate-200 space-y-3 shadow-sm">
                     <div className="flex items-center justify-between text-xs text-slate-500">
                         <span className="uppercase font-bold text-slate-900">Select Reactants (1-3)</span>
-                        <span>{selectedElements.length} / 3 Active</span>
+                        <span className="bg-slate-100 px-2 py-0.5 rounded font-bold">{selectedElements.length} / 3 Active</span>
                     </div>
 
-                    <div className="grid grid-cols-5 gap-1.5 max-h-56 overflow-y-auto p-1.5 bg-slate-50 rounded-lg border border-slate-200">
+                    <div className="grid grid-cols-5 gap-1.5 max-h-48 overflow-y-auto p-1.5 bg-slate-50 rounded-lg border border-slate-200">
                         {reactiveElements.map((symbol) => {
                             const isSelected = selectedElements.includes(symbol);
                             const el = elements.find((e) => e.symbol === symbol);
@@ -111,7 +255,7 @@ export const ReactionSimulator = memo(function ReactionSimulator({ onClose }: Re
                         <div className="flex justify-between items-center text-xs">
                             <span className="flex items-center gap-1 text-slate-600">
                                 <Thermometer className="w-3.5 h-3.5 text-amber-600" />
-                                Thermal Energy (T):
+                                Chamber Temperature:
                             </span>
                             <span className="font-bold text-amber-700">
                                 {reactionTempK} K ({(reactionTempK - 273.15).toFixed(0)}°C)
@@ -132,53 +276,97 @@ export const ReactionSimulator = memo(function ReactionSimulator({ onClose }: Re
                             <span>3000 K (Plasma)</span>
                         </div>
                     </div>
+
+                    {/* Quick Preset Library */}
+                    <div className="space-y-1.5">
+                        <span className="text-[10px] text-slate-500 uppercase font-bold">Classic Reaction Presets:</span>
+                        <div className="flex gap-1 flex-wrap">
+                            {ALL_REACTIONS.slice(0, 6).map((rxn) => (
+                                <button
+                                    key={rxn.id}
+                                    onClick={() => handleLoadPreset(rxn)}
+                                    className="px-2 py-1 rounded bg-slate-100 hover:bg-amber-50 border border-slate-200 text-[9px] font-bold text-slate-700"
+                                >
+                                    {rxn.name}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                 </div>
 
                 {/* Center & Right: Reaction Kinetics Diagram & Synthesis Chamber */}
                 <div className="lg:col-span-2 p-3.5 rounded-xl bg-white border border-slate-200 flex flex-col justify-between space-y-3 shadow-sm">
-                    {currentReaction ? (
+                    {/* Live Particle Collision Chamber */}
+                    <CollisionChamber
+                        reactants={selectedElements}
+                        temperatureK={reactionTempK}
+                        isReacting={isReacting}
+                    />
+
+                    {currentReaction && thermo ? (
                         <div className="space-y-3">
                             {/* Equation Banner */}
                             <div className="p-3 rounded-xl bg-amber-50 border border-amber-300 text-center space-y-1">
-                                <span className="text-[10px] text-amber-700 uppercase font-bold tracking-widest">
-                                    {currentReaction.type}
-                                </span>
-                                <div className="text-lg font-black text-slate-900 tracking-wide">
+                                <div className="flex justify-between items-center px-2">
+                                    <span className="text-[10px] text-amber-700 uppercase font-bold tracking-widest">
+                                        {currentReaction.name} • {currentReaction.type.toUpperCase()}
+                                    </span>
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${thermo.isSpontaneous ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-rose-100 text-rose-800 border-rose-300'}`}>
+                                        {thermo.isSpontaneous ? 'Spontaneous (ΔG < 0)' : 'Non-spontaneous (ΔG > 0)'}
+                                    </span>
+                                </div>
+                                <div className="text-xl font-black text-slate-900 tracking-wide">
                                     {currentReaction.equation}
                                 </div>
                             </div>
 
-                            {/* Arrhenius Energy Profile Diagram */}
-                            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-                                <div className="flex justify-between items-center text-[10px] text-slate-500 uppercase">
-                                    <span>Arrhenius Activation Barrier (Ea)</span>
-                                    <span className="text-amber-700 font-bold">
-                                        Rate Mult: {rateMultiplier}x @ {reactionTempK}K
-                                    </span>
+                            {/* Thermodynamic State Functions Matrix */}
+                            <div className="grid grid-cols-4 gap-2 text-xs">
+                                <div className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-center">
+                                    <span className="text-[9px] text-slate-500 uppercase block">Enthalpy (ΔH°)</span>
+                                    <strong className={thermo.deltaH < 0 ? 'text-amber-600' : 'text-sky-600'}>
+                                        {thermo.deltaH > 0 ? `+${thermo.deltaH}` : thermo.deltaH} kJ/mol
+                                    </strong>
                                 </div>
+                                <div className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-center">
+                                    <span className="text-[9px] text-slate-500 uppercase block">Entropy (ΔS°)</span>
+                                    <strong className="text-purple-700">
+                                        {thermo.deltaS > 0 ? `+${thermo.deltaS}` : thermo.deltaS} J/K
+                                    </strong>
+                                </div>
+                                <div className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-center">
+                                    <span className="text-[9px] text-slate-500 uppercase block">Gibbs (ΔG°)</span>
+                                    <strong className={thermo.deltaG < 0 ? 'text-emerald-700' : 'text-rose-700'}>
+                                        {thermo.deltaG.toFixed(1)} kJ/mol
+                                    </strong>
+                                </div>
+                                <div className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-center">
+                                    <span className="text-[9px] text-slate-500 uppercase block">Rate Mult</span>
+                                    <strong className="text-sky-700">
+                                        {thermo.rateMultiplier.toFixed(2)}x
+                                    </strong>
+                                </div>
+                            </div>
 
-                                {/* Animated Energy Curve */}
-                                <svg viewBox="0 0 400 120" className="w-full h-28 overflow-visible">
-                                    <line x1="20" y1="100" x2="380" y2="100" stroke="#cbd5e1" strokeWidth="1" />
-                                    <line x1="20" y1="20" x2="20" y2="100" stroke="#cbd5e1" strokeWidth="1" />
-
-                                    {/* Energy curve path */}
-                                    <path
-                                        d="M 30 80 C 120 80, 160 25, 200 25 C 240 25, 280 95, 370 95"
-                                        fill="none"
-                                        stroke="#d97706"
-                                        strokeWidth="3"
+                            {/* Stoichiometric Yield Calculator */}
+                            <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
+                                <div className="flex items-center gap-2">
+                                    <Scale className="w-4 h-4 text-slate-500" />
+                                    <span>Reactant Input:</span>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        max="1000"
+                                        value={reactantMassGrams}
+                                        onChange={(e) => setReactantMassGrams(Number(e.target.value))}
+                                        className="w-16 px-1.5 py-0.5 rounded border border-slate-300 bg-white text-xs font-bold text-slate-800"
                                     />
-
-                                    {/* Transition peak marker */}
-                                    <circle cx="200" cy="25" r="4" fill="#f59e0b" className="animate-ping" />
-                                    <text x="200" y="15" textAnchor="middle" fill="#b45309" fontSize="9" fontWeight="bold">
-                                        Transition State (‡)
-                                    </text>
-
-                                    <text x="40" y="72" fill="#0284c7" fontSize="9" fontWeight="bold">Reactants</text>
-                                    <text x="350" y="90" fill="#059669" fontSize="9" fontWeight="bold">Products</text>
-                                </svg>
+                                    <span>grams</span>
+                                </div>
+                                <div>
+                                    <span>Theoretical Product: </span>
+                                    <strong className="text-emerald-700">{yieldStats?.theoreticalProductGrams} g</strong>
+                                </div>
                             </div>
 
                             {/* Action Trigger Button */}

@@ -1,0 +1,322 @@
+import { memo, useState } from 'react';
+import { CURRICULUM_MODULES, CurriculumModule } from '@/data/curriculum';
+import { SavedSession, useAppStore } from '@/store/useAppStore';
+import { elements } from '@/data/elements';
+import { BookOpen, GraduationCap, ArrowRight, Save, Trash2, Download, Upload, FileText, Search } from 'lucide-react';
+import { audioEngine } from '@/lib/audioEngine';
+
+interface LibraryManagerProps {
+    sessions: SavedSession[];
+    onOpen: (session: SavedSession) => void;
+    onDelete: (session: SavedSession) => void;
+}
+
+export const LibraryManager = memo(function LibraryManager({
+    sessions,
+    onOpen,
+    onDelete,
+}: LibraryManagerProps) {
+    const { setWorkspaceMode, setSelectedElement, setCompareElement1, setCompareElement2, addSavedSession } = useAppStore();
+    const [activeTab, setActiveTab] = useState<'curriculum' | 'saved' | 'notebook'>('curriculum');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [labNotes, setLabNotes] = useState<string>(() => {
+        return localStorage.getItem('ele_visualize_lab_notes') || '# Scientific Experiment Journal\n\n- Date: ' + new Date().toLocaleDateString() + '\n- Objective: Analyze atomic structure & bonding characteristics.\n- Observations: \n- Conclusions: \n';
+    });
+
+    const handleNotesChange = (text: string) => {
+        setLabNotes(text);
+        localStorage.setItem('ele_visualize_lab_notes', text);
+    };
+
+    // Launch a curriculum module
+    const handleLaunchCurriculum = (module: CurriculumModule) => {
+        audioEngine.playClick(940);
+        if (module.defaultElement) {
+            const el = elements.find((e) => e.atomicNumber === module.defaultElement) || null;
+            setSelectedElement(el);
+        }
+        if (module.compareElements) {
+            const el1 = elements.find((e) => e.atomicNumber === module.compareElements![0]) || null;
+            const el2 = elements.find((e) => e.atomicNumber === module.compareElements![1]) || null;
+            setCompareElement1(el1);
+            setCompareElement2(el2);
+        }
+        setWorkspaceMode(module.targetMode);
+    };
+
+    // Export sessions to JSON
+    const handleExportSessions = () => {
+        audioEngine.playClick(720);
+        const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(sessions, null, 2));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute('href', dataStr);
+        downloadAnchor.setAttribute('download', `ele_visualize_sessions_${Date.now()}.json`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+    };
+
+    // Import session from JSON
+    const handleImportSession = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const parsed = JSON.parse(event.target?.result as string);
+                if (Array.isArray(parsed)) {
+                    parsed.forEach((s) => addSavedSession(s));
+                } else if (parsed && typeof parsed === 'object') {
+                    addSavedSession(parsed);
+                }
+                audioEngine.playBondingChord();
+            } catch {
+                alert('Invalid JSON session file.');
+            }
+        };
+        reader.readAsText(file);
+    };
+
+    const filteredCurriculum = useMemo(() => {
+        const q = searchQuery.toLowerCase().trim();
+        return CURRICULUM_MODULES.filter(
+            (m) =>
+                !q ||
+                m.title.toLowerCase().includes(q) ||
+                m.category.toLowerCase().includes(q) ||
+                m.keyConcepts.some((k) => k.toLowerCase().includes(q))
+        );
+    }, [searchQuery]);
+
+    return (
+        <div className="h-full flex flex-col p-3 gap-3 bg-slate-50 font-mono text-slate-900 select-none overflow-y-auto matrix-grid-bg">
+            {/* Header Telemetry */}
+            <div className="flex items-center justify-between p-3 rounded-xl bg-white border border-slate-200 shadow-sm flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 text-sky-600 animate-pulse" />
+                    <span className="font-bold text-xs tracking-wider uppercase text-sky-700">
+                        SCIENTIFIC CURRICULUM & EXPERIMENT NOTEBOOK LIBRARY
+                    </span>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                    <button
+                        onClick={() => setActiveTab('curriculum')}
+                        className={`px-3 py-1 text-xs font-bold rounded-lg border transition-all ${
+                            activeTab === 'curriculum'
+                                ? 'bg-sky-600 text-white border-sky-600 shadow-sm'
+                                : 'bg-slate-100 text-slate-600 border-slate-200 hover:text-slate-900'
+                        }`}
+                    >
+                        <GraduationCap className="w-3.5 h-3.5 inline mr-1" />
+                        Curriculum Sets ({CURRICULUM_MODULES.length})
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('saved')}
+                        className={`px-3 py-1 text-xs font-bold rounded-lg border transition-all ${
+                            activeTab === 'saved'
+                                ? 'bg-sky-600 text-white border-sky-600 shadow-sm'
+                                : 'bg-slate-100 text-slate-600 border-slate-200 hover:text-slate-900'
+                        }`}
+                    >
+                        <Save className="w-3.5 h-3.5 inline mr-1" />
+                        Saved Explorations ({sessions.length})
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('notebook')}
+                        className={`px-3 py-1 text-xs font-bold rounded-lg border transition-all ${
+                            activeTab === 'notebook'
+                                ? 'bg-sky-600 text-white border-sky-600 shadow-sm'
+                                : 'bg-slate-100 text-slate-600 border-slate-200 hover:text-slate-900'
+                        }`}
+                    >
+                        <FileText className="w-3.5 h-3.5 inline mr-1" />
+                        Lab Notebook
+                    </button>
+                </div>
+            </div>
+
+            {/* Curriculum Master Study Sets Tab */}
+            {activeTab === 'curriculum' && (
+                <div className="space-y-3 flex-1">
+                    {/* Search Field */}
+                    <div className="flex items-center gap-2">
+                        <div className="relative flex-1">
+                            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
+                            <input
+                                type="text"
+                                placeholder="Search curriculum by topic, concept, or category (e.g. Alkali, Bohr, VSEPR, Isotopes)..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl outline-none focus:border-sky-500 shadow-xs text-slate-800"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Modules Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {filteredCurriculum.map((mod) => (
+                            <div
+                                key={mod.id}
+                                className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between space-y-3 hover:border-sky-300 transition-all group"
+                            >
+                                <div className="space-y-2">
+                                    <div className="flex justify-between items-start gap-2">
+                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200">
+                                            {mod.category}
+                                        </span>
+                                        <span className="text-[9px] text-slate-400 uppercase font-mono">{mod.level}</span>
+                                    </div>
+
+                                    <h3 className="font-extrabold text-sm text-slate-900 group-hover:text-sky-700 transition-colors">
+                                        {mod.title}
+                                    </h3>
+
+                                    <p className="text-xs text-slate-600 leading-relaxed">
+                                        {mod.description}
+                                    </p>
+
+                                    {/* Objectives */}
+                                    <div className="space-y-1 pt-1 border-t border-slate-100">
+                                        <span className="text-[9px] text-slate-400 uppercase font-bold">Key Objectives:</span>
+                                        {mod.objectives.map((obj, i) => (
+                                            <div key={i} className="text-[10px] text-slate-600 flex items-start gap-1">
+                                                <span className="text-sky-600">•</span>
+                                                <span>{obj}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Concept Tags */}
+                                    <div className="flex flex-wrap gap-1 pt-1">
+                                        {mod.keyConcepts.map((k) => (
+                                            <span key={k} className="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
+                                                #{k}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={() => handleLaunchCurriculum(mod)}
+                                    className="w-full py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all shadow-sm"
+                                >
+                                    <span>Launch Interactive Module</span>
+                                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Saved Explorations Tab */}
+            {activeTab === 'saved' && (
+                <div className="space-y-3 flex-1">
+                    {/* Action Bar */}
+                    <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                        <span className="text-xs text-slate-500 font-bold">
+                            {sessions.length} Saved Experiment Session(s)
+                        </span>
+
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={handleExportSessions}
+                                className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-sky-50 border border-slate-200 text-xs font-bold text-slate-700 flex items-center gap-1.5 transition-colors"
+                            >
+                                <Download className="w-3.5 h-3.5 text-sky-600" /> Export JSON
+                            </button>
+                            <label className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-sky-50 border border-slate-200 text-xs font-bold text-slate-700 flex items-center gap-1.5 cursor-pointer transition-colors">
+                                <Upload className="w-3.5 h-3.5 text-emerald-600" /> Import JSON
+                                <input type="file" accept=".json" onChange={handleImportSession} className="hidden" />
+                            </label>
+                        </div>
+                    </div>
+
+                    {/* Sessions Grid */}
+                    {sessions.length === 0 ? (
+                        <div className="p-12 text-center bg-white rounded-xl border border-slate-200 text-slate-400 space-y-2">
+                            <Save className="w-8 h-8 text-slate-300 mx-auto animate-pulse" />
+                            <p className="text-xs text-slate-600 font-bold">No saved explorations yet.</p>
+                            <p className="text-[10px] text-slate-400">Save atoms, reactions, comparisons, or molecules and they will appear here.</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {sessions.map((session) => (
+                                <article
+                                    key={session.id}
+                                    className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-sm space-y-2.5 flex flex-col justify-between"
+                                >
+                                    <div>
+                                        <div className="flex justify-between items-start">
+                                            <h3 className="font-extrabold text-sm text-slate-900">{session.title}</h3>
+                                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 font-bold uppercase border border-sky-200">
+                                                {session.workspaceMode}
+                                            </span>
+                                        </div>
+                                        <p className="text-[10px] text-slate-400">
+                                            {new Date(session.updatedAt).toLocaleString()}
+                                        </p>
+                                    </div>
+
+                                    <div className="flex flex-wrap gap-1">
+                                        {(session.tags.length ? session.tags : [session.workspaceMode]).map((tag) => (
+                                            <span key={tag} className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+                                                #{tag}
+                                            </span>
+                                        ))}
+                                    </div>
+
+                                    <div className="flex gap-2 pt-1 border-t border-slate-100">
+                                        <button
+                                            className="flex-1 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold transition-all shadow-sm"
+                                            onClick={() => onOpen(session)}
+                                        >
+                                            Open Exploration
+                                        </button>
+                                        <button
+                                            className="p-1.5 rounded-lg hover:bg-rose-50 border border-slate-200 hover:border-rose-300 text-slate-400 hover:text-rose-600 transition-colors"
+                                            onClick={() => onDelete(session)}
+                                            title="Delete Session"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </article>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Lab Notebook Tab */}
+            {activeTab === 'notebook' && (
+                <div className="space-y-3 flex-1 flex flex-col">
+                    <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-sm flex justify-between items-center">
+                        <div>
+                            <span className="text-xs font-bold text-slate-900 block">Digital Lab Experiment Journal</span>
+                            <span className="text-[10px] text-slate-400">Record hypotheses, observations, and calculations. Automatically persists locally.</span>
+                        </div>
+                        <button
+                            onClick={() => {
+                                handleNotesChange(
+                                    labNotes + `\n\n## Entry: ${new Date().toLocaleTimeString()}\n- Observation: \n`
+                                );
+                            }}
+                            className="px-3 py-1 rounded-lg bg-sky-50 text-sky-700 border border-sky-200 text-xs font-bold hover:bg-sky-100 transition-colors"
+                        >
+                            + New Timestamp Entry
+                        </button>
+                    </div>
+
+                    <textarea
+                        value={labNotes}
+                        onChange={(e) => handleNotesChange(e.target.value)}
+                        className="flex-1 min-h-[360px] p-4 bg-white border border-slate-200 rounded-xl outline-none font-mono text-xs text-slate-800 leading-relaxed resize-none shadow-sm focus:border-sky-500"
+                        placeholder="Type experimental notes and calculations here in Markdown..."
+                    />
+                </div>
+            )}
+        </div>
+    );
+});

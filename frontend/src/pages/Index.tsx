@@ -23,7 +23,6 @@ import {
   Search,
   SlidersHorizontal,
   Sparkles,
-  Trash2,
   Volume2,
   VolumeX,
   X,
@@ -40,8 +39,10 @@ import { PeriodicTableGrid } from '@/components/PeriodicTableGrid';
 import { ReactionSimulator } from '@/components/ReactionSimulator';
 import { SpectroscopyBar } from '@/components/SpectroscopyBar';
 import { QuantumNumbersHUD } from '@/components/QuantumNumbersHUD';
+import { LibraryManager } from '@/components/LibraryManager';
 import { xrStore } from '@/components/VisualizerCanvas';
 import { elementProperties } from '@/data/elementProperties';
+import { getIsotopesForElement } from '@/data/isotopes';
 import { categoryLabels, categoryColors, getElementColor, getElementBlock, ChemicalElement, ElementCategory, elements } from '@/data/elements';
 import { Molecule, molecules } from '@/data/molecules';
 import { cn } from '@/lib/utils';
@@ -542,10 +543,25 @@ function VisualStage({
   const [autoRotate, setAutoRotate] = useState(false);
   const [enableBloom, setEnableBloom] = useState(true);
   const [spaceFilling, setSpaceFilling] = useState(false);
+  const [selectedIsotopeIdx, setSelectedIsotopeIdx] = useState<number>(0);
+  const [ionCharge, setIonCharge] = useState<number>(0);
+
+  const isotopes = useMemo(() => (selectedElement ? getIsotopesForElement(selectedElement.atomicNumber) : []), [selectedElement]);
+  const activeIsotope = isotopes[selectedIsotopeIdx] || isotopes[0];
+
+  const ionizedElectrons = useMemo(() => {
+    if (!selectedElement) return [];
+    const shells = [...selectedElement.shells];
+    if (ionCharge !== 0 && shells.length > 0) {
+      const lastIdx = shells.length - 1;
+      shells[lastIdx] = Math.max(0, shells[lastIdx] - ionCharge);
+    }
+    return shells;
+  }, [selectedElement, ionCharge]);
 
   const stageColor = selectedElement ? getElementColor(selectedElement) : '#0284c7';
   const stageTitle = selectedElement
-    ? `${selectedElement.name} (${selectedElement.symbol}) • #${selectedElement.atomicNumber}`
+    ? `${selectedElement.name} (${activeIsotope?.symbol || selectedElement.symbol}) • #${selectedElement.atomicNumber}`
     : selectedMolecule
     ? `${selectedMolecule.name} (${selectedMolecule.formula})`
     : 'Interactive 3D Visualizer Stage';
@@ -595,7 +611,52 @@ function VisualStage({
         </div>
 
         {/* Action controls */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {/* Isotope Quick Selector */}
+          {selectedElement && isotopes.length > 1 && (
+            <div className="hidden lg:flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+              <span className="text-[9px] text-slate-500 font-bold px-1 font-mono">Nuclide:</span>
+              {isotopes.map((iso, idx) => (
+                <button
+                  key={iso.symbol}
+                  onClick={() => {
+                    audioEngine.playClick(880);
+                    setSelectedIsotopeIdx(idx);
+                  }}
+                  className={cn(
+                    "px-1.5 py-0.5 text-[9px] font-mono rounded font-bold transition-all",
+                    selectedIsotopeIdx === idx ? "bg-white text-sky-700 shadow-sm border border-slate-200" : "text-slate-600 hover:text-slate-900"
+                  )}
+                  title={`${iso.symbol}: ${iso.halfLife} (${iso.decayMode})`}
+                >
+                  {iso.symbol}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Ionization Charge State Scrubber */}
+          {selectedElement && (
+            <div className="hidden sm:flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+              <span className="text-[9px] text-slate-500 font-bold px-1 font-mono">Charge:</span>
+              {[-1, 0, 1, 2].map((chg) => (
+                <button
+                  key={chg}
+                  onClick={() => {
+                    audioEngine.playClick(chg === 0 ? 600 : 750);
+                    setIonCharge(chg);
+                  }}
+                  className={cn(
+                    "px-1.5 py-0.5 text-[9px] font-mono rounded font-bold transition-all",
+                    ionCharge === chg ? "bg-white text-sky-700 shadow-sm border border-slate-200" : "text-slate-600 hover:text-slate-900"
+                  )}
+                >
+                  {chg > 0 ? `+${chg}` : chg === 0 ? '0' : chg}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Camera Presets (3D / Top / Side / Reset) */}
           <div className="hidden sm:flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 mr-1">
             <button
@@ -710,19 +771,43 @@ function VisualStage({
       <div
         className="stage-canvas w-full h-full flex-1 relative flex items-center justify-center overflow-hidden"
         style={{
-          background: `radial-gradient(circle at 50% 48%, ${stageColor}14 0%, rgba(30, 41, 59, 0.25) 42%, rgba(2, 6, 23, 0.8) 100%)`
+          background: `radial-gradient(circle at 50% 48%, ${stageColor}14 0%, rgba(30, 41, 59, 0.08) 42%, rgba(248, 250, 252, 0.95) 100%)`
         }}
       >
-        <div className="stage-grid opacity-35 pointer-events-none" />
+        <div className="stage-grid opacity-20 pointer-events-none" />
 
-        {/* Optical Chamber Reticle & Telemetry Overlay */}
+        {/* Optical Chamber Reticle & Nuclear Stability Telemetry Overlay */}
         <div className="absolute top-3 left-3 text-[9px] font-mono text-slate-500 pointer-events-none z-20 flex flex-col gap-0.5 select-none">
-          <span className="text-cyan-400 font-bold flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+          <span className="text-sky-600 font-bold flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-600 animate-pulse" />
             [QUANTUM.OBS-01]
           </span>
-          <span>CAM: {cameraPreset.toUpperCase()} • FOV: 45mm • BLOOM: {enableBloom ? 'ON' : 'OFF'}</span>
+          <span>CAM: {cameraPreset.toUpperCase()} • BLOOM: {enableBloom ? 'ON' : 'OFF'} {ionCharge !== 0 ? `• CHARGE: [${ionCharge > 0 ? `+${ionCharge}` : ionCharge}]` : ''}</span>
+          {activeIsotope && (
+            <span className="text-slate-600">
+              NUCLIDE: {activeIsotope.symbol} • HALF-LIFE: {activeIsotope.halfLife} • DECAY: {activeIsotope.decayMode}
+            </span>
+          )}
         </div>
+
+        {/* AR & Gesture Lab Active Overlay */}
+        {workspaceMode === 'lab' && (
+          <div className="absolute top-3 right-3 p-3 bg-white/95 border border-sky-300 rounded-xl shadow-lg z-20 font-mono text-[10px] space-y-1.5 max-w-xs pointer-events-auto">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-sky-700 uppercase flex items-center gap-1">
+                <Hand className="w-3.5 h-3.5 text-sky-600" /> AR Gesture Lab Active
+              </span>
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+            </div>
+            <div className="text-slate-600 text-[9px] space-y-1">
+              <div>🤏 <strong>Pinch & Drag:</strong> Rotate Model in 3D</div>
+              <div>✋ <strong>Open Palm:</strong> Hand Position Tracking</div>
+              <div>✊ <strong>Fist Clench:</strong> Freeze / Lock Rotation</div>
+              <div>✌️ <strong>Victory Sign:</strong> Toggle Quantum Orbitals</div>
+              <div>↔️ <strong>Hand Swipe:</strong> Next / Previous Element</div>
+            </div>
+          </div>
+        )}
 
         {/* Live Floating Optical Spectroscopy Footprint */}
         {viewMode === 'atoms' && selectedElement && (
@@ -734,7 +819,7 @@ function VisualStage({
         <AnimatePresence mode="wait">
           {viewMode === 'atoms' && selectedElement && (
             <motion.div
-              key={selectedElement.atomicNumber}
+              key={`${selectedElement.atomicNumber}-${activeIsotope?.symbol}-${ionCharge}`}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
@@ -744,8 +829,8 @@ function VisualStage({
                 <Suspense fallback={<Loader />}>
                   <Atom3D
                     protons={selectedElement.atomicNumber}
-                    neutrons={Math.round(selectedElement.atomicMass) - selectedElement.atomicNumber}
-                    electrons={selectedElement.shells}
+                    neutrons={activeIsotope?.neutrons ?? (Math.round(selectedElement.atomicMass) - selectedElement.atomicNumber)}
+                    electrons={ionizedElectrons}
                     color={stageColor}
                     symbol={selectedElement.symbol}
                     handRotationXRef={handPositionY}
@@ -1127,54 +1212,6 @@ function Inspector({
   );
 }
 
-function LibraryView({
-  sessions,
-  onOpen,
-  onDelete,
-}: {
-  sessions: SavedSession[];
-  onOpen: (session: SavedSession) => void;
-  onDelete: (session: SavedSession) => void;
-}) {
-  return (
-    <section className="workspace-surface">
-      <div className="surface-heading">
-        <div>
-          <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Library</div>
-          <h2>Saved explorations</h2>
-        </div>
-        <Library className="h-6 w-6 text-primary" />
-      </div>
-
-      <div className="session-grid">
-        {sessions.length === 0 && (
-          <div className="empty-inspector col-span-full">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-1 shadow-inner-glow">
-              <Save className="h-8 w-8 text-primary opacity-80" />
-            </div>
-            <p>Save an atom, molecule, comparison, or builder exploration and it will appear here.</p>
-          </div>
-        )}
-        {sessions.map((session) => (
-          <article key={session.id} className="session-card">
-            <div>
-              <h3>{session.title}</h3>
-              <p>{new Date(session.updatedAt).toLocaleString()}</p>
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {(session.tags.length ? session.tags : [session.workspaceMode]).map(tag => <span key={tag}>{tag}</span>)}
-            </div>
-            <div className="flex gap-2">
-              <button className="premium-button flex-1" onClick={() => onOpen(session)}>Open</button>
-              <button className="icon-button" onClick={() => onDelete(session)}><Trash2 className="h-4 w-4" /></button>
-            </div>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 function BottomStatus({ selectedElement, selectedMolecule }: { selectedElement: ChemicalElement | null; selectedMolecule: Molecule | null }) {
   const { comparisonBasket, recentItems, workspaceMode } = useAppStore();
   return (
@@ -1395,7 +1432,7 @@ export default function Index() {
     }
     if (workspaceMode === 'reactions') return <ReactionSimulator onClose={() => setWorkspaceMode('explore')} />;
     if (workspaceMode === 'builder') return <MoleculeBuilder onClose={() => setWorkspaceMode('explore')} />;
-    if (workspaceMode === 'library') return <LibraryView sessions={savedSessions} onOpen={openSession} onDelete={deleteSession} />;
+    if (workspaceMode === 'library') return <LibraryManager sessions={savedSessions} onOpen={openSession} onDelete={deleteSession} />;
     return (
       <VisualStage
         selectedElement={selectedElement}

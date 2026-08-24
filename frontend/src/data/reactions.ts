@@ -10,9 +10,13 @@ export interface Reaction {
     products: string[];
     equation: string;
     type: 'exothermic' | 'endothermic' | 'neutral';
+    category?: 'Synthesis' | 'Decomposition' | 'Combustion' | 'Redox' | 'Precipitation' | 'Acid-Base' | 'Displacement';
     animation: 'explosion' | 'glow' | 'freeze' | 'bubble' | 'spark';
     description: string;
-    energyChange: number;
+    energyChange: number; // ΔH in kJ/mol
+    enthalpy?: number; // ΔH° in kJ/mol
+    entropy?: number; // ΔS° in J/(mol*K)
+    activationEnergy?: number; // Ea in kJ/mol
     color: string;
 }
 
@@ -380,7 +384,46 @@ export function getReactiveElements(): string[] {
     return Array.from(set).sort();
 }
 
-// Get all possible reactions for display
-export function getAllReactions(): Reaction[] {
-    return reactions;
+// Calculate Gibbs Free Energy ΔG = ΔH - T*ΔS
+export function calculateGibbsFreeEnergy(reaction: Reaction, tempK: number): {
+    deltaH: number;
+    deltaS: number;
+    deltaG: number;
+    isSpontaneous: boolean;
+    equilibriumConstant: number;
+    rateMultiplier: number;
+} {
+    const deltaH = reaction.enthalpy ?? reaction.energyChange; // kJ/mol
+    // Estimated standard entropy change if not specified
+    const deltaS = reaction.entropy ?? (reaction.reactants.length > reaction.products.length ? -89.4 : 45.2); // J/(mol*K)
+    const deltaG = deltaH - (tempK * deltaS) / 1000; // kJ/mol
+    const isSpontaneous = deltaG < 0;
+
+    // Equilibrium constant K = exp(-ΔG° / RT)
+    const R = 8.314e-3; // kJ/(mol*K)
+    const exponent = -deltaG / (R * tempK);
+    const equilibriumConstant = Math.min(Math.max(Math.exp(Math.min(exponent, 50)), 1e-20), 1e20);
+
+    // Arrhenius rate multiplier relative to 298K
+    const Ea = reaction.activationEnergy ?? (Math.abs(deltaH) * 0.25 + 30);
+    const k = Math.exp(-Ea / (R * tempK));
+    const k298 = Math.exp(-Ea / (R * 298));
+    const rateMultiplier = k / k298;
+
+    return {
+        deltaH,
+        deltaS,
+        deltaG,
+        isSpontaneous,
+        equilibriumConstant,
+        rateMultiplier,
+    };
 }
+
+// Compute root mean square velocity for collision chamber: v_rms = sqrt(3RT / M)
+export function calculateMolecularVelocity(molarMassGramsPerMol: number, tempK: number): number {
+    const R = 8.314; // J/(mol*K)
+    const molarMassKg = Math.max(molarMassGramsPerMol, 1) / 1000;
+    return Math.round(Math.sqrt((3 * R * tempK) / molarMassKg));
+}
+
