@@ -348,108 +348,6 @@ const Nucleus = memo(function Nucleus({ protons, neutrons, color, symbol, showPa
     );
 });
 
-// Dynamic Photon Energy Comet Trails trailing each orbiting electron
-interface ElectronTrailProps {
-    electronData: { radius: number; speed: number; phase: number; tiltX: number; tiltZ: number; harmonic: number }[];
-    color: string;
-    speedMultiplier: number;
-    isPaused: boolean;
-}
-
-const QuantumPhotonTrails = memo(function QuantumPhotonTrails({
-    electronData,
-    color,
-    speedMultiplier,
-    isPaused,
-}: ElectronTrailProps) {
-    const lineRef = useRef<THREE.LineSegments>(null);
-    const TRAIL_LENGTH = 12; // 12 points per trailing comet
-
-    const { positions, colors } = useMemo(() => {
-        const totalSegments = electronData.length * (TRAIL_LENGTH - 1);
-        const pos = new Float32Array(totalSegments * 6); // 2 vertices per segment * 3 coords
-        const col = new Float32Array(totalSegments * 6); // 2 vertices per segment * 3 colors
-        return { positions: pos, colors: col };
-    }, [electronData.length]);
-
-    const baseColor = useMemo(() => new THREE.Color(color || '#38bdf8'), [color]);
-    const tailColor = useMemo(() => new THREE.Color('#ffffff'), []);
-
-    useFrame(({ clock }) => {
-        if (!lineRef.current) return;
-        const t = isPaused ? 0 : clock.getElapsedTime() * speedMultiplier;
-        let ptr = 0;
-
-        electronData.forEach((el) => {
-            const currentAngle = el.phase + t * el.speed;
-            const step = 0.035; // angular spread of trail
-
-            for (let k = 0; k < TRAIL_LENGTH - 1; k++) {
-                const a1 = currentAngle - k * step;
-                const a2 = currentAngle - (k + 1) * step;
-
-                // De Broglie wave oscillation
-                const waveR1 = el.radius * (1.0 + 0.028 * Math.sin(el.harmonic * a1 + t * 2.0));
-                const waveR2 = el.radius * (1.0 + 0.028 * Math.sin(el.harmonic * a2 + t * 2.0));
-
-                const x1 = Math.cos(a1) * waveR1;
-                const y1 = Math.sin(a1) * Math.sin(el.tiltX) * waveR1 + 0.02 * Math.cos(el.harmonic * a1);
-                const z1 = Math.sin(a1) * Math.cos(el.tiltZ) * waveR1;
-
-                const x2 = Math.cos(a2) * waveR2;
-                const y2 = Math.sin(a2) * Math.sin(el.tiltX) * waveR2 + 0.02 * Math.cos(el.harmonic * a2);
-                const z2 = Math.sin(a2) * Math.cos(el.tiltZ) * waveR2;
-
-                positions[ptr * 6] = x1;
-                positions[ptr * 6 + 1] = y1;
-                positions[ptr * 6 + 2] = z1;
-                positions[ptr * 6 + 3] = x2;
-                positions[ptr * 6 + 4] = y2;
-                positions[ptr * 6 + 5] = z2;
-
-                const alpha1 = Math.pow(1.0 - k / TRAIL_LENGTH, 1.8);
-                const alpha2 = Math.pow(1.0 - (k + 1) / TRAIL_LENGTH, 1.8);
-
-                colors[ptr * 6] = baseColor.r * alpha1;
-                colors[ptr * 6 + 1] = baseColor.g * alpha1;
-                colors[ptr * 6 + 2] = baseColor.b * alpha1;
-                colors[ptr * 6 + 3] = tailColor.r * alpha2;
-                colors[ptr * 6 + 4] = tailColor.g * alpha2;
-                colors[ptr * 6 + 5] = tailColor.b * alpha2;
-
-                ptr++;
-            }
-        });
-
-        lineRef.current.geometry.attributes.position.needsUpdate = true;
-        lineRef.current.geometry.attributes.color.needsUpdate = true;
-    });
-
-    if (electronData.length === 0) return null;
-
-    return (
-        <lineSegments ref={lineRef}>
-            <bufferGeometry>
-                <bufferAttribute
-                    attach="attributes-position"
-                    args={[positions, 3]}
-                />
-                <bufferAttribute
-                    attach="attributes-color"
-                    args={[colors, 3]}
-                />
-            </bufferGeometry>
-            <lineBasicMaterial
-                vertexColors
-                transparent
-                opacity={0.85}
-                blending={THREE.AdditiveBlending}
-                linewidth={2}
-            />
-        </lineSegments>
-    );
-});
-
 // High-Performance Instanced Electron Mesh with Quantum Wave Oscillation & Valence Glow
 interface InstancedElectronsProps {
     shells: number[];
@@ -551,29 +449,18 @@ const InstancedElectrons = memo(function InstancedElectrons({
     if (electronData.length === 0) return null;
 
     return (
-        <group>
-            {/* Instanced Glowing Electron Spheres */}
-            <instancedMesh
-                ref={meshRef}
-                args={[undefined, undefined, electronData.length]}
-            >
-                <sphereGeometry args={[1, 20, 20]} />
-                <meshStandardMaterial
-                    roughness={0.08}
-                    metalness={0.9}
-                    emissive={color}
-                    emissiveIntensity={2.5}
-                />
-            </instancedMesh>
-
-            {/* Radiant Photon Comet Tails */}
-            <QuantumPhotonTrails
-                electronData={electronData}
-                color={color}
-                speedMultiplier={speedMultiplier}
-                isPaused={isPaused}
+        <instancedMesh
+            ref={meshRef}
+            args={[undefined, undefined, electronData.length]}
+        >
+            <sphereGeometry args={[1, 20, 20]} />
+            <meshStandardMaterial
+                roughness={0.08}
+                metalness={0.9}
+                emissive={color}
+                emissiveIntensity={2.5}
             />
-        </group>
+        </instancedMesh>
     );
 });
 
