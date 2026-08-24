@@ -1312,18 +1312,6 @@ function Inspector({
   );
 }
 
-function BottomStatus({ selectedElement, selectedMolecule }: { selectedElement: ChemicalElement | null; selectedMolecule: Molecule | null }) {
-  const { comparisonBasket, recentItems, workspaceMode } = useAppStore();
-  return (
-    <footer className="bottom-status">
-      <span>{workspaceMode.toUpperCase()}</span>
-      <span>{selectedElement ? `${selectedElement.symbol} selected` : selectedMolecule ? `${selectedMolecule.formula} selected` : 'No selection'}</span>
-      <span>{comparisonBasket.length}/2 compare slots</span>
-      <span className="hidden md:inline">{recentItems.length} recent</span>
-    </footer>
-  );
-}
-
 export default function Index() {
   const {
     activeFilter,
@@ -1821,7 +1809,6 @@ export default function Index() {
         </div>
       )}
 
-      <BottomStatus selectedElement={selectedElement} selectedMolecule={selectedMolecule} />
       <HandTracker
         onZoomChange={setZoomLevel}
         onGestureDetected={handleGestureDetected}

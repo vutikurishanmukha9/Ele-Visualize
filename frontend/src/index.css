@@ -261,12 +261,8 @@ html, body {
     @apply flex h-12 items-center justify-between px-4 bg-white/70 border-b border-black/[0.06] backdrop-blur-md;
   }
 
-  .stage-canvas {
-    @apply relative flex-1 flex items-center justify-center w-full h-full overflow-hidden;
-  }
-
   .stage-status {
-    @apply flex h-11 items-center justify-between px-5 text-xs font-mono border-t border-black/[0.06] bg-white/80 text-slate-600;
+    @apply flex-none min-h-[46px] h-auto flex flex-wrap items-center justify-between px-4 sm:px-6 py-2 text-xs border-t border-black/[0.06] bg-white/95 backdrop-blur-md text-slate-600 z-20 shadow-xs;
   }
 
   /* Spectral Wave Field Background Canvas */
