@@ -260,16 +260,31 @@ export const HandTracker = memo(function HandTracker({
       setIsTracking(true);
       setIsLoading(false);
 
-      // 3. Ultra-Smooth 60 FPS Vision Loop
+      // 3. Ultra-Smooth 60 FPS Throttled Vision Loop with Mutex Protection
+      let lastVideoTime = -1;
+      let isInferenceInFlight = false;
+
       const detectLoop = () => {
         if (!isTrackingRef.current || !videoRef.current || !handLandmarkerRef.current) return;
 
-        if (videoRef.current.readyState >= 2 && videoRef.current.videoWidth > 0) {
-          try {
-            const results = handLandmarkerRef.current.detectForVideo(videoRef.current, performance.now());
-            processHandResults(results);
-          } catch (e) {
-            console.warn('[HandTracker] Frame skipped:', e);
+        const video = videoRef.current;
+        if (
+          !video.paused &&
+          video.readyState >= 2 &&
+          video.videoWidth > 0
+        ) {
+          const currentTime = video.currentTime;
+          if (currentTime !== lastVideoTime && !isInferenceInFlight) {
+            lastVideoTime = currentTime;
+            isInferenceInFlight = true;
+            try {
+              const results = handLandmarkerRef.current.detectForVideo(video, performance.now());
+              processHandResults(results);
+            } catch (e) {
+              console.warn('[HandTracker] Frame inference skipped:', e);
+            } finally {
+              isInferenceInFlight = false;
+            }
           }
         }
 
