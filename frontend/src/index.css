@@ -121,12 +121,13 @@ html, body {
 @layer components {
   /* ==================== WORKBENCH MASTER LAYOUT ==================== */
   .workbench-layout {
-    @apply grid h-screen grid-cols-[280px_minmax(0,1fr)_340px] xl:grid-cols-[300px_minmax(0,1fr)_360px] gap-0 px-0 pt-14 md:px-0;
+    @apply h-screen gap-0 px-0 pt-14 md:px-0 relative overflow-hidden;
     background-color: var(--color-canvas);
+    display: flex;
   }
 
   .workbench-layout.is-tablet {
-    @apply grid-cols-[270px_minmax(0,1fr)];
+    @apply flex;
   }
 
   .workbench-layout.is-mobile {
@@ -135,7 +136,30 @@ html, body {
   }
 
   .workbench-layout.is-zen {
-    @apply grid-cols-[1fr] !important;
+    @apply flex !important;
+  }
+
+  /* Draggable Splitter Handle */
+  .layout-splitter {
+    @apply relative w-2 z-30 cursor-col-resize flex-none flex items-center justify-center transition-colors select-none hover:bg-[#16a875]/20 active:bg-[#16a875]/40;
+    margin: 0 -3px;
+  }
+  .layout-splitter::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 2.5px;
+    height: 36px;
+    background-color: rgba(20, 35, 30, 0.2);
+    border-radius: 99px;
+    transition: all 0.15s ease;
+  }
+  .layout-splitter:hover::after, .layout-splitter.is-dragging::after {
+    background-color: #16a875;
+    height: 52px;
+    width: 3.5px;
+    box-shadow: 0 0 8px rgba(22, 168, 117, 0.5);
   }
 
   /* Frosted Glass Panels */

@@ -70,6 +70,7 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
     const [hoveredElement, setHoveredElement] = useState<ChemicalElement | null>(null);
     const [popupElement, setPopupElement] = useState<ChemicalElement | null>(null);
     const [showTrendsOverlay, setShowTrendsOverlay] = useState(false);
+    const [cellSize, setCellSize] = useState<'sm' | 'md' | 'lg'>('md');
 
     // Filter elements based on Block, Search, and Discovery Year
     const filteredElements = useMemo(() => {
@@ -210,6 +211,25 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                             </button>
                         ))}
                     </div>
+                    {/* Column / Cell Sizing Presets */}
+                    <div className="hidden md:flex items-center gap-1 bg-slate-100/80 p-0.5 rounded-xl border border-slate-200/60 text-[10.5px]">
+                        <span className="px-2 text-slate-500 font-semibold">Size:</span>
+                        {(['sm', 'md', 'lg'] as const).map((s) => (
+                            <button
+                                key={s}
+                                onClick={() => setCellSize(s)}
+                                className={cn(
+                                    "px-2 py-0.5 rounded-lg uppercase font-bold transition-all",
+                                    cellSize === s
+                                        ? "bg-white text-[#087f5b] border border-slate-200 shadow-xs"
+                                        : "text-slate-500 hover:text-slate-900"
+                                )}
+                                title={s === 'sm' ? 'Compact Columns' : s === 'md' ? 'Standard Columns' : 'Expansive Columns'}
+                            >
+                                {s.toUpperCase()}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -230,10 +250,19 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                 {/* 18-Column Interactive Table Grid Hero Container */}
                 <div className="w-full rounded-2xl bg-white/90 border border-black/[0.06] p-4 relative shadow-card overflow-x-auto">
                     <div
-                        className="grid gap-1.5 min-w-[840px] pb-2"
+                        className="grid gap-1.5 pb-2"
                         style={{
-                            gridTemplateColumns: 'repeat(18, minmax(42px, 1fr))',
-                            gridTemplateRows: 'repeat(10, minmax(48px, 1fr))',
+                            minWidth: cellSize === 'sm' ? '680px' : cellSize === 'lg' ? '1020px' : '840px',
+                            gridTemplateColumns: cellSize === 'sm'
+                                ? 'repeat(18, minmax(36px, 1fr))'
+                                : cellSize === 'lg'
+                                ? 'repeat(18, minmax(52px, 1fr))'
+                                : 'repeat(18, minmax(42px, 1fr))',
+                            gridTemplateRows: cellSize === 'sm'
+                                ? 'repeat(10, minmax(42px, 1fr))'
+                                : cellSize === 'lg'
+                                ? 'repeat(10, minmax(58px, 1fr))'
+                                : 'repeat(10, minmax(48px, 1fr))',
                         }}
                     >
                         {/* Period and Group Header Indicators */}

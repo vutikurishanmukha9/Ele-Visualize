@@ -376,11 +376,13 @@ function DiscoveryRail({
   filteredMolecules,
   onSelectElement,
   onSelectMolecule,
+  onToggleCollapse,
 }: {
   filteredElements: ChemicalElement[];
   filteredMolecules: Molecule[];
   onSelectElement: (element: ChemicalElement) => void;
   onSelectMolecule: (molecule: Molecule) => void;
+  onToggleCollapse?: () => void;
 }) {
   const { activeFilter, viewMode, setActiveFilter, setViewMode, selectedElement } = useAppStore();
 
@@ -527,8 +529,9 @@ function DiscoveryRail({
       {/* Collapse Rail Button */}
       <div className="p-2 border-t border-black/[0.06] flex items-center justify-center">
         <button
+          onClick={onToggleCollapse}
           className="w-8 h-8 rounded-full border border-slate-200 bg-white hover:bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-900 transition-colors shadow-xs"
-          title="Collapse Rail"
+          title="Collapse Rail (or Drag Edge to Resize)"
         >
           <span className="font-mono text-xs font-bold">«</span>
         </button>
@@ -926,13 +929,15 @@ function Inspector({
   selectedMolecule,
   onCompare,
   onSave: _onSave,
+  onToggleCollapse,
 }: {
   selectedElement: ChemicalElement | null;
   selectedMolecule: Molecule | null;
   onCompare: (element: ChemicalElement) => void;
   onSave?: () => void;
+  onToggleCollapse?: () => void;
 }) {
-  const { inspectorTab, setInspectorTab, setWorkspaceMode } = useAppStore();
+  const { inspectorTab, setInspectorTab } = useAppStore();
   const [tempUnit, setTempUnit] = useState<'C' | 'K' | 'F'>('C');
   const props = selectedElement ? elementProperties[selectedElement.atomicNumber] : null;
   const elementColor = selectedElement ? getElementColor(selectedElement) : '#16a875';
@@ -945,7 +950,7 @@ function Inspector({
           <FlaskConical className="h-4 w-4 text-[#16a875]" />
           <span className="text-xs uppercase tracking-wider text-slate-800 font-sans font-bold">Scientific Inspector</span>
         </div>
-        <button className="icon-button" title="Collapse Inspector">
+        <button onClick={onToggleCollapse} className="icon-button" title="Collapse Inspector (or Drag Edge to Resize)">
           <span className="text-xs text-slate-400 font-bold">^</span>
         </button>
       </div>
@@ -1239,6 +1244,93 @@ export default function Index() {
   const isHandControlled = useRef(false);
   const isFrozen = useRef(false);
 
+  // Dynamic Column Resizing & Width States
+  const [leftWidth, setLeftWidth] = useState<number>(() => {
+    const saved = localStorage.getItem('ele_left_col_width');
+    return saved ? Math.max(200, Math.min(480, Number(saved))) : 280;
+  });
+  const [rightWidth, setRightWidth] = useState<number>(() => {
+    const saved = localStorage.getItem('ele_right_col_width');
+    return saved ? Math.max(260, Math.min(560, Number(saved))) : 340;
+  });
+  const [leftCollapsed, setLeftCollapsed] = useState<boolean>(() => {
+    return localStorage.getItem('ele_left_collapsed') === 'true';
+  });
+  const [rightCollapsed, setRightCollapsed] = useState<boolean>(() => {
+    return localStorage.getItem('ele_right_collapsed') === 'true';
+  });
+
+  const isDraggingLeftRef = useRef(false);
+  const isDraggingRightRef = useRef(false);
+  const [isDraggingLeft, setIsDraggingLeft] = useState(false);
+  const [isDraggingRight, setIsDraggingRight] = useState(false);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDraggingLeftRef.current) {
+        const newWidth = Math.max(200, Math.min(500, e.clientX));
+        setLeftWidth(newWidth);
+        localStorage.setItem('ele_left_col_width', String(newWidth));
+      } else if (isDraggingRightRef.current) {
+        const newWidth = Math.max(260, Math.min(560, window.innerWidth - e.clientX));
+        setRightWidth(newWidth);
+        localStorage.setItem('ele_right_col_width', String(newWidth));
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (isDraggingLeftRef.current) {
+        isDraggingLeftRef.current = false;
+        setIsDraggingLeft(false);
+      }
+      if (isDraggingRightRef.current) {
+        isDraggingRightRef.current = false;
+        setIsDraggingRight(false);
+      }
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
+
+  const startDragLeft = (e: React.MouseEvent) => {
+    e.preventDefault();
+    isDraggingLeftRef.current = true;
+    setIsDraggingLeft(true);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  };
+
+  const startDragRight = (e: React.MouseEvent) => {
+    e.preventDefault();
+    isDraggingRightRef.current = true;
+    setIsDraggingRight(true);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  };
+
+  const toggleLeftCollapse = () => {
+    setLeftCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem('ele_left_collapsed', String(next));
+      return next;
+    });
+  };
+
+  const toggleRightCollapse = () => {
+    setRightCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem('ele_right_collapsed', String(next));
+      return next;
+    });
+  };
+
   useEffect(() => {
     const checkMobile = () => {
       const mobile = window.innerWidth < 820;
@@ -1433,29 +1525,82 @@ export default function Index() {
       />
 
       <div className={cn('workbench-layout', isMobile && 'is-mobile', zenMode && 'is-zen')}>
-        {!isMobile && !zenMode && (
-          <DiscoveryRail
-            filteredElements={filteredElements}
-            filteredMolecules={filteredMolecules}
-            onSelectElement={selectElement}
-            onSelectMolecule={selectMolecule}
+        {/* Left Discovery Rail (Resizable) */}
+        {!isMobile && !zenMode && !leftCollapsed && (
+          <div style={{ width: leftWidth, minWidth: 200, maxWidth: 500, flexShrink: 0 }} className="h-full">
+            <DiscoveryRail
+              filteredElements={filteredElements}
+              filteredMolecules={filteredMolecules}
+              onSelectElement={selectElement}
+              onSelectMolecule={selectMolecule}
+              onToggleCollapse={toggleLeftCollapse}
+            />
+          </div>
+        )}
+
+        {/* Left Splitter Handle */}
+        {!isMobile && !zenMode && !leftCollapsed && (
+          <div
+            className={cn('layout-splitter', isDraggingLeft && 'is-dragging')}
+            onMouseDown={startDragLeft}
+            onDoubleClick={() => setLeftWidth(280)}
+            title="Drag to resize Discovery Rail (Double-click to reset)"
           />
         )}
 
-        <main className="workbench-main">
+        {/* Center Main Stage (Expands Automatically) */}
+        <main className="workbench-main flex-1 min-w-0 h-full overflow-hidden flex flex-col">
           <WorkspaceNav />
           <div key={workspaceMode} className="flex-1 min-h-0 relative flex flex-col animate-fade-in">
             {workspaceContent()}
           </div>
         </main>
 
-        {!isMobile && !zenMode && (
-          <Inspector
-            selectedElement={selectedElement}
-            selectedMolecule={selectedMolecule}
-            onCompare={addCompare}
-            onSave={saveSession}
+        {/* Right Splitter Handle */}
+        {!isMobile && !zenMode && !rightCollapsed && (
+          <div
+            className={cn('layout-splitter', isDraggingRight && 'is-dragging')}
+            onMouseDown={startDragRight}
+            onDoubleClick={() => setRightWidth(340)}
+            title="Drag to resize Scientific Inspector (Double-click to reset)"
           />
+        )}
+
+        {/* Right Scientific Inspector (Resizable) */}
+        {!isMobile && !zenMode && !rightCollapsed && (
+          <div style={{ width: rightWidth, minWidth: 260, maxWidth: 560, flexShrink: 0 }} className="h-full">
+            <Inspector
+              selectedElement={selectedElement}
+              selectedMolecule={selectedMolecule}
+              onCompare={addCompare}
+              onSave={saveSession}
+              onToggleCollapse={toggleRightCollapse}
+            />
+          </div>
+        )}
+
+        {/* Left Floating Reopen Tab when collapsed */}
+        {!isMobile && !zenMode && leftCollapsed && (
+          <button
+            onClick={toggleLeftCollapse}
+            className="absolute left-0 top-16 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-r-xl bg-white border-y border-r border-black/[0.08] shadow-md text-slate-700 hover:text-[#16a875] text-xs font-bold transition-all hover:pl-3.5"
+            title="Expand Discovery Rail"
+          >
+            <Atom className="w-3.5 h-3.5 text-[#16a875]" />
+            <span>Elements »</span>
+          </button>
+        )}
+
+        {/* Right Floating Reopen Tab when collapsed */}
+        {!isMobile && !zenMode && rightCollapsed && (
+          <button
+            onClick={toggleRightCollapse}
+            className="absolute right-0 top-16 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-l-xl bg-white border-y border-l border-black/[0.08] shadow-md text-slate-700 hover:text-[#16a875] text-xs font-bold transition-all hover:pr-3.5"
+            title="Expand Scientific Inspector"
+          >
+            <span>« Inspector</span>
+            <FlaskConical className="w-3.5 h-3.5 text-[#16a875]" />
+          </button>
         )}
       </div>
 
