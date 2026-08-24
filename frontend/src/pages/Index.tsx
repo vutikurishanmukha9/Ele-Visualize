@@ -407,27 +407,63 @@ function DiscoveryRail({
   const { activeFilter, searchQuery, viewMode, setActiveFilter, setSearchQuery, setViewMode, selectedElement } = useAppStore();
 
   return (
-    <aside className="discovery-rail">
-      <div className="rail-header">
+    <aside className="discovery-rail flex flex-col h-full bg-white border-r border-slate-200">
+      {/* Header & Segmented Mode Switch */}
+      <div className="p-3 border-b border-slate-200 flex items-center justify-between gap-2">
         <div>
-          <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Discovery</div>
-          <div className="text-lg font-bold text-white">Elements & Molecules</div>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono block">Discovery</span>
+          <span className="text-xs font-bold text-slate-900">Elements & Molecules</span>
         </div>
-        <div className="segmented">
-          <button className={cn(viewMode === 'atoms' && 'is-active')} onClick={() => setViewMode('atoms')}>Atoms</button>
-          <button className={cn(viewMode === 'molecules' && 'is-active')} onClick={() => setViewMode('molecules')}>Molecules</button>
+        <div className="flex items-center p-0.5 rounded-lg bg-slate-100 border border-slate-200 text-xs font-semibold">
+          <button
+            className={cn(
+              "px-2.5 py-1 rounded-md transition-all text-[11px]",
+              viewMode === 'atoms' ? "bg-white text-sky-700 font-bold shadow-xs" : "text-slate-500 hover:text-slate-800"
+            )}
+            onClick={() => setViewMode('atoms')}
+          >
+            Atoms
+          </button>
+          <button
+            className={cn(
+              "px-2.5 py-1 rounded-md transition-all text-[11px]",
+              viewMode === 'molecules' ? "bg-white text-sky-700 font-bold shadow-xs" : "text-slate-500 hover:text-slate-800"
+            )}
+            onClick={() => setViewMode('molecules')}
+          >
+            Molecules
+          </button>
         </div>
       </div>
 
-      <label className="search-field">
-        <Search className="h-4 w-4 text-muted-foreground" />
-        <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Symbol, name, mass, formula" />
-      </label>
+      {/* Search Input */}
+      <div className="p-2 border-b border-slate-100">
+        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200">
+          <Search className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+          <input
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Search element, formula..."
+            className="w-full bg-transparent text-xs text-slate-900 placeholder:text-slate-400 outline-none"
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery('')} className="text-slate-400 hover:text-slate-600">
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+      </div>
 
+      {/* Category Filter Horizontal Scroll Strip */}
       {viewMode === 'atoms' && (
-        <div className="category-strip flex flex-wrap gap-1 p-2.5 overflow-x-auto hide-scrollbar">
+        <div className="px-2 py-1.5 border-b border-slate-100 flex items-center gap-1 overflow-x-auto hide-scrollbar">
           <button
-            className={cn("px-2 py-0.5 rounded text-[11px] font-medium transition-all", activeFilter === 'all' && 'is-active font-semibold')}
+            className={cn(
+              "px-2.5 py-0.5 rounded-full text-[10px] font-semibold transition-all shrink-0 border",
+              activeFilter === 'all'
+                ? "bg-slate-900 text-white border-slate-900 shadow-xs"
+                : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+            )}
             onClick={() => setActiveFilter('all')}
           >
             All
@@ -438,22 +474,24 @@ function DiscoveryRail({
             return (
               <button
                 key={category}
-                className={cn("px-2 py-0.5 rounded text-[11px] font-medium transition-all flex items-center gap-1", isActive && 'is-active font-semibold')}
+                className={cn(
+                  "px-2 py-0.5 rounded-full text-[10px] font-medium transition-all shrink-0 flex items-center gap-1 border",
+                  isActive
+                    ? "bg-sky-50 text-sky-800 border-sky-300 font-bold shadow-xs"
+                    : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                )}
                 onClick={() => setActiveFilter(category)}
-                style={{
-                  color: isActive ? color : undefined,
-                  borderColor: isActive ? `${color}66` : undefined
-                }}
               >
-                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
-                {categoryLabels[category].replace(' Metals', '').replace(' Earth', '')}
+                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                <span>{categoryLabels[category].replace(' Metals', '').replace(' Earth', '')}</span>
               </button>
             );
           })}
         </div>
       )}
 
-      <div className="rail-list">
+      {/* List */}
+      <div className="rail-list flex-1 overflow-y-auto p-2 space-y-1">
         {viewMode === 'atoms'
           ? filteredElements.map((element) => {
             const color = getElementColor(element);
@@ -461,39 +499,49 @@ function DiscoveryRail({
             return (
               <button
                 key={element.atomicNumber}
-                className={cn("result-card transition-all", isSelected && "bg-slate-900/90 border-primary/40")}
+                className={cn(
+                  "w-full flex items-center gap-2.5 p-2 rounded-xl border text-left transition-all",
+                  isSelected
+                    ? "bg-sky-50/90 border-sky-300 shadow-xs ring-1 ring-sky-400/30"
+                    : "bg-white border-transparent hover:bg-slate-50 hover:border-slate-200"
+                )}
                 onClick={() => onSelectElement(element)}
-                style={{ borderLeftColor: isSelected ? color : 'transparent', borderLeftWidth: isSelected ? '3px' : '1px' }}
               >
                 <span
-                  className="periodic-tile font-bold"
+                  className="flex h-9 w-9 flex-col items-center justify-center font-bold text-sm rounded-lg border shrink-0"
                   style={{
-                    backgroundColor: `${color}18`,
+                    backgroundColor: `${color}15`,
                     color: color,
                     borderColor: `${color}40`
                   }}
                 >
-                  <small style={{ color: color }}>{element.atomicNumber}</small>
+                  <small className="text-[8px] font-mono leading-none">{element.atomicNumber}</small>
                   {element.symbol}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold text-slate-900">{element.name}</span>
-                  <span className="block truncate text-xs text-muted-foreground">
-                    <span style={{ color: color }}>{categoryLabels[element.category]}</span> • {element.atomicMass.toFixed(2)} u
+                  <span className="block truncate text-xs font-bold text-slate-900">{element.name}</span>
+                  <span className="block truncate text-[10px] text-slate-500 font-mono">
+                    <span style={{ color }}>{categoryLabels[element.category]}</span> • {element.atomicMass.toFixed(1)} u
                   </span>
                 </span>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                <ChevronRight className={cn("h-3.5 w-3.5 shrink-0 transition-colors", isSelected ? "text-sky-600" : "text-slate-300")} />
               </button>
             );
           })
           : filteredMolecules.map((molecule) => (
-            <button key={molecule.formula} className="result-card" onClick={() => onSelectMolecule(molecule)}>
-              <span className="molecule-tile">{molecule.formula}</span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-semibold text-slate-900">{molecule.name}</span>
-                <span className="block truncate text-xs text-muted-foreground">{molecule.atoms.length} atoms • {molecule.bonds.length} bonds</span>
+            <button
+              key={molecule.formula}
+              className="w-full flex items-center gap-2.5 p-2 rounded-xl border border-transparent hover:bg-slate-50 hover:border-slate-200 text-left transition-all"
+              onClick={() => onSelectMolecule(molecule)}
+            >
+              <span className="flex h-9 w-12 items-center justify-center font-bold text-xs rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0 font-mono">
+                {molecule.formula}
               </span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-xs font-bold text-slate-900">{molecule.name}</span>
+                <span className="block truncate text-[10px] text-slate-500 font-mono">{molecule.atoms.length} atoms • {molecule.bonds.length} bonds</span>
+              </span>
+              <ChevronRight className="h-3.5 w-3.5 text-slate-300 shrink-0" />
             </button>
           ))}
       </div>
@@ -545,6 +593,7 @@ function VisualStage({
   const [spaceFilling, setSpaceFilling] = useState(false);
   const [selectedIsotopeIdx, setSelectedIsotopeIdx] = useState<number>(0);
   const [ionCharge, setIonCharge] = useState<number>(0);
+  const [showSpectroscopy, setShowSpectroscopy] = useState(false);
 
   const isotopes = useMemo(() => (selectedElement ? getIsotopesForElement(selectedElement.atomicNumber) : []), [selectedElement]);
   const activeIsotope = isotopes[selectedIsotopeIdx] || isotopes[0];
@@ -581,16 +630,16 @@ function VisualStage({
   return (
     <section className={cn('visual-stage relative', isFullscreen && 'is-fullscreen')}>
       {/* Top Stage Toolbar */}
-      <div className="stage-toolbar flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm">
+      <div className="stage-toolbar flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
         <div className="min-w-0 flex items-center gap-2">
           {selectedElement && (
             <span
               className="w-2.5 h-2.5 rounded-full animate-pulse"
-              style={{ backgroundColor: stageColor, boxShadow: `0 0 10px ${stageColor}` }}
+              style={{ backgroundColor: stageColor, boxShadow: `0 0 8px ${stageColor}` }}
             />
           )}
           <div className="min-w-0">
-            <div className="truncate text-[10px] uppercase tracking-[0.2em] text-slate-500 font-mono flex items-center gap-2">
+            <div className="truncate text-[9.5px] uppercase tracking-[0.18em] text-slate-500 font-mono flex items-center gap-2">
               <span>{workspaceMode === 'lab' ? 'AR & Gesture Lab' : 'Quantum Visual Stage'}</span>
               {zenMode && (
                 <span className="bg-sky-100 text-sky-700 px-1.5 py-0.5 rounded text-[9px] font-bold">MAX 3D</span>
@@ -600,8 +649,8 @@ function VisualStage({
               {stageTitle}
               {selectedElement && (
                 <span
-                  className="hidden md:inline text-[10px] font-mono px-2 py-0.5 rounded-full border border-sky-200"
-                  style={{ backgroundColor: `${stageColor}15`, color: stageColor }}
+                  className="hidden md:inline text-[10px] font-mono px-2 py-0.5 rounded-full border border-slate-200"
+                  style={{ backgroundColor: `${stageColor}12`, color: stageColor }}
                 >
                   {categoryLabels[selectedElement.category]}
                 </span>
@@ -625,7 +674,7 @@ function VisualStage({
                   }}
                   className={cn(
                     "px-1.5 py-0.5 text-[9px] font-mono rounded font-bold transition-all",
-                    selectedIsotopeIdx === idx ? "bg-white text-sky-700 shadow-sm border border-slate-200" : "text-slate-600 hover:text-slate-900"
+                    selectedIsotopeIdx === idx ? "bg-white text-sky-700 shadow-xs border border-slate-200" : "text-slate-600 hover:text-slate-900"
                   )}
                   title={`${iso.symbol}: ${iso.halfLife} (${iso.decayMode})`}
                 >
@@ -648,7 +697,7 @@ function VisualStage({
                   }}
                   className={cn(
                     "px-1.5 py-0.5 text-[9px] font-mono rounded font-bold transition-all",
-                    ionCharge === chg ? "bg-white text-sky-700 shadow-sm border border-slate-200" : "text-slate-600 hover:text-slate-900"
+                    ionCharge === chg ? "bg-white text-sky-700 shadow-xs border border-slate-200" : "text-slate-600 hover:text-slate-900"
                   )}
                 >
                   {chg > 0 ? `+${chg}` : chg === 0 ? '0' : chg}
@@ -657,26 +706,26 @@ function VisualStage({
             </div>
           )}
 
-          {/* Camera Presets (3D / Top / Side / Reset) */}
+          {/* Camera Presets (3D / Top / Side) */}
           <div className="hidden sm:flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 mr-1">
             <button
               onClick={() => setCameraPreset('3d')}
-              className={cn("px-2 py-1 text-[10px] font-mono rounded transition-colors", cameraPreset === '3d' ? "bg-white text-sky-700 font-bold shadow-sm" : "text-slate-600 hover:text-slate-900")}
-              title="Perspective 3D Angle"
+              className={cn("px-2 py-1 text-[10px] font-mono rounded-md transition-all", cameraPreset === '3d' ? "bg-white text-sky-700 font-bold shadow-xs" : "text-slate-600 hover:text-slate-900")}
+              title="Perspective 3D View"
             >
               3D
             </button>
             <button
               onClick={() => setCameraPreset('top')}
-              className={cn("px-2 py-1 text-[10px] font-mono rounded transition-colors", cameraPreset === 'top' ? "bg-white text-sky-700 font-bold shadow-sm" : "text-slate-600 hover:text-slate-900")}
-              title="Top / Polar View"
+              className={cn("px-2 py-1 text-[10px] font-mono rounded-md transition-all", cameraPreset === 'top' ? "bg-white text-sky-700 font-bold shadow-xs" : "text-slate-600 hover:text-slate-900")}
+              title="Top Polar View"
             >
               Top
             </button>
             <button
               onClick={() => setCameraPreset('side')}
-              className={cn("px-2 py-1 text-[10px] font-mono rounded transition-colors", cameraPreset === 'side' ? "bg-white text-sky-700 font-bold shadow-sm" : "text-slate-600 hover:text-slate-900")}
-              title="Equator / Side View"
+              className={cn("px-2 py-1 text-[10px] font-mono rounded-md transition-all", cameraPreset === 'side' ? "bg-white text-sky-700 font-bold shadow-xs" : "text-slate-600 hover:text-slate-900")}
+              title="Side View"
             >
               Side
             </button>
@@ -686,7 +735,7 @@ function VisualStage({
 
           {/* Auto-Orbit Rotation Toggle */}
           <button
-            className={cn('icon-button', autoRotate && 'is-active bg-sky-100 text-sky-700 border-sky-300')}
+            className={cn('icon-button', autoRotate && 'is-active')}
             onClick={() => setAutoRotate(!autoRotate)}
             title={autoRotate ? "Disable Auto-Rotation" : "Enable Cinematic Auto-Orbit"}
           >
@@ -695,7 +744,7 @@ function VisualStage({
 
           {/* Bloom Postprocessing Glow Toggle */}
           <button
-            className={cn('icon-button', enableBloom && 'is-active bg-yellow-500/20 text-yellow-400')}
+            className={cn('icon-button', enableBloom && 'is-active')}
             onClick={() => setEnableBloom(!enableBloom)}
             title={enableBloom ? "Disable Bloom Glow" : "Enable Quantum Bloom Glow"}
           >
@@ -705,7 +754,7 @@ function VisualStage({
           {/* Nucleus Particles Detail Toggle */}
           {selectedElement && (
             <button
-              className={cn('icon-button', showNucleusDetail && 'is-active bg-primary/20 text-primary')}
+              className={cn('icon-button', showNucleusDetail && 'is-active')}
               onClick={() => setShowNucleusDetail(!showNucleusDetail)}
               title={showNucleusDetail ? "Switch to Glowing Symbol" : "Zoom into Protons & Neutrons"}
             >
@@ -713,10 +762,10 @@ function VisualStage({
             </button>
           )}
 
-          {/* Molecule Style Toggle (Ball-Stick vs Space-Filling CPK) */}
+          {/* Molecule Style Toggle */}
           {viewMode === 'molecules' && (
             <button
-              className={cn('icon-button', spaceFilling && 'is-active bg-emerald-500/20 text-emerald-400')}
+              className={cn('icon-button', spaceFilling && 'is-active')}
               onClick={() => setSpaceFilling(!spaceFilling)}
               title={spaceFilling ? "Switch to Ball-and-Stick Bonds" : "Switch to Space-Filling CPK Radii"}
             >
@@ -727,7 +776,7 @@ function VisualStage({
           {/* Orbitals Toggle */}
           {viewMode === 'atoms' && (
             <button
-              className={cn('icon-button', showOrbitals && 'is-active bg-sky-500/20 text-sky-400')}
+              className={cn('icon-button', showOrbitals && 'is-active')}
               onClick={() => setShowOrbitals(!showOrbitals)}
               title="Toggle Quantum Probability Clouds (s, p, d orbitals)"
             >
@@ -737,13 +786,13 @@ function VisualStage({
 
           {/* Pause / Play */}
           <button className="icon-button" onClick={togglePaused} title={isPaused ? 'Play animation' : 'Pause animation'}>
-            {isPaused ? <Play className="h-4 w-4 text-emerald-400" /> : <Pause className="h-4 w-4" />}
+            {isPaused ? <Play className="h-4 w-4 text-emerald-600" /> : <Pause className="h-4 w-4" />}
           </button>
 
           {/* Mobile Details Drawer Button */}
           {isMobile && (selectedElement || selectedMolecule) && (
             <button
-              className="icon-button bg-primary/20 text-primary border border-primary/30"
+              className="icon-button bg-sky-50 text-sky-700 border border-sky-200"
               onClick={() => setMobileDrawer('inspector')}
               title="Open Detailed Inspector & Bohr Model"
             >
@@ -753,11 +802,11 @@ function VisualStage({
 
           {/* Zen Mode / Maximize Stage Toggle */}
           <button
-            className={cn("icon-button hidden md:inline-flex", zenMode && "is-active bg-primary/30 text-white font-bold")}
+            className={cn("icon-button hidden md:inline-flex", zenMode && "is-active font-bold")}
             onClick={toggleZenMode}
-            title={zenMode ? "Restore Sidebars" : "Maximize Three.js Stage (Zen Mode)"}
+            title={zenMode ? "Restore Sidebars" : "Maximize Stage (Zen Mode)"}
           >
-            {zenMode ? <Minimize2 className="h-4 w-4 text-primary" /> : <Maximize2 className="h-4 w-4" />}
+            {zenMode ? <Minimize2 className="h-4 w-4 text-sky-600" /> : <Maximize2 className="h-4 w-4" />}
           </button>
 
           {/* Fullscreen */}
@@ -767,16 +816,16 @@ function VisualStage({
         </div>
       </div>
 
-      {/* Main Full-Viewport Canvas Stage */}
+      {/* Main Canvas Stage */}
       <div
         className="stage-canvas w-full h-full flex-1 relative flex items-center justify-center overflow-hidden"
         style={{
-          background: `radial-gradient(circle at 50% 48%, ${stageColor}14 0%, rgba(30, 41, 59, 0.08) 42%, rgba(248, 250, 252, 0.95) 100%)`
+          background: `radial-gradient(circle at 50% 45%, #ffffff 0%, #f8fafc 60%, #f1f5f9 100%)`
         }}
       >
         <div className="stage-grid opacity-20 pointer-events-none" />
 
-        {/* Optical Chamber Reticle & Nuclear Stability Telemetry Overlay */}
+        {/* Reticle & Nuclear Stability Telemetry Overlay */}
         <div className="absolute top-3 left-3 text-[9px] font-mono text-slate-500 pointer-events-none z-20 flex flex-col gap-0.5 select-none">
           <span className="text-sky-600 font-bold flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-sky-600 animate-pulse" />
@@ -809,10 +858,10 @@ function VisualStage({
           </div>
         )}
 
-        {/* Live Floating Optical Spectroscopy Footprint */}
-        {viewMode === 'atoms' && selectedElement && (
-          <div className="absolute bottom-3 inset-x-3 sm:inset-x-8 max-w-xl mx-auto z-20 pointer-events-auto">
-            <SpectroscopyBar element={selectedElement} />
+        {/* Collapsible Spectroscopy Drawer in 3D View */}
+        {viewMode === 'atoms' && selectedElement && showSpectroscopy && (
+          <div className="absolute bottom-3 inset-x-3 sm:inset-x-8 max-w-md mx-auto z-20 pointer-events-auto">
+            <SpectroscopyBar element={selectedElement} collapsible />
           </div>
         )}
 
@@ -879,11 +928,11 @@ function VisualStage({
 
           {((viewMode === 'atoms' && !selectedElement) || (viewMode === 'molecules' && !selectedMolecule)) && (
             <motion.div key="empty" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="empty-stage max-w-lg mx-auto text-center p-6 z-10">
-              <div className="brand-mark mx-auto h-16 w-16 mb-4 shadow-glow" style={{ backgroundColor: 'rgba(56, 189, 248, 0.15)', borderColor: '#38bdf8' }}>
-                <Atom className="h-8 w-8 text-sky-400" />
+              <div className="brand-mark mx-auto h-16 w-16 mb-4 shadow-sm bg-sky-50 border border-sky-200">
+                <Atom className="h-8 w-8 text-sky-600" />
               </div>
-              <h2 className="text-2xl font-bold text-white mb-2">Explore the Elements</h2>
-              <p className="text-sm text-slate-400 mb-6 leading-relaxed">
+              <h2 className="text-2xl font-bold text-slate-900 mb-2">Explore the Elements</h2>
+              <p className="text-sm text-slate-600 mb-6 leading-relaxed">
                 Select an atom from the discovery rail, open the full periodic table, or launch a featured element below.
               </p>
 
@@ -895,22 +944,17 @@ function VisualStage({
                     <button
                       key={el.symbol}
                       onClick={() => onSelectElement(el)}
-                      className="px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all hover:scale-105 border"
-                      style={{
-                        backgroundColor: `${color}18`,
-                        borderColor: `${color}44`,
-                        color: color
-                      }}
+                      className="px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all hover:scale-105 border bg-white shadow-xs hover:border-sky-300"
                     >
-                      <span>{el.symbol}</span>
-                      <span className="text-[10px] text-slate-300 font-normal">{el.name}</span>
+                      <span className="font-extrabold" style={{ color }}>{el.symbol}</span>
+                      <span className="text-[10px] text-slate-500 font-normal">{el.name}</span>
                     </button>
                   );
                 })}
               </div>
 
               <div className="flex justify-center gap-3">
-                <button className="premium-button shadow-lg flex items-center gap-2" onClick={() => setWorkspaceMode('table')}>
+                <button className="premium-button shadow-xs flex items-center gap-2" onClick={() => setWorkspaceMode('table')}>
                   <Grid3X3 className="h-4 w-4" />
                   Open Periodic Table Grid
                 </button>
@@ -921,7 +965,7 @@ function VisualStage({
       </div>
 
       {/* Bottom Stage Status & Controls Bar */}
-      <div className="stage-status flex items-center justify-between px-4 py-2 bg-white/90 border-t border-slate-200 text-xs font-mono text-slate-600 shadow-inner">
+      <div className="stage-status flex items-center justify-between px-4 py-2 bg-white/95 border-t border-slate-200 text-xs font-mono text-slate-600 shadow-xs">
         <div className="flex items-center gap-3">
           <span>Zoom: <strong className="text-slate-900">{zoomLevel.toFixed(1)}x</strong></span>
           <span className="hidden sm:inline text-slate-300">|</span>
@@ -935,31 +979,48 @@ function VisualStage({
               step="0.1"
               value={animationSpeed}
               onChange={(event) => setAnimationSpeed(Number(event.target.value))}
-              className="w-20 sm:w-28 accent-sky-600 cursor-pointer"
+              className="w-20 sm:w-24 accent-sky-600 cursor-pointer h-1.5 bg-slate-200 rounded"
             />
             <span className="text-slate-900 font-bold">{animationSpeed.toFixed(1)}x</span>
           </div>
         </div>
 
-        {/* Active Shell Indicator */}
-        {selectedElement && (
-          <div className="flex items-center gap-1 text-[11px]">
-            <span className="text-slate-500 hidden md:inline">Shells:</span>
-            {selectedElement.shells.map((count, idx) => (
-              <span
-                key={idx}
-                className={cn(
-                  "px-1.5 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer hover:scale-110",
-                  selectedShellIdx === idx ? "bg-sky-600 text-white shadow-sm scale-110" : "bg-slate-100 text-slate-700 border border-slate-200"
-                )}
-                onClick={() => setSelectedShellIdx(selectedShellIdx === idx ? null : idx)}
-                title={`Shell n=${idx + 1}: ${count} electrons (Click to isolate)`}
-              >
-                K{idx + 1}:{count}
-              </span>
-            ))}
-          </div>
-        )}
+        {/* Spectroscopy Toggle & Active Shell Indicator */}
+        <div className="flex items-center gap-2">
+          {selectedElement && (
+            <button
+              onClick={() => setShowSpectroscopy(!showSpectroscopy)}
+              className={cn(
+                "px-2 py-1 rounded-md text-[10px] font-mono font-bold flex items-center gap-1 transition-all border",
+                showSpectroscopy
+                  ? "bg-sky-100 text-sky-800 border-sky-300"
+                  : "bg-slate-100 text-slate-600 border-slate-200 hover:text-slate-900"
+              )}
+            >
+              <Zap className="w-3 h-3 text-sky-600" />
+              <span>Spectrum</span>
+            </button>
+          )}
+
+          {selectedElement && (
+            <div className="hidden md:flex items-center gap-1 text-[11px]">
+              <span className="text-slate-400">Shells:</span>
+              {selectedElement.shells.map((count, idx) => (
+                <span
+                  key={idx}
+                  className={cn(
+                    "px-1.5 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer",
+                    selectedShellIdx === idx ? "bg-sky-600 text-white shadow-xs" : "bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200"
+                  )}
+                  onClick={() => setSelectedShellIdx(selectedShellIdx === idx ? null : idx)}
+                  title={`Shell n=${idx + 1}: ${count} electrons (Click to isolate)`}
+                >
+                  K{idx + 1}:{count}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );
@@ -979,25 +1040,34 @@ function Inspector({
   const { inspectorTab, setInspectorTab, setWorkspaceMode } = useAppStore();
   const [tempUnit, setTempUnit] = useState<'C' | 'K' | 'F'>('C');
   const props = selectedElement ? elementProperties[selectedElement.atomicNumber] : null;
-  const elementColor = selectedElement ? getElementColor(selectedElement) : '#38bdf8';
+  const elementColor = selectedElement ? getElementColor(selectedElement) : '#0284c7';
 
   return (
-    <aside className="inspector-panel">
-      <div className="rail-header flex items-center justify-between p-4 border-b border-white/10">
+    <aside className="inspector-panel flex flex-col h-full bg-white">
+      {/* Header */}
+      <div className="rail-header flex items-center justify-between p-3 border-b border-slate-200">
         <div>
-          <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground font-mono">Scientific Inspector</div>
-          <div className="text-lg font-bold text-white truncate max-w-[200px]">
+          <div className="text-[10px] uppercase tracking-[0.18em] text-slate-500 font-mono font-bold">Scientific Inspector</div>
+          <div className="text-base font-bold text-slate-900 truncate max-w-[200px]">
             {selectedElement?.name || selectedMolecule?.name || 'No selection'}
           </div>
         </div>
-        <button className="icon-button hover:text-white" onClick={onSave} title="Save exploration session">
-          <Save className="h-4 w-4" />
+        <button className="icon-button" onClick={onSave} title="Save exploration session">
+          <Save className="h-4 w-4 text-slate-600" />
         </button>
       </div>
 
-      <div className="inspector-tabs flex items-center gap-1 p-1 mx-3 mt-3 mb-2 rounded-lg bg-slate-900 border border-white/10">
+      {/* Segmented Light Theme Tab Bar */}
+      <div className="inspector-tabs flex items-center gap-1 p-1 mx-3 mt-3 mb-2 rounded-xl bg-slate-100 border border-slate-200">
         {(['overview', 'properties', 'learning', 'actions'] as const).map((tab) => (
-          <button key={tab} className={cn('flex-1 py-1.5 text-[10px] font-semibold uppercase tracking-wider rounded transition-all', inspectorTab === tab && 'is-active bg-white/15 text-white shadow-sm')} onClick={() => setInspectorTab(tab)}>
+          <button
+            key={tab}
+            className={cn(
+              'flex-1 py-1.5 text-[10px] font-semibold uppercase tracking-wider rounded-lg transition-all font-sans',
+              inspectorTab === tab ? 'bg-white text-sky-700 font-bold shadow-xs border border-slate-200/60' : 'text-slate-500 hover:text-slate-800'
+            )}
+            onClick={() => setInspectorTab(tab)}
+          >
             {tab}
           </button>
         ))}
@@ -1005,70 +1075,71 @@ function Inspector({
 
       {!selectedElement && !selectedMolecule && (
         <div className="empty-inspector flex flex-col items-center justify-center h-full p-6 text-center">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-900 border border-white/10 shadow-inner-glow">
-            <BookOpen className="h-8 w-8 text-primary opacity-80" />
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 border border-slate-200 shadow-xs">
+            <BookOpen className="h-7 w-7 text-sky-600" />
           </div>
-          <p className="text-sm text-slate-400 leading-relaxed">
-            Select an atom or molecule to reveal atomic shells, physical metrics, thermal states, and learning notes.
+          <p className="text-xs text-slate-500 leading-relaxed max-w-xs">
+            Select an atom or molecule from the rail to inspect atomic shells, physical metrics, thermal states, and actions.
           </p>
         </div>
       )}
 
       {selectedElement && (
-        <div className="inspector-content p-4 space-y-4 overflow-y-auto">
+        <div className="inspector-content p-3.5 space-y-3 overflow-y-auto flex-1">
           {/* Hero Header Card */}
           <div
-            className="hero-element p-3.5 rounded-xl border flex items-center gap-3.5 relative overflow-hidden"
+            className="hero-element p-3 rounded-xl border flex items-center gap-3 relative overflow-hidden bg-white shadow-xs"
             style={{
-              backgroundColor: `${elementColor}12`,
-              borderColor: `${elementColor}44`,
-              boxShadow: `0 0 20px ${elementColor}15`
+              borderColor: `${elementColor}40`,
             }}
           >
             <span
-              className="flex h-14 w-14 items-center justify-center text-2xl font-extrabold rounded-xl border font-mono shadow-md"
+              className="flex h-12 w-12 items-center justify-center text-xl font-extrabold rounded-xl border font-mono shadow-xs shrink-0"
               style={{
-                backgroundColor: `${elementColor}25`,
+                backgroundColor: `${elementColor}15`,
                 color: elementColor,
-                borderColor: `${elementColor}66`
+                borderColor: `${elementColor}50`
               }}
             >
               {selectedElement.symbol}
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <h3 className="text-xl font-bold text-white truncate">{selectedElement.name}</h3>
+                <h3 className="text-base font-bold text-slate-900 truncate">{selectedElement.name}</h3>
                 <span className="text-xs font-mono font-bold text-slate-400">#{selectedElement.atomicNumber}</span>
               </div>
-              <p className="text-xs font-semibold" style={{ color: elementColor }}>
+              <p className="text-[11px] font-semibold" style={{ color: elementColor }}>
                 {categoryLabels[selectedElement.category]} • Block-{getElementBlock(selectedElement.atomicNumber).toUpperCase()}
               </p>
             </div>
           </div>
 
-          {/* Overview Tab with 2D Bohr Diagram, Quantum Numbers & Thermal Simulation */}
+          {/* Overview Tab */}
           {inspectorTab === 'overview' && (
             <div className="space-y-3">
               <BohrModel2D shells={selectedElement.shells} color={elementColor} symbol={selectedElement.symbol} />
 
               <QuantumNumbersHUD element={selectedElement} />
 
+              {/* Spectroscopy Preview */}
+              <SpectroscopyBar element={selectedElement} />
+
               <div className="metric-grid grid grid-cols-2 gap-2">
-                <div className="p-3 bg-slate-900/80 rounded-xl border border-white/5">
-                  <small className="text-[10px] text-slate-400 uppercase font-mono">Atomic Mass</small>
-                  <strong className="text-base text-white font-mono">{selectedElement.atomicMass.toFixed(3)} u</strong>
+                <div className="p-2.5 bg-white rounded-xl border border-slate-200 shadow-xs">
+                  <small className="text-[9.5px] text-slate-500 uppercase font-mono font-bold">Atomic Mass</small>
+                  <strong className="text-sm text-slate-900 font-mono">{selectedElement.atomicMass.toFixed(3)} u</strong>
                 </div>
-                <div className="p-3 bg-slate-900/80 rounded-xl border border-white/5">
-                  <small className="text-[10px] text-slate-400 uppercase font-mono">Valence Electrons</small>
-                  <strong className="text-base text-primary font-mono">{selectedElement.shells[selectedElement.shells.length - 1]} e⁻</strong>
+                <div className="p-2.5 bg-white rounded-xl border border-slate-200 shadow-xs">
+                  <small className="text-[9.5px] text-slate-500 uppercase font-mono font-bold">Valence Electrons</small>
+                  <strong className="text-sm text-sky-700 font-mono">{selectedElement.shells[selectedElement.shells.length - 1]} e⁻</strong>
                 </div>
-                <div className="p-3 bg-slate-900/80 rounded-xl border border-white/5">
-                  <small className="text-[10px] text-slate-400 uppercase font-mono">State at 25°C</small>
-                  <strong className="text-base text-white capitalize">{props?.state || 'Unknown'}</strong>
+                <div className="p-2.5 bg-white rounded-xl border border-slate-200 shadow-xs">
+                  <small className="text-[9.5px] text-slate-500 uppercase font-mono font-bold">State @ 25°C</small>
+                  <strong className="text-sm text-slate-900 capitalize">{props?.state || 'Unknown'}</strong>
                 </div>
-                <div className="p-3 bg-slate-900/80 rounded-xl border border-white/5">
-                  <small className="text-[10px] text-slate-400 uppercase font-mono">Density</small>
-                  <strong className="text-base text-white font-mono">{props?.density ? `${props.density} g/cm³` : 'N/A'}</strong>
+                <div className="p-2.5 bg-white rounded-xl border border-slate-200 shadow-xs">
+                  <small className="text-[9.5px] text-slate-500 uppercase font-mono font-bold">Density</small>
+                  <strong className="text-sm text-slate-900 font-mono">{props?.density ? `${props.density} g/cm³` : 'N/A'}</strong>
                 </div>
               </div>
             </div>
@@ -1078,13 +1149,13 @@ function Inspector({
           {inspectorTab === 'properties' && (
             <div className="space-y-3">
               <div className="flex items-center justify-between text-xs pb-1">
-                <span className="text-muted-foreground font-mono">Temperature Units:</span>
-                <div className="flex gap-1 bg-slate-900 p-0.5 rounded border border-white/10">
+                <span className="text-slate-500 font-mono text-[11px]">Temperature Units:</span>
+                <div className="flex gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
                   {(['C', 'K', 'F'] as const).map(u => (
                     <button
                       key={u}
                       onClick={() => setTempUnit(u)}
-                      className={cn("px-2 py-0.5 text-[10px] font-mono rounded", tempUnit === u ? "bg-white/20 text-white font-bold" : "text-slate-400")}
+                      className={cn("px-2 py-0.5 text-[10px] font-mono rounded font-bold transition-all", tempUnit === u ? "bg-white text-sky-700 shadow-xs" : "text-slate-500 hover:text-slate-800")}
                     >
                       °{u}
                     </button>
@@ -1092,26 +1163,30 @@ function Inspector({
                 </div>
               </div>
 
-              <div className="detail-list space-y-2 text-sm font-mono bg-slate-900/60 p-3 rounded-xl border border-white/5">
-                <div className="flex justify-between py-1.5 border-b border-white/5">
-                  <span className="text-slate-400">Electron Config</span>
-                  <strong className="text-white text-right">{getElectronConfig(selectedElement.atomicNumber)}</strong>
+              <div className="space-y-2 text-xs font-mono bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
+                <div className="flex justify-between py-1.5 border-b border-slate-100">
+                  <span className="text-slate-500">Electron Config</span>
+                  <strong className="text-slate-900 text-right">{getElectronConfig(selectedElement.atomicNumber)}</strong>
                 </div>
-                <div className="flex justify-between py-1.5 border-b border-white/5">
-                  <span className="text-slate-400">Melting Point</span>
-                  <strong className="text-white">{formatTemp(props?.meltingPoint, tempUnit)}</strong>
+                <div className="flex justify-between py-1.5 border-b border-slate-100">
+                  <span className="text-slate-500">Melting Point</span>
+                  <strong className="text-slate-900">{formatTemp(props?.meltingPoint, tempUnit)}</strong>
                 </div>
-                <div className="flex justify-between py-1.5 border-b border-white/5">
-                  <span className="text-slate-400">Boiling Point</span>
-                  <strong className="text-white">{formatTemp(props?.boilingPoint, tempUnit)}</strong>
+                <div className="flex justify-between py-1.5 border-b border-slate-100">
+                  <span className="text-slate-500">Boiling Point</span>
+                  <strong className="text-slate-900">{formatTemp(props?.boilingPoint, tempUnit)}</strong>
                 </div>
-                <div className="flex justify-between py-1.5 border-b border-white/5">
-                  <span className="text-slate-400">Atomic Number</span>
-                  <strong className="text-primary">{selectedElement.atomicNumber}</strong>
+                <div className="flex justify-between py-1.5 border-b border-slate-100">
+                  <span className="text-slate-500">Atomic Radius</span>
+                  <strong className="text-slate-900">{props?.atomicRadius ? `${props.atomicRadius} pm` : 'N/A'}</strong>
+                </div>
+                <div className="flex justify-between py-1.5 border-b border-slate-100">
+                  <span className="text-slate-500">Electronegativity</span>
+                  <strong className="text-sky-700">{props?.electronegativity ? `χ ${props.electronegativity}` : 'N/A'}</strong>
                 </div>
                 <div className="flex justify-between py-1.5">
-                  <span className="text-slate-400">Energy Shells</span>
-                  <strong className="text-white">{selectedElement.shells.join(' • ')}</strong>
+                  <span className="text-slate-500">Energy Shells</span>
+                  <strong className="text-slate-900">{selectedElement.shells.join(' • ')}</strong>
                 </div>
               </div>
             </div>
@@ -1120,20 +1195,20 @@ function Inspector({
           {/* Learning Tab */}
           {inspectorTab === 'learning' && (
             <div className="space-y-3">
-              <div className="learning-card p-4 rounded-xl border border-white/10 bg-slate-900/70 space-y-2">
-                <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
+              <div className="p-3.5 rounded-xl border border-slate-200 bg-white shadow-xs space-y-1.5">
+                <div className="flex items-center gap-2 text-sky-700 font-bold text-xs uppercase tracking-wider">
                   <Beaker className="h-4 w-4" /> Atomic Configuration
                 </div>
-                <p className="text-sm text-slate-300 leading-relaxed">
+                <p className="text-xs text-slate-700 leading-relaxed">
                   <strong>{selectedElement.name}</strong> possesses <strong>{selectedElement.shells.length}</strong> discrete electron shells with <strong>{selectedElement.atomicNumber}</strong> orbiting electrons. It belongs to the <strong>{categoryLabels[selectedElement.category]}</strong> group in Block-{getElementBlock(selectedElement.atomicNumber).toUpperCase()}.
                 </p>
               </div>
 
-              <div className="p-4 rounded-xl border border-white/10 bg-slate-900/70 space-y-2">
-                <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs uppercase tracking-wider">
+              <div className="p-3.5 rounded-xl border border-slate-200 bg-white shadow-xs space-y-1.5">
+                <div className="flex items-center gap-2 text-emerald-700 font-bold text-xs uppercase tracking-wider">
                   <Info className="h-4 w-4" /> Discovery & Physical State
                 </div>
-                <p className="text-xs text-slate-400 leading-relaxed">
+                <p className="text-xs text-slate-600 leading-relaxed">
                   {props?.discoveryYear ? `Identified in ${props.discoveryYear}. ` : 'Known since antiquity. '}
                   At standard room temperature (298 K / 25 °C), it naturally exists in the <strong>{props?.state || 'solid'}</strong> phase.
                 </p>
@@ -1143,24 +1218,24 @@ function Inspector({
 
           {/* Actions Tab */}
           {inspectorTab === 'actions' && (
-            <div className="action-stack space-y-2 pt-2">
+            <div className="space-y-2 pt-1">
               <button
-                className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 hover:border-primary/40 text-white text-sm font-medium transition-all flex items-center justify-center gap-2 shadow-sm"
+                className="w-full py-2.5 px-3 rounded-xl bg-sky-50 hover:bg-sky-100 border border-sky-200 text-sky-900 text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs"
                 onClick={() => onCompare(selectedElement)}
               >
-                <GitCompare className="h-4 w-4 text-primary" /> Add to Side-by-Side Comparison
+                <GitCompare className="h-4 w-4 text-sky-600" /> Add to Side-by-Side Comparison
               </button>
               <button
-                className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 hover:border-yellow-400/40 text-white text-sm font-medium transition-all flex items-center justify-center gap-2 shadow-sm"
+                className="w-full py-2.5 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900 text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs"
                 onClick={() => setWorkspaceMode('reactions')}
               >
-                <Zap className="h-4 w-4 text-yellow-400" /> Explore in Chemical Reactions
+                <Zap className="h-4 w-4 text-amber-600" /> Explore in Chemical Reactions
               </button>
               <button
-                className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 hover:border-blue-400/40 text-white text-sm font-medium transition-all flex items-center justify-center gap-2 shadow-sm"
+                className="w-full py-2.5 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-900 text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs"
                 onClick={() => setWorkspaceMode('builder')}
               >
-                <Boxes className="h-4 w-4 text-blue-400" /> Construct Molecule in Builder
+                <Boxes className="h-4 w-4 text-emerald-600" /> Construct Molecule in Builder
               </button>
             </div>
           )}
@@ -1168,42 +1243,48 @@ function Inspector({
       )}
 
       {selectedMolecule && (
-        <div className="inspector-content p-4 space-y-4 overflow-y-auto">
-          <div className="hero-element p-3.5 rounded-xl border border-primary/40 bg-primary/10 flex items-center gap-3.5">
-            <span className="flex h-14 w-14 items-center justify-center text-xl font-bold rounded-xl border bg-primary/20 text-primary font-mono">
+        <div className="inspector-content p-3.5 space-y-3 overflow-y-auto flex-1">
+          <div className="hero-element p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/50 flex items-center gap-3.5 shadow-xs">
+            <span className="flex h-12 w-14 items-center justify-center text-lg font-bold rounded-xl border border-emerald-300 bg-white text-emerald-700 font-mono shadow-xs shrink-0">
               {selectedMolecule.formula}
             </span>
             <div className="min-w-0 flex-1">
-              <h3 className="text-xl font-bold text-white truncate">{selectedMolecule.name}</h3>
-              <p className="text-xs text-muted-foreground truncate">{selectedMolecule.description}</p>
+              <h3 className="text-base font-bold text-slate-900 truncate">{selectedMolecule.name}</h3>
+              <p className="text-xs text-slate-500 truncate">{selectedMolecule.description}</p>
             </div>
           </div>
 
           <div className="metric-grid grid grid-cols-2 gap-2">
-            <div className="p-3 bg-slate-900/80 rounded-xl border border-white/5">
-              <small className="text-[10px] text-slate-400 uppercase font-mono">Total Atoms</small>
-              <strong className="text-base text-white font-mono">{selectedMolecule.atoms.length}</strong>
+            <div className="p-2.5 bg-white rounded-xl border border-slate-200 shadow-xs">
+              <small className="text-[9.5px] text-slate-500 uppercase font-mono font-bold">Total Atoms</small>
+              <strong className="text-sm text-slate-900 font-mono">{selectedMolecule.atoms.length}</strong>
             </div>
-            <div className="p-3 bg-slate-900/80 rounded-xl border border-white/5">
-              <small className="text-[10px] text-slate-400 uppercase font-mono">Chemical Bonds</small>
-              <strong className="text-base text-white font-mono">{selectedMolecule.bonds.length}</strong>
+            <div className="p-2.5 bg-white rounded-xl border border-slate-200 shadow-xs">
+              <small className="text-[9.5px] text-slate-500 uppercase font-mono font-bold">Chemical Bonds</small>
+              <strong className="text-sm text-slate-900 font-mono">{selectedMolecule.bonds.length}</strong>
             </div>
-            <div className="p-3 bg-slate-900/80 rounded-xl border border-white/5">
-              <small className="text-[10px] text-slate-400 uppercase font-mono">Bond Orders</small>
-              <strong className="text-base text-white font-mono">{selectedMolecule.bonds.map(b => b.order).join(', ')}</strong>
+            <div className="p-2.5 bg-white rounded-xl border border-slate-200 shadow-xs">
+              <small className="text-[9.5px] text-slate-500 uppercase font-mono font-bold">Bond Orders</small>
+              <strong className="text-sm text-slate-900 font-mono">{selectedMolecule.bonds.map(b => b.order).join(', ')}</strong>
             </div>
-            <div className="p-3 bg-slate-900/80 rounded-xl border border-white/5">
-              <small className="text-[10px] text-slate-400 uppercase font-mono">Constituent Elements</small>
-              <strong className="text-base text-primary font-mono">{Array.from(new Set(selectedMolecule.atoms.map(a => a.symbol))).join(', ')}</strong>
+            <div className="p-2.5 bg-white rounded-xl border border-slate-200 shadow-xs">
+              <small className="text-[9.5px] text-slate-500 uppercase font-mono font-bold">Elements</small>
+              <strong className="text-sm text-sky-700 font-mono">{Array.from(new Set(selectedMolecule.atoms.map(a => a.symbol))).join(', ')}</strong>
             </div>
           </div>
 
-          <div className="action-stack space-y-2 pt-2">
-            <button className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 text-white text-sm font-medium transition-all flex items-center justify-center gap-2" onClick={() => setWorkspaceMode('builder')}>
-              <Boxes className="h-4 w-4 text-primary" /> Modify in 2D Molecule Builder
+          <div className="space-y-2 pt-1">
+            <button
+              className="w-full py-2.5 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-900 text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs"
+              onClick={() => setWorkspaceMode('builder')}
+            >
+              <Boxes className="h-4 w-4 text-emerald-600" /> Modify in 2D Molecule Builder
             </button>
-            <button className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 text-white text-sm font-medium transition-all flex items-center justify-center gap-2" onClick={() => setWorkspaceMode('reactions')}>
-              <Zap className="h-4 w-4 text-yellow-400" /> Test in Reaction Lab
+            <button
+              className="w-full py-2.5 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900 text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs"
+              onClick={() => setWorkspaceMode('reactions')}
+            >
+              <Zap className="h-4 w-4 text-amber-600" /> Test in Reaction Lab
             </button>
           </div>
         </div>

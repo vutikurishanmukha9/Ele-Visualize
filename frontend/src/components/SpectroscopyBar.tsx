@@ -1,11 +1,12 @@
 import { memo, useMemo, useState } from 'react';
 import { ChemicalElement } from '@/data/elements';
 import { audioEngine } from '@/lib/audioEngine';
-import { Zap } from 'lucide-react';
+import { Zap, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface SpectroscopyBarProps {
   element: ChemicalElement;
   className?: string;
+  collapsible?: boolean;
 }
 
 interface SpectralLine {
@@ -63,7 +64,12 @@ function wavelengthToRGB(wavelength: number): string {
   return `rgb(${red}, ${green}, ${blue})`;
 }
 
-export const SpectroscopyBar = memo(function SpectroscopyBar({ element, className = '' }: SpectroscopyBarProps) {
+export const SpectroscopyBar = memo(function SpectroscopyBar({
+  element,
+  className = '',
+  collapsible = false,
+}: SpectroscopyBarProps) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [selectedLine, setSelectedLine] = useState<SpectralLine | null>(null);
   const [hoveredLine, setHoveredLine] = useState<SpectralLine | null>(null);
 
@@ -135,84 +141,98 @@ export const SpectroscopyBar = memo(function SpectroscopyBar({ element, classNam
   };
 
   return (
-    <div className={`p-3 rounded-xl bg-white border border-slate-200 font-mono select-none space-y-2.5 shadow-sm ${className}`}>
+    <div className={`p-2.5 rounded-xl bg-white/95 border border-slate-200/90 font-mono select-none space-y-2 shadow-md backdrop-blur-md transition-all ${className}`}>
       {/* Telemetry Header */}
-      <div className="flex items-center justify-between text-[11px] text-slate-500 uppercase tracking-wider">
-        <span className="flex items-center gap-2 font-bold text-slate-900">
-          <Zap className="w-3.5 h-3.5 text-sky-600 animate-pulse" />
-          Optical Emission Spectroscopy
-        </span>
-        <span className="text-sky-700 font-bold">
-          {activeLine ? `${activeLine.wavelength} nm` : `${spectralLines.length} Lines`}
-        </span>
+      <div className="flex items-center justify-between text-[10px] text-slate-500 uppercase tracking-wider">
+        <div className="flex items-center gap-1.5 font-bold text-slate-800">
+          <Zap className="w-3 h-3 text-sky-600 animate-pulse" />
+          <span>Optical Emission Spectroscopy</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sky-700 font-bold">
+            {activeLine ? `${activeLine.wavelength} nm` : `${spectralLines.length} Lines`}
+          </span>
+          {collapsible && (
+            <button
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="p-0.5 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors"
+            >
+              {isCollapsed ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Spectrum Continuous Film Strip */}
-      <div className="relative h-7 rounded-lg bg-slate-950 border border-slate-800 overflow-hidden flex items-center shadow-inner cursor-crosshair">
-        {/* Continuous Rainbow dispersion substrate */}
-        <div
-          className="absolute inset-0 opacity-30"
-          style={{
-            background: 'linear-gradient(90deg, #4b0082 0%, #0000ff 20%, #00ff00 45%, #ffff00 65%, #ff7f00 80%, #ff0000 100%)',
-          }}
-        />
-
-        {/* Spectral Emission Lines */}
-        {spectralLines.map((line, idx) => {
-          const leftPercent = ((line.wavelength - 380) / (750 - 380)) * 100;
-          const isCurrent = activeLine?.wavelength === line.wavelength;
-
-          return (
+      {!isCollapsed && (
+        <>
+          {/* Spectrum Continuous Film Strip */}
+          <div className="relative h-6 rounded-md bg-slate-950 border border-slate-800 overflow-hidden flex items-center shadow-inner cursor-crosshair">
+            {/* Continuous Rainbow dispersion substrate */}
             <div
-              key={idx}
-              onClick={() => handleLineClick(line)}
-              onMouseEnter={() => setHoveredLine(line)}
-              onMouseLeave={() => setHoveredLine(null)}
-              className="absolute top-0 bottom-0 transition-all hover:scale-y-125 z-10"
+              className="absolute inset-0 opacity-25"
               style={{
-                left: `${leftPercent}%`,
-                width: isCurrent ? '4px' : '2px',
-                backgroundColor: line.color,
-                boxShadow: isCurrent ? `0 0 12px ${line.color}, 0 0 20px ${line.color}` : `0 0 4px ${line.color}`,
-                opacity: isCurrent ? 1 : line.intensity,
+                background: 'linear-gradient(90deg, #4b0082 0%, #0000ff 20%, #00ff00 45%, #ffff00 65%, #ff7f00 80%, #ff0000 100%)',
               }}
-              title={`${line.name}: ${line.wavelength} nm (Click for photon telemetry)`}
             />
-          );
-        })}
 
-        {/* Axis Reference Ticks */}
-        <div className="absolute inset-x-0 bottom-0.5 flex justify-between px-2 text-[8px] text-slate-400 pointer-events-none">
-          <span>380nm</span>
-          <span>480nm</span>
-          <span>580nm</span>
-          <span>680nm</span>
-          <span>750nm</span>
-        </div>
-      </div>
+            {/* Spectral Emission Lines */}
+            {spectralLines.map((line, idx) => {
+              const leftPercent = ((line.wavelength - 380) / (750 - 380)) * 100;
+              const isCurrent = activeLine?.wavelength === line.wavelength;
 
-      {/* Selected Spectral Line Detail Inspector */}
-      {activeLine && (
-        <div className="grid grid-cols-3 gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-xs">
-          <div className="flex flex-col">
-            <span className="text-[9px] text-slate-500 uppercase">Photon Energy (E)</span>
-            <span className="font-bold text-sky-700">
-              {(1239.84 / activeLine.wavelength).toFixed(3)} eV
-            </span>
+              return (
+                <div
+                  key={idx}
+                  onClick={() => handleLineClick(line)}
+                  onMouseEnter={() => setHoveredLine(line)}
+                  onMouseLeave={() => setHoveredLine(null)}
+                  className="absolute top-0 bottom-0 transition-all hover:scale-y-125 z-10"
+                  style={{
+                    left: `${leftPercent}%`,
+                    width: isCurrent ? '3px' : '1.5px',
+                    backgroundColor: line.color,
+                    boxShadow: isCurrent ? `0 0 10px ${line.color}` : `0 0 3px ${line.color}`,
+                    opacity: isCurrent ? 1 : line.intensity,
+                  }}
+                  title={`${line.name}: ${line.wavelength} nm`}
+                />
+              );
+            })}
+
+            {/* Axis Reference Ticks */}
+            <div className="absolute inset-x-0 bottom-0 flex justify-between px-1.5 text-[7px] text-slate-400 pointer-events-none leading-none">
+              <span>380nm</span>
+              <span>480nm</span>
+              <span>580nm</span>
+              <span>680nm</span>
+              <span>750nm</span>
+            </div>
           </div>
-          <div className="flex flex-col">
-            <span className="text-[9px] text-slate-500 uppercase">Frequency (ν)</span>
-            <span className="font-bold text-purple-700">
-              {((2.9979e5) / activeLine.wavelength).toFixed(1)} THz
-            </span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-[9px] text-slate-500 uppercase">Transition</span>
-            <span className="font-bold text-amber-700 truncate" title={activeLine.transition}>
-              {activeLine.transition || 'Atomic Shell'}
-            </span>
-          </div>
-        </div>
+
+          {/* Selected Spectral Line Detail Inspector */}
+          {activeLine && (
+            <div className="grid grid-cols-3 gap-1.5 p-1.5 rounded-lg bg-slate-50 border border-slate-200/80 text-[10px]">
+              <div className="flex flex-col">
+                <span className="text-[8px] text-slate-400 uppercase">Energy (E)</span>
+                <span className="font-bold text-sky-700">
+                  {(1239.84 / activeLine.wavelength).toFixed(2)} eV
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[8px] text-slate-400 uppercase">Frequency (ν)</span>
+                <span className="font-bold text-purple-700">
+                  {((2.9979e5) / activeLine.wavelength).toFixed(0)} THz
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[8px] text-slate-400 uppercase">Transition</span>
+                <span className="font-bold text-amber-700 truncate" title={activeLine.transition}>
+                  {activeLine.transition || 'Atomic Shell'}
+                </span>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

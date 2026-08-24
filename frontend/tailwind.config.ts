@@ -122,6 +122,7 @@ export default {
         shimmer: "shimmer 2s linear infinite",
       },
       boxShadow: {
+        xs: "0 1px 2px 0 rgba(15, 23, 42, 0.05)",
         glow: "0 0 20px -5px hsl(var(--primary) / 0.4)",
         "glow-lg": "0 0 40px -10px hsl(var(--primary) / 0.5)",
         "inner-glow": "inset 0 0 20px -10px hsl(var(--primary) / 0.3)",

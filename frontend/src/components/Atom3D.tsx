@@ -734,7 +734,7 @@ export function Atom3D({
                             intensity={1.25}
                             mipmapBlur
                         />
-                        <Vignette eskil={false} offset={0.15} darkness={0.45} />
+                        <Vignette eskil={false} offset={0.1} darkness={0.08} />
                     </EffectComposer>
                 )}
             </Canvas>
