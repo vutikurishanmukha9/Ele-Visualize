@@ -1,4 +1,6 @@
-/* Hallmark · genre: atmospheric · macrostructure: Workbench · theme: Scientific Precision Studio · enrichment: Tier-A Quantum Stage */
+/* Ele-visualize · Scientific Instrument Design System · Porcelain + Frosted Glass + Emerald Interaction */
+
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -13,73 +15,81 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.2);
+  background: rgba(90, 110, 101, 0.2);
   border-radius: 99px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 0.4);
+  background: rgba(90, 110, 101, 0.4);
 }
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(100, 116, 139, 0.2) transparent;
+  scrollbar-color: rgba(90, 110, 101, 0.2) transparent;
 }
 
 html, body {
   overflow-x: clip;
-  background-color: #f8fafc;
-  color: #0f172a;
+  background-color: #f8faf8;
+  color: #14231e;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-/* Precision System: Scientific Quantum Cleanroom Theme */
+/* Precision System: Scientific Laboratory Porcelain Theme */
 @layer base {
   :root {
-    --background: 210 20% 98%; /* #f8fafc */
-    --foreground: 222 47% 11%; /* #0f172a */
+    --background: 140 20% 98%; /* #f8faf8 */
+    --foreground: 160 28% 11%; /* #14231e */
 
     --card: 0 0% 100%; /* #ffffff */
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 160 28% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 160 28% 11%;
 
-    --primary: 199 89% 48%; /* #0284c7 */
+    /* Emerald interaction layer */
+    --primary: 160 76% 37%; /* #16a875 */
     --primary-foreground: 0 0% 100%;
+    --primary-dark: #087f5b;
+    --primary-soft: #e6f6ef;
 
-    --secondary: 210 40% 96%; /* #f1f5f9 */
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 150 20% 96%; /* #f1f5f2 */
+    --secondary-foreground: 160 28% 11%;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%; /* #64748b */
+    --muted: 150 20% 96%;
+    --muted-foreground: 155 12% 40%; /* #5a6e65 */
 
-    --accent: 199 89% 48%;
+    --accent: 160 76% 37%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%; /* #e2e8f0 */
-    --input: 214 32% 91%;
-    --ring: 199 89% 48%;
+    --border: 150 15% 90%; /* #e2e8e4 */
+    --input: 150 15% 90%;
+    --ring: 160 76% 37%;
 
-    --radius: 10px;
+    --radius: 12px;
 
-    /* Semantic Tokens */
-    --color-canvas: #f8fafc;
+    /* Semantic Surface & Elevation Tokens */
+    --color-canvas: #f8faf8;
     --color-surface-1: #ffffff;
-    --color-surface-2: #f1f5f9;
-    --color-surface-3: #e2e8f0;
-    --color-ink: #0f172a;
-    --color-ink-muted: #64748b;
-    --color-accent: #0284c7;
-    --color-hairline: #e2e8f0;
-    --color-hairline-strong: #cbd5e1;
+    --color-surface-2: #f5f8f6;
+    --color-surface-3: #eef3f0;
+    --color-surface-soft: #e6f6ef;
+    --color-ink: #14231e;
+    --color-ink-muted: #5a6e65;
+    --color-primary: #16a875;
+    --color-primary-dark: #087f5b;
+    --color-primary-soft: #e6f6ef;
+    --color-hairline: rgba(20, 35, 30, 0.08);
+    --color-hairline-strong: rgba(20, 35, 30, 0.16);
 
-    --font-display: "Space Grotesk", -apple-system, BlinkMacSystemFont, sans-serif;
-    --font-body: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-serif: "Newsreader", "Playfair Display", "Georgia", serif;
+    --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif;
     --font-mono: "JetBrains Mono", monospace;
 
-    --shadow-subtle: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-card: 0 1px 3px 0 rgba(15, 23, 42, 0.06), 0 4px 12px -2px rgba(15, 23, 42, 0.03);
-    --shadow-elevated: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 10px 20px -3px rgba(0, 0, 0, 0.04);
+    --shadow-subtle: 0 1px 2px 0 rgba(15, 30, 25, 0.04);
+    --shadow-card: 0 1px 2px rgba(15, 30, 25, 0.04), 0 8px 24px rgba(15, 30, 25, 0.06);
+    --shadow-elevated: 0 4px 6px -1px rgba(15, 30, 25, 0.06), 0 12px 30px -4px rgba(15, 30, 25, 0.08);
+    --shadow-emerald: 0 8px 20px -4px rgba(22, 168, 117, 0.35);
   }
 }
 
@@ -87,24 +97,23 @@ html, body {
   body {
     background-color: var(--color-canvas);
     color: var(--color-ink);
-    font-family: var(--font-body);
+    font-family: var(--font-sans);
     letter-spacing: -0.01em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-display);
-    letter-spacing: -0.03em;
+    letter-spacing: -0.02em;
     font-weight: 700;
   }
 
-  button, input {
-    letter-spacing: 0;
+  .font-serif-title {
+    font-family: var(--font-serif);
   }
 
   button:focus-visible, input:focus-visible {
-    outline: 2px solid var(--color-accent);
+    outline: 2px solid var(--color-primary);
     outline-offset: 2px;
   }
 }
@@ -112,7 +121,7 @@ html, body {
 @layer components {
   /* ==================== WORKBENCH MASTER LAYOUT ==================== */
   .workbench-layout {
-    @apply grid h-screen grid-cols-[290px_minmax(0,1fr)_320px] xl:grid-cols-[310px_minmax(0,1fr)_360px] gap-0 px-0 pt-14 md:px-0;
+    @apply grid h-screen grid-cols-[280px_minmax(0,1fr)_340px] xl:grid-cols-[300px_minmax(0,1fr)_360px] gap-0 px-0 pt-14 md:px-0;
     background-color: var(--color-canvas);
   }
 
@@ -129,90 +138,103 @@ html, body {
     @apply grid-cols-[1fr] !important;
   }
 
+  /* Frosted Glass Panels */
+  .frosted-panel {
+    background: rgba(255, 255, 255, 0.78);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(20, 35, 30, 0.08);
+  }
+
   .workbench-topbar {
-    @apply fixed left-0 right-0 top-0 z-40 flex h-14 items-center justify-between px-4 bg-white/95 backdrop-blur-md border-b border-slate-200;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+    @apply fixed left-0 right-0 top-0 z-40 flex h-14 items-center justify-between px-4 sm:px-6 bg-white/90 backdrop-blur-md border-b border-black/[0.06];
+    box-shadow: 0 1px 3px rgba(15, 30, 25, 0.03);
   }
 
   .workbench-main {
-    @apply h-full overflow-hidden flex flex-col bg-slate-50 border-r border-slate-200;
+    @apply h-full overflow-hidden flex flex-col bg-[#F8FAF8] border-r border-black/[0.06];
   }
   
   .discovery-rail {
-    @apply h-full overflow-hidden flex flex-col z-10 bg-white border-r border-slate-200;
+    @apply h-full overflow-hidden flex flex-col z-10 bg-white/80 backdrop-blur-sm border-r border-black/[0.06];
   }
   
   .inspector-panel {
-    @apply h-full overflow-hidden flex flex-col z-10 bg-white;
+    @apply h-full overflow-hidden flex flex-col z-10 bg-white/80 backdrop-blur-sm;
   }
 
   /* Workspace Tab Navigation */
   .workspace-nav {
-    @apply flex-none flex items-center justify-start gap-1 px-3 h-11 bg-white border-b border-slate-200 overflow-x-auto hide-scrollbar;
+    @apply flex-none flex items-center justify-start gap-2 px-4 h-12 bg-white/70 border-b border-black/[0.06] overflow-x-auto hide-scrollbar;
   }
 
   .workspace-tab {
-    @apply flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold tracking-tight transition-all whitespace-nowrap text-slate-600 hover:text-slate-900 hover:bg-slate-100;
+    @apply flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold tracking-wide uppercase transition-all whitespace-nowrap text-slate-500 hover:text-slate-900;
   }
 
   .workspace-tab.is-active {
-    @apply bg-sky-50 text-sky-700 font-bold border border-sky-200/80 shadow-sm;
+    @apply text-[#16a875] font-bold relative;
+  }
+  
+  .workspace-tab.is-active::after {
+    content: '';
+    position: absolute;
+    bottom: -9px;
+    left: 12px;
+    right: 12px;
+    height: 2.5px;
+    background-color: #16a875;
+    border-radius: 99px;
   }
 
   /* Command Search Trigger */
   .command-trigger {
-    @apply flex h-9 w-full max-w-sm items-center gap-2 px-3 text-left text-xs font-sans transition-all rounded-lg bg-slate-100 hover:bg-slate-200/80 text-slate-500 hover:text-slate-900 border border-slate-200;
+    @apply flex h-9 w-full max-w-lg items-center gap-2.5 px-3.5 text-left text-xs font-sans transition-all rounded-xl bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-700 border border-slate-200/80 shadow-xs;
   }
 
   .icon-button {
     @apply inline-flex h-8 w-8 items-center justify-center text-sm transition-all rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 border border-transparent;
   }
   .icon-button.is-active {
-    @apply bg-sky-50 text-sky-700 border-sky-200 shadow-sm;
+    @apply bg-[#e6f6ef] text-[#16a875] border-[#bce8d5] shadow-xs;
   }
 
-  .premium-button {
-    @apply inline-flex h-8 items-center justify-center px-3.5 text-xs font-semibold transition-all rounded-lg bg-sky-600 text-white hover:bg-sky-700 shadow-sm;
+  .emerald-button {
+    @apply inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-[#16a875] hover:bg-[#087f5b] active:scale-[0.98] transition-all rounded-xl shadow-[0_2px_8px_rgba(22,168,117,0.25)];
   }
 
   /* Rail Items */
   .rail-header {
-    @apply flex items-center justify-between p-3 border-b border-slate-200 bg-white;
+    @apply flex items-center justify-between p-3.5 border-b border-black/[0.06] bg-transparent;
   }
 
   .search-field {
-    @apply flex h-9 items-center gap-2 px-3 mx-3 my-2 rounded-lg bg-slate-100 border border-slate-200;
+    @apply flex h-9 items-center gap-2 px-3 mx-3 my-2 rounded-xl bg-white border border-slate-200/80 shadow-xs;
   }
   .search-field input {
     @apply flex-1 bg-transparent text-xs outline-none text-slate-900 placeholder:text-slate-400 font-sans;
   }
 
   .rail-list {
-    @apply flex-1 overflow-y-auto p-2 space-y-1;
+    @apply flex-1 overflow-y-auto p-2.5 space-y-1.5;
   }
 
-  .result-card {
-    @apply flex w-full items-center gap-2.5 p-2 text-left transition-all rounded-xl border border-transparent hover:bg-slate-100 hover:border-slate-200;
+  /* Element Card in Rail */
+  .element-rail-card {
+    @apply flex w-full items-center gap-3 p-2.5 rounded-xl border border-black/[0.05] bg-white hover:border-[#16a875]/40 hover:shadow-xs transition-all text-left;
   }
-  .result-card.is-active {
-    @apply bg-sky-50/80 border-sky-300 shadow-sm;
-  }
-
-  .periodic-tile {
-    @apply flex h-9 w-9 flex-col items-center justify-center font-bold text-sm rounded-lg border;
-  }
-  .periodic-tile small {
-    @apply text-[8px] font-normal font-mono leading-none;
+  .element-rail-card.is-active {
+    @apply bg-[#e6f6ef]/50 border-[#16a875] shadow-xs ring-1 ring-[#16a875]/30;
   }
 
   /* Visual Stage */
   .visual-stage {
     @apply relative flex h-full flex-col overflow-hidden;
-    background: radial-gradient(circle at 50% 45%, #ffffff 0%, #f8fafc 65%, #f1f5f9 100%);
+    background: #F8FAF8;
   }
 
   .stage-toolbar {
-    @apply flex h-12 items-center justify-between px-4 bg-white/95 border-b border-slate-200 backdrop-blur-md shadow-sm;
+    @apply flex h-12 items-center justify-between px-4 bg-white/70 border-b border-black/[0.06] backdrop-blur-md;
   }
 
   .stage-canvas {
@@ -220,43 +242,53 @@ html, body {
   }
 
   .stage-status {
-    @apply flex h-10 items-center justify-between px-4 text-xs font-mono border-t border-slate-200 bg-white/95 text-slate-600;
+    @apply flex h-11 items-center justify-between px-5 text-xs font-mono border-t border-black/[0.06] bg-white/80 text-slate-600;
+  }
+
+  /* Spectral Wave Field Background Canvas */
+  .spectral-canvas-bg {
+    background-image: 
+      radial-gradient(ellipse at 50% 40%, rgba(22, 168, 117, 0.08) 0%, rgba(6, 182, 212, 0.05) 35%, rgba(124, 58, 237, 0.03) 70%, transparent 100%),
+      radial-gradient(circle at 20% 80%, rgba(244, 63, 94, 0.04) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(192, 38, 211, 0.04) 0%, transparent 50%);
   }
 
   /* Inspector */
   .inspector-tabs {
-    @apply flex items-center gap-1 p-1 mx-3 mt-3 mb-2 rounded-xl bg-slate-100 border border-slate-200;
+    @apply flex items-center gap-1 px-3 border-b border-black/[0.06];
   }
   .inspector-tabs button {
-    @apply flex-1 py-1 px-2 text-[10px] font-semibold uppercase tracking-wider transition-all rounded-lg text-slate-500 font-sans whitespace-nowrap;
+    @apply py-2 px-3 text-[11px] font-semibold uppercase tracking-wider transition-all text-slate-400 font-sans whitespace-nowrap relative;
   }
   .inspector-tabs button.is-active {
-    @apply bg-white text-sky-700 font-bold shadow-sm border border-slate-200/60;
+    @apply text-[#16a875] font-bold;
+  }
+  .inspector-tabs button.is-active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 8px;
+    right: 8px;
+    height: 2px;
+    background-color: #16a875;
+    border-radius: 99px;
   }
 
   .hero-element {
-    @apply flex items-center gap-3 p-3.5 rounded-xl border bg-white shadow-sm;
+    @apply flex items-center gap-3 p-3.5 rounded-xl border bg-white shadow-xs;
   }
 
   .metric-grid {
     @apply grid grid-cols-2 gap-2;
   }
   .metric-grid div {
-    @apply p-2.5 flex flex-col justify-center rounded-xl border border-slate-200 bg-white shadow-sm;
+    @apply p-2.5 flex flex-col justify-center rounded-xl border border-black/[0.06] bg-white shadow-xs;
   }
   .metric-grid small {
     @apply block text-[9.5px] uppercase tracking-wider font-mono text-slate-500 font-semibold;
   }
   .metric-grid strong {
     @apply block mt-0.5 text-xs font-mono font-bold text-slate-900;
-  }
-
-  /* Matrix Background */
-  .matrix-grid-bg {
-    background-image: 
-      linear-gradient(to right, rgba(15, 23, 42, 0.03) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(15, 23, 42, 0.03) 1px, transparent 1px);
-    background-size: 32px 32px;
   }
 
   .hide-scrollbar::-webkit-scrollbar {

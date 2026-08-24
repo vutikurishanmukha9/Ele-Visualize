@@ -24,28 +24,28 @@ export interface ChemicalElement {
 
 export const categoryColors: Record<ElementCategory, string> = {
   'alkali-metal': '#f43f5e',
-  'alkaline-earth': '#fb923c',
-  'transition-metal': '#eab308',
-  'post-transition': '#2dd4bf',
-  'metalloid': '#06b6d4',
-  'nonmetal': '#38bdf8',
-  'halogen': '#a855f7',
-  'noble-gas': '#ec4899',
-  'lanthanide': '#818cf8',
-  'actinide': '#f87171',
+  'alkaline-earth': '#ea580c',
+  'transition-metal': '#d97706',
+  'post-transition': '#0d9488',
+  'metalloid': '#0284c7',
+  'nonmetal': '#06b6d4',
+  'halogen': '#7c3aed',
+  'noble-gas': '#c026d3',
+  'lanthanide': '#4f46e5',
+  'actinide': '#e11d48',
 };
 
 export const categoryGlows: Record<ElementCategory, string> = {
-  'alkali-metal': 'rgba(244, 63, 94, 0.4)',
-  'alkaline-earth': 'rgba(251, 146, 60, 0.4)',
-  'transition-metal': 'rgba(234, 179, 8, 0.4)',
-  'post-transition': 'rgba(45, 212, 191, 0.4)',
-  'metalloid': 'rgba(6, 182, 212, 0.4)',
-  'nonmetal': 'rgba(56, 189, 248, 0.4)',
-  'halogen': 'rgba(168, 85, 247, 0.4)',
-  'noble-gas': 'rgba(236, 72, 153, 0.4)',
-  'lanthanide': 'rgba(129, 140, 248, 0.4)',
-  'actinide': 'rgba(248, 113, 113, 0.4)',
+  'alkali-metal': 'rgba(244, 63, 94, 0.35)',
+  'alkaline-earth': 'rgba(234, 88, 12, 0.35)',
+  'transition-metal': 'rgba(217, 119, 6, 0.35)',
+  'post-transition': 'rgba(13, 148, 136, 0.35)',
+  'metalloid': 'rgba(2, 132, 199, 0.35)',
+  'nonmetal': 'rgba(6, 182, 212, 0.35)',
+  'halogen': 'rgba(124, 58, 237, 0.35)',
+  'noble-gas': 'rgba(192, 38, 211, 0.35)',
+  'lanthanide': 'rgba(79, 70, 229, 0.35)',
+  'actinide': 'rgba(225, 29, 72, 0.35)',
 };
 
 export const getElementBlock = (atomicNumber: number): ElementBlock => {

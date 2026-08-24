@@ -3,11 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Camera,
   ChevronDown,
-  ChevronUp,
   Eye,
   EyeOff,
   Hand,
-  HelpCircle,
   RefreshCw,
   Video,
   VideoOff,
@@ -376,23 +374,28 @@ export const HandTracker = memo(function HandTracker({
         drag
         dragMomentum={false}
         className={cn(
-          'fixed z-40 rounded-2xl overflow-hidden shadow-xl backdrop-blur-xl border transition-all select-none',
-          'bottom-16 left-3 sm:bottom-5 sm:left-5',
-          'bg-white/95 border-slate-200 text-slate-900',
-          isTracking ? 'ring-2 ring-sky-500/30' : ''
+          'fixed z-40 rounded-2xl overflow-hidden shadow-lg backdrop-blur-xl border transition-all select-none',
+          'bottom-4 right-4 sm:bottom-6 sm:right-6',
+          'bg-white/90 border-black/[0.08] text-slate-900',
+          isTracking ? 'ring-2 ring-[#16a875]/40 shadow-[0_10px_25px_-5px_rgba(22,168,117,0.25)]' : 'shadow-[0_4px_20px_-2px_rgba(15,30,25,0.08)]'
         )}
         style={{
-          width: isExpanded ? 300 : 210,
-          boxShadow: isTracking ? '0 10px 25px -5px rgba(2, 132, 199, 0.2)' : '0 8px 20px -4px rgba(15, 23, 42, 0.1)',
+          width: isExpanded ? 300 : 250,
         }}
       >
         {/* Widget Header */}
-        <div className="flex items-center justify-between px-3 py-2 border-b border-slate-200 bg-slate-50 cursor-move">
+        <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-black/[0.06] bg-slate-50/50 cursor-move">
           <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-lg bg-sky-50 border border-sky-200 flex items-center justify-center">
-              <Hand className="w-3 h-3 text-sky-600" />
+            <div className="w-6 h-6 rounded-full bg-[#e6f6ef] border border-[#bce8d5] flex items-center justify-center text-[#16a875]">
+              <Hand className="w-3.5 h-3.5" />
             </div>
-            <span className="text-[11px] font-bold tracking-wider uppercase text-slate-800 font-mono">AR Vision HUD</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-bold tracking-wider uppercase text-slate-800 font-sans">QUANTUM HAND HUD</span>
+              <span className="flex items-center gap-1 text-[9px] font-bold font-mono text-[#16a875]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#16a875] animate-pulse" />
+                {isTracking ? 'TRACKING' : 'IDLE'}
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-1">
@@ -401,14 +404,14 @@ export const HandTracker = memo(function HandTracker({
               className="p-1 rounded hover:bg-slate-200/60 text-slate-400 hover:text-slate-700 transition-colors"
               title="Gesture Guide"
             >
-              <HelpCircle className="w-3.5 h-3.5" />
+              <VideoOff className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => setIsExpanded(!isExpanded)}
               className="p-1 rounded hover:bg-slate-200/60 text-slate-400 hover:text-slate-700 transition-colors"
-              title={isExpanded ? 'Collapse' : 'Expand'}
+              title={isExpanded ? 'Collapse' : 'Options'}
             >
-              {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+              {isExpanded ? <ChevronDown className="w-3.5 h-3.5 text-slate-400" /> : <span className="text-slate-400 font-bold text-xs px-0.5">⋮</span>}
             </button>
           </div>
         </div>
@@ -541,7 +544,7 @@ export const HandTracker = memo(function HandTracker({
                 <button
                   onClick={startTracking}
                   disabled={isLoading}
-                  className="flex-1 py-2 px-3 rounded-xl font-sans text-xs font-bold bg-sky-600 text-white hover:bg-sky-700 transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                  className="flex-1 py-2 px-3 rounded-xl font-sans text-xs font-bold bg-[#16a875] text-white hover:bg-[#087f5b] transition-all flex items-center justify-center gap-1.5 shadow-[0_2px_8px_rgba(22,168,117,0.25)]"
                 >
                   <Zap className="w-3.5 h-3.5" />
                   Enable Vision Control
@@ -561,15 +564,10 @@ export const HandTracker = memo(function HandTracker({
 
         {/* Collapsed Pill State */}
         {!isExpanded && (
-          <div className="p-2 flex items-center justify-between">
+          <div className="px-3.5 py-2.5 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span
-                className={cn(
-                  'w-2 h-2 rounded-full',
-                  isTracking ? 'bg-sky-500 animate-pulse shadow-sm' : 'bg-slate-400'
-                )}
-              />
-              <span className="text-xs font-sans font-semibold text-slate-800">
+              <EyeOff className="w-3.5 h-3.5 text-slate-400" />
+              <span className="text-xs font-sans font-semibold text-slate-600">
                 {isTracking ? gestureColor.text : 'Vision Off'}
               </span>
             </div>
@@ -578,10 +576,10 @@ export const HandTracker = memo(function HandTracker({
               onClick={isTracking ? stopTracking : startTracking}
               disabled={isLoading}
               className={cn(
-                'px-2.5 py-1 rounded-lg text-[10px] font-sans font-bold transition-all shadow-xs',
+                'px-4 py-1.5 rounded-xl text-xs font-sans font-bold transition-all shadow-xs',
                 isTracking
                   ? 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100'
-                  : 'bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100'
+                  : 'bg-[#16a875] text-white hover:bg-[#087f5b] shadow-[0_2px_8px_rgba(22,168,117,0.25)]'
               )}
             >
               {isLoading ? '...' : isTracking ? 'Stop' : 'Start'}
