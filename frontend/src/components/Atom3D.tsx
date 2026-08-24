@@ -1,5 +1,5 @@
-import { useRef, useMemo, memo, MutableRefObject, useEffect, useState } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { useRef, useMemo, memo, useEffect, useState } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Sphere, Line, Html, Float, Stars, Sparkles } from '@react-three/drei';
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
@@ -17,13 +17,9 @@ interface Atom3DProps {
     electrons: number[];
     color: string;
     symbol: string;
-    handRotationXRef?: MutableRefObject<number>;
-    handRotationYRef?: MutableRefObject<number>;
-    isHandControlledRef?: MutableRefObject<boolean>;
     zoom?: number;
     showOrbitals?: boolean;
     showNucleusDetail?: boolean;
-    isFrozenRef?: MutableRefObject<boolean>;
     animationSpeed?: number; // 0.1 to 3, default 1
     isPaused?: boolean; // Pause all animations
     autoRotate?: boolean; // Cinematic auto-orbit
@@ -526,8 +522,8 @@ function CameraPresetController({ preset = '3d' }: { preset?: CameraPreset }) {
 // Main 3D Scene
 const AtomScene = memo(function AtomScene({
     protons, neutrons, electrons, color, symbol,
-    handRotationXRef, handRotationYRef, isHandControlledRef, zoom = 1,
-    showOrbitals = false, showNucleusDetail = false, isFrozenRef, animationSpeed = 1, isPaused = false,
+    zoom = 1,
+    showOrbitals = false, showNucleusDetail = false, animationSpeed = 1, isPaused = false,
     focusedShell, setFocusedShell
 }: Atom3DProps & {
     focusedShell: number | null;
@@ -560,18 +556,7 @@ const AtomScene = memo(function AtomScene({
 
     useFrame(() => {
         if (!groupRef.current || isPaused) return;
-        const frozen = isFrozenRef?.current ?? false;
-        const handControlled = isHandControlledRef?.current ?? false;
-        if (frozen) return;
-
-        if (handControlled) {
-            const rotX = handRotationXRef?.current ?? 0.5;
-            const rotY = handRotationYRef?.current ?? 0.5;
-            groupRef.current.rotation.y = THREE.MathUtils.lerp(groupRef.current.rotation.y, (rotY - 0.5) * Math.PI * 3, 0.1);
-            groupRef.current.rotation.x = THREE.MathUtils.lerp(groupRef.current.rotation.x, (rotX - 0.5) * Math.PI, 0.1);
-        } else {
-            groupRef.current.rotation.y += 0.003 * animationSpeed;
-        }
+        groupRef.current.rotation.y += 0.003 * animationSpeed;
     });
 
     // Clean unmount memory disposal
@@ -637,12 +622,11 @@ const AtomScene = memo(function AtomScene({
 // Exported component with full-stage viewport and studio lighting
 export function Atom3D({
     protons, neutrons, electrons, color, symbol,
-    handRotationXRef, handRotationYRef, isHandControlledRef, zoom = 1,
-    showOrbitals = false, showNucleusDetail = false, isFrozenRef, animationSpeed = 1, isPaused = false,
+    zoom = 1,
+    showOrbitals = false, showNucleusDetail = false, animationSpeed = 1, isPaused = false,
     autoRotate = false, enableBloom = true,
     cameraPreset = '3d', onSelectShell
 }: Atom3DProps) {
-    const handControlled = isHandControlledRef?.current ?? false;
     const [focusedShell, setFocusedShell] = useState<number | null>(null);
 
     const handleHoverShell = (idx: number | null) => {
@@ -699,31 +683,25 @@ export function Atom3D({
                     electrons={electrons}
                     color={color}
                     symbol={symbol}
-                    handRotationXRef={handRotationXRef}
-                    handRotationYRef={handRotationYRef}
-                    isHandControlledRef={isHandControlledRef}
                     zoom={zoom}
                     showOrbitals={showOrbitals}
                     showNucleusDetail={showNucleusDetail}
-                    isFrozenRef={isFrozenRef}
                     animationSpeed={animationSpeed}
                     isPaused={isPaused}
                     focusedShell={focusedShell}
                     setFocusedShell={handleHoverShell}
                 />
 
-                {!handControlled && (
-                    <OrbitControls
-                        enablePan={true}
-                        enableZoom={true}
-                        minDistance={3.5}
-                        maxDistance={28}
-                        dampingFactor={0.08}
-                        rotateSpeed={0.8}
-                        autoRotate={autoRotate}
-                        autoRotateSpeed={1.2}
-                    />
-                )}
+                <OrbitControls
+                    enablePan={true}
+                    enableZoom={true}
+                    minDistance={3.5}
+                    maxDistance={28}
+                    dampingFactor={0.08}
+                    rotateSpeed={0.8}
+                    autoRotate={autoRotate}
+                    autoRotateSpeed={1.2}
+                />
 
                 {/* Post-Processing Cinematic Bloom & Vignette */}
                 {enableBloom && (

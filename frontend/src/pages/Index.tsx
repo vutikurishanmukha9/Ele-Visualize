@@ -26,7 +26,6 @@ import {
 import { Atom3D, CameraPreset } from '@/components/Atom3D';
 import { ComparisonMode } from '@/components/ComparisonMode';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { HandTracker } from '@/components/HandTracker';
 import { Molecule3D } from '@/components/Molecule3D';
 import { MoleculeBuilder } from '@/components/MoleculeBuilder';
 import { PeriodicTableGrid } from '@/components/PeriodicTableGrid';
@@ -595,18 +594,10 @@ function DiscoveryRail({
 function VisualStage({
   selectedElement,
   selectedMolecule,
-  handPositionX,
-  handPositionY,
-  isHandControlled,
-  isFrozen,
   onSelectElement,
 }: {
   selectedElement: ChemicalElement | null;
   selectedMolecule: Molecule | null;
-  handPositionX: React.MutableRefObject<number>;
-  handPositionY: React.MutableRefObject<number>;
-  isHandControlled: React.MutableRefObject<boolean>;
-  isFrozen: React.MutableRefObject<boolean>;
   onSelectElement: (element: ChemicalElement) => void;
 }) {
   const {
@@ -784,13 +775,9 @@ function VisualStage({
                     electrons={ionizedElectrons}
                     color={stageColor}
                     symbol={selectedElement.symbol}
-                    handRotationXRef={handPositionY}
-                    handRotationYRef={handPositionX}
-                    isHandControlledRef={isHandControlled}
                     zoom={zoomLevel}
                     showOrbitals={showOrbitals}
                     showNucleusDetail={false}
-                    isFrozenRef={isFrozen}
                     animationSpeed={animationSpeed}
                     isPaused={isPaused}
                     autoRotate={autoRotate}
@@ -814,9 +801,6 @@ function VisualStage({
                 <Suspense fallback={<Loader />}>
                   <Molecule3D
                     molecule={selectedMolecule}
-                    handRotationXRef={handPositionY}
-                    handRotationYRef={handPositionX}
-                    isHandControlledRef={isHandControlled}
                     zoom={zoomLevel}
                     autoRotate={autoRotate}
                     enableBloom={true}
@@ -1342,16 +1326,11 @@ export default function Index() {
     setSidebarOpen,
     setViewMode,
     setWorkspaceMode,
-    setZoomLevel,
     togglePaused,
     toggleZenMode,
   } = useAppStore();
 
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  const handPositionX = useRef(0.5);
-  const handPositionY = useRef(0.5);
-  const isHandControlled = useRef(false);
-  const isFrozen = useRef(false);
 
   // Dynamic Column Resizing & Width States
   const [leftWidth, setLeftWidth] = useState<number>(() => {
@@ -1552,37 +1531,6 @@ export default function Index() {
     removeSavedSession(session.id);
   };
 
-  const handleGestureDetected = useCallback((gesture: string) => {
-    isHandControlled.current = gesture === 'open' || gesture === 'point';
-    isFrozen.current = gesture === 'fist';
-    if (gesture === 'victory') {
-      setShowOrbitals(!showOrbitals);
-    }
-  }, [showOrbitals, setShowOrbitals]);
-
-  const handleFreeze = useCallback((frozen: boolean) => {
-    isFrozen.current = frozen;
-  }, []);
-
-  const handleHandPosition = useCallback((x: number, y: number) => {
-    handPositionX.current = x;
-    handPositionY.current = y;
-    isHandControlled.current = true;
-  }, []);
-
-  const handleSwipe = useCallback((direction: 'left' | 'right' | 'up' | 'down') => {
-    const list = viewMode === 'atoms' ? filteredElements : [];
-    if (!selectedElement || list.length === 0) return;
-    const current = list.findIndex(element => element.atomicNumber === selectedElement.atomicNumber);
-    if (direction === 'right' || direction === 'down') {
-      const nextIndex = (current + 1) % list.length;
-      selectElement(list[nextIndex]);
-    } else if (direction === 'left' || direction === 'up') {
-      const prevIndex = current <= 0 ? list.length - 1 : current - 1;
-      selectElement(list[prevIndex]);
-    }
-  }, [filteredElements, selectElement, selectedElement, viewMode]);
-
   const workspaceContent = () => {
     if (workspaceMode === 'table' || mainViewMode === 'grid') {
       return (
@@ -1612,10 +1560,6 @@ export default function Index() {
       <VisualStage
         selectedElement={selectedElement}
         selectedMolecule={selectedMolecule}
-        handPositionX={handPositionX}
-        handPositionY={handPositionY}
-        isHandControlled={isHandControlled}
-        isFrozen={isFrozen}
         onSelectElement={selectElement}
       />
     );
@@ -1808,15 +1752,6 @@ export default function Index() {
           <button onClick={saveSession}><Save className="h-4 w-4" />Save</button>
         </div>
       )}
-
-      <HandTracker
-        onZoomChange={setZoomLevel}
-        onGestureDetected={handleGestureDetected}
-        onSwipe={handleSwipe}
-        onHandPosition={handleHandPosition}
-        onFreeze={handleFreeze}
-        rightOffset={!isMobile && !zenMode && !rightCollapsed ? rightWidth + 20 : 20}
-      />
     </WorkbenchFrame>
   );
 }

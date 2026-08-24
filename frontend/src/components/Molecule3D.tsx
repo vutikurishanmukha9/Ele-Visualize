@@ -1,5 +1,5 @@
-import { useRef, useMemo, useEffect, MutableRefObject, useState } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { useRef, useMemo, useEffect, useState } from 'react';
+import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Sphere, Cylinder, Html, Float, Stars, Sparkles } from '@react-three/drei';
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
@@ -9,9 +9,6 @@ import { disposeHierarchy } from '@/lib/threeDisposal';
 
 interface Molecule3DProps {
     molecule: Molecule;
-    handRotationXRef?: MutableRefObject<number>;
-    handRotationYRef?: MutableRefObject<number>;
-    isHandControlledRef?: MutableRefObject<boolean>;
     zoom?: number;
     autoRotate?: boolean;
     enableBloom?: boolean;
@@ -38,100 +35,67 @@ function AtomSphere({ atom, spaceFilling = false }: { atom: Atom; spaceFilling?:
                     emissive={atom.color}
                     emissiveIntensity={hovered ? 1.4 : 0.6}
                     metalness={0.25}
-                    roughness={0.1}
-                    clearcoat={1}
-                    clearcoatRoughness={0.06}
-                    iridescence={0.6}
-                    iridescenceIOR={1.4}
-                    reflectivity={0.95}
-                    depthWrite={true}
-                    depthTest={true}
+                    roughness={0.15}
+                    clearcoat={0.8}
+                    clearcoatRoughness={0.1}
                 />
             </Sphere>
-            <Html center distanceFactor={6} occlude>
-                <div
-                    className="text-xs font-bold pointer-events-none select-none px-2 py-0.5 rounded-md backdrop-blur-md transition-transform"
-                    style={{
-                        color: atom.color,
-                        textShadow: `0 0 10px ${atom.color}, 0 0 20px rgba(0,0,0,0.9)`,
-                        backgroundColor: 'rgba(2, 6, 23, 0.85)',
-                        border: `1px solid ${hovered ? atom.color : 'rgba(255,255,255,0.2)'}`,
-                        transform: hovered ? 'scale(1.15)' : 'scale(1.0)'
-                    }}
-                >
-                    {atom.symbol}
-                </div>
-            </Html>
+            {hovered && (
+                <Html distanceFactor={8} position={[0, radius + 0.4, 0]} center>
+                    <div className="bg-slate-900/90 text-white text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border border-sky-400/40 shadow-lg pointer-events-none whitespace-nowrap">
+                        {atom.element}
+                    </div>
+                </Html>
+            )}
         </group>
     );
 }
 
-// Chemical bond cylinder(s)
-function BondCylinder({
-    from,
-    to,
-    order
-}: {
-    from: [number, number, number];
-    to: [number, number, number];
-    order: 1 | 2 | 3;
-}) {
-    const midpoint = useMemo(() => new THREE.Vector3(
-        (from[0] + to[0]) / 2,
-        (from[1] + to[1]) / 2,
-        (from[2] + to[2]) / 2
-    ), [from, to]);
+// Render bonds as high-gloss metallic cylinders
+function BondCylinder({ from, to, order = 1 }: { from: [number, number, number]; to: [number, number, number]; order?: number }) {
+    const start = useMemo(() => new THREE.Vector3(...from), [from]);
+    const end = useMemo(() => new THREE.Vector3(...to), [to]);
+    const mid = useMemo(() => new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5), [start, end]);
+    const length = useMemo(() => start.distanceTo(end), [start, end]);
 
-    const direction = useMemo(() => {
-        const dir = new THREE.Vector3(to[0] - from[0], to[1] - from[1], to[2] - from[2]);
-        return dir;
-    }, [from, to]);
+    const orientation = useMemo(() => {
+        const dir = new THREE.Vector3().subVectors(end, start).normalize();
+        const quat = new THREE.Quaternion();
+        quat.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+        return quat;
+    }, [start, end]);
 
-    const length = useMemo(() => direction.length(), [direction]);
-
-    // Calculate rotation to align cylinder with bond direction
-    const rotation = useMemo(() => {
-        const up = new THREE.Vector3(0, 1, 0);
-        const quaternion = new THREE.Quaternion().setFromUnitVectors(up, direction.clone().normalize());
-        return new THREE.Euler().setFromQuaternion(quaternion);
-    }, [direction]);
-
-    // Create multiple cylinders for double/triple bonds
     const offsets = useMemo(() => {
-        if (order === 1) return [[0, 0]];
-        if (order === 2) return [[-0.08, 0], [0.08, 0]];
-        return [[-0.1, 0], [0, 0], [0.1, 0]];
+        if (order === 1) return [0];
+        if (order === 2) return [-0.08, 0.08];
+        return [-0.14, 0, 0.14];
     }, [order]);
 
-    const bondRadius = order === 1 ? 0.06 : 0.04;
-
     return (
-        <>
-            {offsets.map(([offsetX, offsetZ], i) => (
-                <group key={i} position={[midpoint.x + offsetX, midpoint.y, midpoint.z + offsetZ]} rotation={rotation}>
-                    <Cylinder args={[bondRadius, bondRadius, length * 0.7, 16]}>
-                        <meshPhysicalMaterial
-                            color="#94a3b8"
-                            emissive="#38bdf8"
-                            emissiveIntensity={0.35}
-                            metalness={0.6}
-                            roughness={0.12}
-                            clearcoat={1}
-                            clearcoatRoughness={0.08}
-                        />
-                    </Cylinder>
-                </group>
+        <group position={mid} quaternion={orientation}>
+            {offsets.map((offset, idx) => (
+                <Cylinder
+                    key={idx}
+                    args={[0.055, 0.055, length, 16]}
+                    position={[offset, 0, 0]}
+                >
+                    <meshPhysicalMaterial
+                        color="#cbd5e1"
+                        emissive="#94a3b8"
+                        emissiveIntensity={0.3}
+                        roughness={0.2}
+                        metalness={0.6}
+                        clearcoat={0.5}
+                    />
+                </Cylinder>
             ))}
-        </>
+        </group>
     );
 }
 
 // Molecule scene
 function MoleculeScene({
     molecule,
-    handRotationXRef,
-    handRotationYRef,
-    isHandControlledRef,
     zoom = 1,
     spaceFilling = false
 }: Molecule3DProps) {
@@ -150,27 +114,6 @@ function MoleculeScene({
             disposeHierarchy(node);
         };
     }, [molecule, zoom]);
-
-    // Hand-controlled or auto rotation
-    useFrame(() => {
-        if (!groupRef.current) return;
-        const handControlled = isHandControlledRef?.current ?? false;
-
-        if (handControlled) {
-            const rotX = handRotationXRef?.current ?? 0.5;
-            const rotY = handRotationYRef?.current ?? 0.5;
-            groupRef.current.rotation.y = THREE.MathUtils.lerp(
-                groupRef.current.rotation.y,
-                (rotY - 0.5) * Math.PI * 3,
-                0.1
-            );
-            groupRef.current.rotation.x = THREE.MathUtils.lerp(
-                groupRef.current.rotation.x,
-                (rotX - 0.5) * Math.PI,
-                0.1
-            );
-        }
-    });
 
     return (
         <Float speed={1.2} rotationIntensity={0.06} floatIntensity={0.1}>
@@ -201,15 +144,11 @@ function MoleculeScene({
 // Exported component
 export function Molecule3D({
     molecule,
-    handRotationXRef,
-    handRotationYRef,
-    isHandControlledRef,
     zoom = 1,
     autoRotate = false,
     enableBloom = true,
     spaceFilling = false
 }: Molecule3DProps) {
-    const handControlled = isHandControlledRef?.current ?? false;
     return (
         <div className="w-full h-full min-h-[380px] relative select-none bg-transparent">
             <Canvas
@@ -245,24 +184,19 @@ export function Molecule3D({
 
                 <MoleculeScene
                     molecule={molecule}
-                    handRotationXRef={handRotationXRef}
-                    handRotationYRef={handRotationYRef}
-                    isHandControlledRef={isHandControlledRef}
                     zoom={zoom}
                     spaceFilling={spaceFilling}
                 />
 
-                {!handControlled && (
-                    <OrbitControls
-                        enablePan={true}
-                        enableZoom={true}
-                        minDistance={2.5}
-                        maxDistance={18}
-                        dampingFactor={0.08}
-                        autoRotate={autoRotate}
-                        autoRotateSpeed={1.0}
-                    />
-                )}
+                <OrbitControls
+                    enablePan={true}
+                    enableZoom={true}
+                    minDistance={2.5}
+                    maxDistance={18}
+                    dampingFactor={0.08}
+                    autoRotate={autoRotate}
+                    autoRotateSpeed={1.0}
+                />
 
                 {/* Post-Processing Bloom & Vignette */}
                 {enableBloom && (
