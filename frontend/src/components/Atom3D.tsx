@@ -348,131 +348,21 @@ const Nucleus = memo(function Nucleus({ protons, neutrons, color, symbol, showPa
     );
 });
 
-// High-Performance Instanced Electron Mesh with Quantum Wave Oscillation & Valence Glow
-// High-Performance Instanced Electron Mesh with High-Refraction Photon Glass Materials
-interface InstancedElectronsProps {
-    shells: number[];
-    valenceCount: number;
+// Interactive Orbital Shell guide rings with hairline precision, telemetry, and electrons locked on the path
+interface OrbitalShellProps {
+    radius: number;
+    electronCount: number;
+    shellIndex: number;
     color: string;
-    orbitalTilts: { x: number; z: number }[];
+    tiltX: number;
+    tiltZ: number;
+    isValence?: boolean;
+    isFocused?: boolean;
     isPaused?: boolean;
     speedMultiplier?: number;
-    focusedShell?: number | null;
+    onHover?: (index: number | null) => void;
 }
 
-const InstancedElectrons = memo(function InstancedElectrons({
-    shells,
-    valenceCount,
-    color,
-    orbitalTilts,
-    isPaused = false,
-    speedMultiplier = 1,
-    focusedShell = null,
-}: InstancedElectronsProps) {
-    const meshRef = useRef<THREE.InstancedMesh>(null!);
-    const dummy = useMemo(() => new THREE.Object3D(), []);
-
-    // Pre-calculate shell distributions and initial phase offsets
-    const electronData = useMemo(() => {
-        const data: { shellIndex: number; radius: number; speed: number; phase: number; isValence: boolean; tiltX: number; tiltZ: number; harmonic: number }[] = [];
-        const totalElectrons = shells.reduce((a, b) => a + b, 0);
-        let counted = 0;
-
-        shells.forEach((count, sIdx) => {
-            const displayCount = Math.min(count, 16);
-            const radius = 1.1 + sIdx * 0.58;
-            const speed = 1.5 / Math.sqrt(sIdx + 1);
-            const tilt = orbitalTilts[sIdx % orbitalTilts.length] || { x: Math.PI / 4, z: 0 };
-            const harmonic = (sIdx + 2) * 2;
-
-            for (let i = 0; i < displayCount; i++) {
-                const isValence = (totalElectrons - counted) <= valenceCount;
-                data.push({
-                    shellIndex: sIdx,
-                    radius,
-                    speed,
-                    phase: (i / Math.max(displayCount, 1)) * Math.PI * 2,
-                    isValence,
-                    tiltX: tilt.x,
-                    tiltZ: tilt.z,
-                    harmonic,
-                });
-                counted++;
-            }
-        });
-        return data;
-    }, [shells, valenceCount, orbitalTilts]);
-
-    const defaultColor = useMemo(() => new THREE.Color(color || '#0284c7'), [color]);
-    const valenceColor = useMemo(() => new THREE.Color('#d97706'), []);
-    const focusColor = useMemo(() => new THREE.Color('#ffffff'), []);
-
-    // Set per-instance colors once on data change or focus change
-    useEffect(() => {
-        if (!meshRef.current) return;
-        electronData.forEach((el, i) => {
-            const isShellFocused = focusedShell === el.shellIndex;
-            const c = isShellFocused ? focusColor : el.isValence ? valenceColor : defaultColor;
-            meshRef.current.setColorAt(i, c);
-        });
-        if (meshRef.current.instanceColor) {
-            meshRef.current.instanceColor.needsUpdate = true;
-        }
-    }, [electronData, defaultColor, valenceColor, focusColor, focusedShell]);
-
-    useFrame(({ clock }) => {
-        if (!meshRef.current) return;
-        const t = isPaused ? 0 : clock.getElapsedTime() * speedMultiplier;
-
-        electronData.forEach((el, i) => {
-            const angle = el.phase + t * el.speed;
-            const isShellFocused = focusedShell === el.shellIndex;
-
-            // Quantum wave radial and vertical oscillation
-            const waveR = el.radius * (1.0 + 0.022 * Math.sin(el.harmonic * angle + t * 1.8));
-            const posX = Math.cos(angle) * waveR;
-            const posY = Math.sin(angle) * Math.sin(el.tiltX) * waveR + 0.015 * Math.cos(el.harmonic * angle);
-            const posZ = Math.sin(angle) * Math.cos(el.tiltZ) * waveR;
-
-            dummy.position.set(posX, posY, posZ);
-
-            // Subtle pulsing electron scale
-            const pulseScale = 1.0 + 0.08 * Math.sin(t * 4.0 + el.phase);
-            dummy.scale.setScalar((isShellFocused ? 0.11 : el.isValence ? 0.088 : 0.076) * pulseScale);
-            dummy.updateMatrix();
-
-            meshRef.current.setMatrixAt(i, dummy.matrix);
-        });
-
-        meshRef.current.instanceMatrix.needsUpdate = true;
-    });
-
-    if (electronData.length === 0) return null;
-
-    return (
-        <instancedMesh
-            ref={meshRef}
-            args={[undefined, undefined, electronData.length]}
-        >
-            <sphereGeometry args={[1, 24, 24]} />
-            {/* Scientific Optical Glass Transmission */}
-            <meshPhysicalMaterial
-                roughness={0.04}
-                metalness={0.18}
-                transmission={0.65}
-                ior={2.1}
-                thickness={0.7}
-                clearcoat={1.0}
-                clearcoatRoughness={0.02}
-                reflectivity={0.95}
-                emissive={color}
-                emissiveIntensity={0.8}
-            />
-        </instancedMesh>
-    );
-});
-
-// Interactive Orbital Shell guide rings with hairline precision and laser-etched telemetry
 const OrbitalShell = memo(function OrbitalShell({
     radius,
     electronCount,
@@ -480,19 +370,14 @@ const OrbitalShell = memo(function OrbitalShell({
     color,
     tiltX,
     tiltZ,
+    isValence = false,
     isFocused = false,
+    isPaused = false,
+    speedMultiplier = 1,
     onHover,
-}: {
-    radius: number;
-    electronCount: number;
-    shellIndex: number;
-    color: string;
-    tiltX: number;
-    tiltZ: number;
-    isFocused?: boolean;
-    onHover?: (index: number | null) => void;
-}) {
+}: OrbitalShellProps) {
     const groupRef = useRef<THREE.Group>(null);
+    const electronGroupRef = useRef<THREE.Group>(null);
     const shellName = SHELL_NAMES[shellIndex] || `n=${shellIndex + 1}`;
 
     const orbitPoints = useMemo(() => {
@@ -504,25 +389,58 @@ const OrbitalShell = memo(function OrbitalShell({
         return points;
     }, [radius]);
 
-    // Gyroscopic precession
-    useFrame(({ clock }) => {
-        if (groupRef.current) {
-            const t = clock.getElapsedTime() * 0.25;
-            groupRef.current.rotation.y = tiltZ + Math.sin(t + shellIndex) * 0.03;
-            groupRef.current.rotation.x = tiltX + Math.cos(t + shellIndex) * 0.025;
+    const displayCount = Math.min(electronCount, 16);
+    const speed = 1.2 / Math.sqrt(shellIndex + 1);
+
+    // Orbiting rotation of electrons along the track
+    useFrame((_, delta) => {
+        if (!isPaused && electronGroupRef.current) {
+            electronGroupRef.current.rotation.y += delta * speed * speedMultiplier;
         }
     });
 
+    const electronAngles = useMemo(() => {
+        return Array.from({ length: displayCount }, (_, i) => (i / Math.max(displayCount, 1)) * Math.PI * 2);
+    }, [displayCount]);
+
+    const valenceColor = '#f59e0b';
+
     return (
         <group ref={groupRef} rotation={[tiltX, 0, tiltZ]}>
-            {/* Razor-Sharp Hairline Crystalline Track */}
+            {/* Razor-Sharp Hairline Crystalline Orbital Path */}
             <Line
                 points={orbitPoints}
-                color={isFocused ? '#ffffff' : color}
-                lineWidth={isFocused ? 2.0 : 1.1}
+                color={isFocused ? '#ffffff' : isValence ? valenceColor : color}
+                lineWidth={isFocused ? 2.2 : 1.2}
                 transparent
-                opacity={isFocused ? 0.95 : 0.28}
+                opacity={isFocused ? 0.95 : 0.38}
             />
+
+            {/* Rotating Electrons Locked Exactly on the Orbital Track */}
+            <group ref={electronGroupRef}>
+                {electronAngles.map((angle, idx) => (
+                    <group
+                        key={idx}
+                        position={[Math.cos(angle) * radius, 0, Math.sin(angle) * radius]}
+                    >
+                        <Sphere args={[isFocused ? 0.11 : isValence ? 0.088 : 0.076, 24, 24]}>
+                            <meshPhysicalMaterial
+                                color={isFocused ? '#ffffff' : isValence ? valenceColor : color}
+                                emissive={isFocused ? '#ffffff' : isValence ? '#d97706' : color}
+                                emissiveIntensity={isFocused ? 1.4 : isValence ? 0.95 : 0.75}
+                                roughness={0.04}
+                                metalness={0.18}
+                                transmission={0.65}
+                                ior={2.1}
+                                thickness={0.7}
+                                clearcoat={1.0}
+                                clearcoatRoughness={0.02}
+                                reflectivity={0.95}
+                            />
+                        </Sphere>
+                    </group>
+                ))}
+            </group>
 
             {/* Subtle Shell Marker on ring edge with occlusion */}
             <Html
@@ -626,8 +544,6 @@ const AtomScene = memo(function AtomScene({
         };
     }, []);
 
-    const valenceElectrons = electrons[electrons.length - 1] || 1;
-
     return (
         <Float speed={1.0} rotationIntensity={0.04} floatIntensity={0.08}>
             <group ref={groupRef} scale={0}>
@@ -646,33 +562,22 @@ const AtomScene = memo(function AtomScene({
                     showParticles={showParticles}
                 />
 
-                {!showOrbitals && (
-                    <>
-                        <InstancedElectrons
-                            shells={electrons}
-                            valenceCount={valenceElectrons}
-                            color={color}
-                            orbitalTilts={orbitalTilts}
-                            isPaused={isPaused}
-                            speedMultiplier={animationSpeed}
-                            focusedShell={focusedShell}
-                        />
-
-                        {electrons.map((count, i) => (
-                            <OrbitalShell
-                                key={i}
-                                radius={1.1 + i * 0.58}
-                                electronCount={count}
-                                shellIndex={i}
-                                color={color}
-                                tiltX={orbitalTilts[i % orbitalTilts.length]?.x || Math.PI / 4}
-                                tiltZ={orbitalTilts[i % orbitalTilts.length]?.z || 0}
-                                isFocused={focusedShell === i}
-                                onHover={setFocusedShell}
-                            />
-                        ))}
-                    </>
-                )}
+                {!showOrbitals && electrons.map((count, i) => (
+                    <OrbitalShell
+                        key={i}
+                        radius={1.1 + i * 0.58}
+                        electronCount={count}
+                        shellIndex={i}
+                        color={color}
+                        tiltX={orbitalTilts[i % orbitalTilts.length]?.x || Math.PI / 4}
+                        tiltZ={orbitalTilts[i % orbitalTilts.length]?.z || 0}
+                        isValence={i === electrons.length - 1}
+                        isFocused={focusedShell === i}
+                        isPaused={isPaused}
+                        speedMultiplier={animationSpeed}
+                        onHover={setFocusedShell}
+                    />
+                ))}
             </group>
         </Float>
     );
