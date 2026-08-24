@@ -4,7 +4,7 @@ import { OrbitControls, Sphere, Cylinder, Html, Float, Stars, Sparkles } from '@
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import gsap from 'gsap';
-import { Molecule, Atom, Bond } from '@/data/molecules';
+import { Molecule, Atom } from '@/data/molecules';
 
 interface Molecule3DProps {
     molecule: Molecule;
@@ -17,50 +17,51 @@ interface Molecule3DProps {
     spaceFilling?: boolean;
 }
 
-// Single atom sphere with interactive hover
+// Single atom sphere with interactive hover and depth occlusion
 function AtomSphere({ atom, spaceFilling = false }: { atom: Atom; spaceFilling?: boolean }) {
     const [hovered, setHovered] = useState(false);
     const radius = spaceFilling ? atom.radius * 1.8 : atom.radius;
 
     return (
-        <Float speed={1} rotationIntensity={0.05} floatIntensity={0.1}>
-            <group position={atom.position}>
-                <Sphere
-                    args={[radius, 32, 32]}
-                    onPointerOver={(e) => {
-                        e.stopPropagation();
-                        setHovered(true);
+        <group position={atom.position}>
+            <Sphere
+                args={[radius, 32, 32]}
+                onPointerOver={(e) => {
+                    e.stopPropagation();
+                    setHovered(true);
+                }}
+                onPointerOut={() => setHovered(false)}
+            >
+                <meshPhysicalMaterial
+                    color={atom.color}
+                    emissive={atom.color}
+                    emissiveIntensity={hovered ? 1.4 : 0.6}
+                    metalness={0.25}
+                    roughness={0.1}
+                    clearcoat={1}
+                    clearcoatRoughness={0.06}
+                    iridescence={0.6}
+                    iridescenceIOR={1.4}
+                    reflectivity={0.95}
+                    depthWrite={true}
+                    depthTest={true}
+                />
+            </Sphere>
+            <Html center distanceFactor={6} occlude>
+                <div
+                    className="text-xs font-bold pointer-events-none select-none px-2 py-0.5 rounded-md backdrop-blur-md transition-transform"
+                    style={{
+                        color: atom.color,
+                        textShadow: `0 0 10px ${atom.color}, 0 0 20px rgba(0,0,0,0.9)`,
+                        backgroundColor: 'rgba(2, 6, 23, 0.85)',
+                        border: `1px solid ${hovered ? atom.color : 'rgba(255,255,255,0.2)'}`,
+                        transform: hovered ? 'scale(1.15)' : 'scale(1.0)'
                     }}
-                    onPointerOut={() => setHovered(false)}
                 >
-                    <meshPhysicalMaterial
-                        color={atom.color}
-                        emissive={atom.color}
-                        emissiveIntensity={hovered ? 0.8 : 0.3}
-                        metalness={0.4}
-                        roughness={0.15}
-                        clearcoat={1}
-                        clearcoatRoughness={0.1}
-                        iridescence={0.5}
-                        iridescenceIOR={1.3}
-                    />
-                </Sphere>
-                <Html center distanceFactor={6}>
-                    <div
-                        className="text-xs font-bold pointer-events-none select-none px-1.5 py-0.5 rounded backdrop-blur-md transition-transform"
-                        style={{
-                            color: atom.color,
-                            textShadow: '0 0 5px rgba(0,0,0,0.8)',
-                            backgroundColor: 'rgba(0,0,0,0.7)',
-                            border: `1px solid ${hovered ? atom.color : 'rgba(255,255,255,0.1)'}`,
-                            transform: hovered ? 'scale(1.15)' : 'scale(1.0)'
-                        }}
-                    >
-                        {atom.symbol}
-                    </div>
-                </Html>
-            </group>
-        </Float>
+                    {atom.symbol}
+                </div>
+            </Html>
+        </group>
     );
 }
 
@@ -107,14 +108,15 @@ function BondCylinder({
         <>
             {offsets.map(([offsetX, offsetZ], i) => (
                 <group key={i} position={[midpoint.x + offsetX, midpoint.y, midpoint.z + offsetZ]} rotation={rotation}>
-                    <Cylinder args={[bondRadius, bondRadius, length * 0.7, 12]}>
+                    <Cylinder args={[bondRadius, bondRadius, length * 0.7, 16]}>
                         <meshPhysicalMaterial
-                            color="#475569"
-                            emissive="#334155"
-                            emissiveIntensity={0.2}
-                            metalness={0.9}
-                            roughness={0.3}
+                            color="#94a3b8"
+                            emissive="#38bdf8"
+                            emissiveIntensity={0.35}
+                            metalness={0.6}
+                            roughness={0.12}
                             clearcoat={1}
+                            clearcoatRoughness={0.08}
                         />
                     </Cylinder>
                 </group>
@@ -166,25 +168,28 @@ function MoleculeScene({
     });
 
     return (
-        <group ref={groupRef} scale={zoom}>
-            {/* Render bonds when not in full space-filling mode */}
-            {!spaceFilling && molecule.bonds.map((bond, i) => (
-                <BondCylinder
-                    key={i}
-                    from={molecule.atoms[bond.from].position}
-                    to={molecule.atoms[bond.to].position}
-                    order={bond.order}
-                />
-            ))}
+        <Float speed={1.2} rotationIntensity={0.06} floatIntensity={0.1}>
+            <group ref={groupRef} scale={zoom}>
+                {/* Radiant Center Luminescence */}
+                <pointLight position={[0, 0, 0]} intensity={2.5} color="#38bdf8" distance={12} decay={1.8} />
+                <pointLight position={[0, 3, 2]} intensity={1.0} color="#ffffff" distance={10} decay={2} />
 
-            {/* Render atoms */}
-            {molecule.atoms.map((atom, i) => (
-                <AtomSphere key={i} atom={atom} spaceFilling={spaceFilling} />
-            ))}
+                {/* Render bonds when not in full space-filling mode */}
+                {!spaceFilling && molecule.bonds.map((bond, i) => (
+                    <BondCylinder
+                        key={i}
+                        from={molecule.atoms[bond.from].position}
+                        to={molecule.atoms[bond.to].position}
+                        order={bond.order}
+                    />
+                ))}
 
-            {/* Center glow */}
-            <pointLight position={[0, 0, 0]} intensity={0.8} color="#38bdf8" distance={8} />
-        </group>
+                {/* Render atoms */}
+                {molecule.atoms.map((atom, i) => (
+                    <AtomSphere key={i} atom={atom} spaceFilling={spaceFilling} />
+                ))}
+            </group>
+        </Float>
     );
 }
 
@@ -213,15 +218,25 @@ export function Molecule3D({
                 style={{ background: 'transparent' }}
                 dpr={[1, 2]}
             >
-                {/* Deep field stars & ambient sparks */}
-                <Stars radius={70} depth={40} count={600} factor={3.5} saturation={0} fade speed={0.4} />
-                <Sparkles count={40} scale={10} size={2} speed={0.4} opacity={0.5} color="#38bdf8" />
+                {/* Deep field stars & ambient cosmic dust sparks */}
+                <Stars radius={80} depth={50} count={700} factor={3.8} saturation={0.5} fade speed={0.4} />
+                <Sparkles count={60} scale={12} size={3.0} speed={0.5} opacity={0.6} color="#38bdf8" />
+                <Sparkles count={30} scale={18} size={4.5} speed={0.3} opacity={0.4} color="#818cf8" />
 
-                {/* Lighting */}
-                <ambientLight intensity={0.7} />
-                <directionalLight position={[6, 8, 6]} intensity={1.0} color="#ffffff" />
-                <directionalLight position={[-6, -4, -6]} intensity={0.5} color="#38bdf8" />
-                <pointLight position={[0, 4, 2]} intensity={0.6} color="#ffffff" />
+                {/* Professional Multi-Point Studio Lighting Rig */}
+                <ambientLight intensity={0.8} color="#f8fafc" />
+                <hemisphereLight skyColor="#f8fafc" groundColor="#1e1b4b" intensity={0.9} />
+                <directionalLight position={[8, 12, 10]} intensity={1.8} color="#ffffff" />
+                <directionalLight position={[-10, -6, -8]} intensity={1.1} color="#38bdf8" />
+                <directionalLight position={[8, -8, -6]} intensity={0.9} color="#f59e0b" />
+                <directionalLight position={[0, 8, -12]} intensity={2.2} color="#818cf8" />
+                <directionalLight position={[0, -10, 4]} intensity={0.8} color="#06b6d4" />
+
+                {/* Ground Radial Energy Halo Stage Pedestal */}
+                <mesh position={[0, -3.8, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                    <ringGeometry args={[1.0, 5.5, 64]} />
+                    <meshBasicMaterial color="#38bdf8" transparent opacity={0.08} side={THREE.DoubleSide} />
+                </mesh>
 
                 <MoleculeScene
                     molecule={molecule}
@@ -248,12 +263,12 @@ export function Molecule3D({
                 {enableBloom && (
                     <EffectComposer multisampling={0} disableNormalPass>
                         <Bloom
-                            luminanceThreshold={0.25}
-                            luminanceSmoothing={0.9}
-                            intensity={1.0}
+                            luminanceThreshold={0.2}
+                            luminanceSmoothing={0.85}
+                            intensity={1.2}
                             mipmapBlur
                         />
-                        <Vignette eskil={false} offset={0.2} darkness={0.6} />
+                        <Vignette eskil={false} offset={0.15} darkness={0.45} />
                     </EffectComposer>
                 )}
             </Canvas>

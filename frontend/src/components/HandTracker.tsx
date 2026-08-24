@@ -1,649 +1,586 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, ChevronDown, ChevronUp, Hand, Video, VideoOff, ZoomIn, ZoomOut } from 'lucide-react';
+import {
+  Camera,
+  ChevronDown,
+  ChevronUp,
+  Eye,
+  EyeOff,
+  Hand,
+  HelpCircle,
+  Maximize2,
+  Minimize2,
+  RefreshCw,
+  Sliders,
+  Sparkles,
+  Video,
+  VideoOff,
+  Volume2,
+  VolumeX,
+  X,
+  Zap,
+} from 'lucide-react';
+import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision';
+import { LandmarkFilterBank, OneEuroFilter1D } from '@/lib/handTracking/oneEuroFilter';
+import { analyzeBiomechanics, KineticVelocityTracker } from '@/lib/handTracking/biomechanics';
+import { GestureClassifier, GestureType } from '@/lib/handTracking/gestureClassifier';
+import { HandHudRenderer, GESTURE_COLORS } from '@/lib/handTracking/hudRenderer';
+import { GestureTutorial } from './GestureTutorial';
 import { cn } from '@/lib/utils';
-import { HandLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
 
-interface HandTrackerProps {
-    onZoomChange?: (zoomLevel: number) => void;
-    onGestureDetected?: (gesture: string) => void;
-    onSwipe?: (direction: 'left' | 'right') => void;
-    onHandPosition?: (x: number, y: number) => void;
+export interface HandTrackerProps {
+  onZoomChange?: (zoomLevel: number | ((prev: number) => number)) => void;
+  onGestureDetected?: (gesture: string) => void;
+  onSwipe?: (direction: 'left' | 'right' | 'up' | 'down') => void;
+  onHandPosition?: (x: number, y: number, roll?: number) => void;
+  onFreeze?: (isFrozen: boolean) => void;
 }
 
-// ============== ADVANCED SMOOTHING CLASSES ==============
+export const HandTracker = memo(function HandTracker({
+  onZoomChange,
+  onGestureDetected,
+  onSwipe,
+  onHandPosition,
+  onFreeze,
+}: HandTrackerProps) {
+  // UI State
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isTracking, setIsTracking] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentGesture, setCurrentGesture] = useState<GestureType>('none');
+  const [confidence, setConfidence] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [handedness, setHandedness] = useState<string>('Right');
+  const [fps, setFps] = useState(0);
 
-// Kalman-like 1D filter for ultra-smooth prediction
-class KalmanFilter {
-    private x: number = 0;      // state
-    private p: number = 1;      // error covariance
-    private q: number;          // process noise
-    private r: number;          // measurement noise
-    private k: number = 0;      // kalman gain
+  // Settings & Toggles
+  const [showVideo, setShowVideo] = useState(true);
+  const [showSkeleton, setShowSkeleton] = useState(true);
+  const [mirrorMode, setMirrorMode] = useState(true);
+  const [sensitivity, setSensitivity] = useState(1.0);
+  const [showTutorial, setShowTutorial] = useState(false);
 
-    constructor(processNoise = 0.01, measurementNoise = 0.1) {
-        this.q = processNoise;
-        this.r = measurementNoise;
+  // DOM & Media Refs
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const handLandmarkerRef = useRef<HandLandmarker | null>(null);
+  const animationFrameRef = useRef<number>(0);
+  const isTrackingRef = useRef<boolean>(false);
+
+  // Signal Processing & Math Engines
+  const landmarkFilterBankRef = useRef(new LandmarkFilterBank());
+  const gestureClassifierRef = useRef(new GestureClassifier({ entryThresholdFrames: 3, exitThresholdFrames: 2 }));
+  const velocityTrackerRef = useRef(new KineticVelocityTracker(220));
+  const pinchFilterRef = useRef(new OneEuroFilter1D({ minCutoff: 1.0, beta: 0.01 }));
+  const hudRendererRef = useRef(new HandHudRenderer());
+
+  // High-frequency loop state
+  const lastPinchRef = useRef<number>(0);
+  const frameCountRef = useRef<number>(0);
+  const lastFpsTimeRef = useRef<number>(0);
+
+  // -------------------------------------------------------------
+  // Frame Processing Pipeline
+  // -------------------------------------------------------------
+  const processHandResults = useCallback((results: any) => {
+    const now = performance.now();
+
+    // FPS Meter
+    frameCountRef.current++;
+    if (now - lastFpsTimeRef.current >= 1000) {
+      setFps(frameCountRef.current);
+      frameCountRef.current = 0;
+      lastFpsTimeRef.current = now;
     }
 
-    filter(measurement: number): number {
-        // Prediction
-        this.p = this.p + this.q;
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
 
-        // Update
-        this.k = this.p / (this.p + this.r);
-        this.x = this.x + this.k * (measurement - this.x);
-        this.p = (1 - this.k) * this.p;
+    // No Hand Detected in Frame
+    if (!results.landmarks || results.landmarks.length === 0) {
+      landmarkFilterBankRef.current.reset();
+      gestureClassifierRef.current.reset();
+      velocityTrackerRef.current.reset();
+      pinchFilterRef.current.reset();
+      lastPinchRef.current = 0;
 
-        return this.x;
+      setCurrentGesture('none');
+      setConfidence(0);
+      onGestureDetected?.('none');
+      onFreeze?.(false);
+
+      if (ctx && canvas) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      return;
     }
 
-    reset(value: number = 0) {
-        this.x = value;
-        this.p = 1;
-    }
-}
+    // 1. Extract Handedness
+    const detectedHand = (results.handedness?.[0]?.[0]?.categoryName as 'Right' | 'Left') || 'Right';
+    setHandedness(detectedHand);
 
-// Velocity tracker for gesture detection
-class VelocityTracker {
-    private history: { value: number; time: number }[] = [];
-    private maxHistory = 5;
+    // 2. 3D Adaptive One-Euro Landmark Smoothing (Zero Jitter, Zero Lag)
+    const rawLandmarks = results.landmarks[0];
+    const smoothedLandmarks = landmarkFilterBankRef.current.update(rawLandmarks, now);
 
-    add(value: number) {
-        this.history.push({ value, time: performance.now() });
-        if (this.history.length > this.maxHistory) {
-            this.history.shift();
-        }
-    }
+    // 3. Biomechanical Kinematics Analysis
+    const bio = analyzeBiomechanics(smoothedLandmarks, detectedHand);
 
-    getVelocity(): number {
-        if (this.history.length < 2) return 0;
-        const first = this.history[0];
-        const last = this.history[this.history.length - 1];
-        const dt = (last.time - first.time) / 1000; // seconds
-        if (dt < 0.01) return 0;
-        return (last.value - first.value) / dt;
-    }
+    // 4. Kinetic Velocity Tracking
+    velocityTrackerRef.current.add(bio.palmCenter, now);
+    const velocity = velocityTrackerRef.current.getVelocity();
 
-    reset() {
-        this.history = [];
-    }
-}
+    // 5. Gesture Classification & Hysteresis State Machine
+    const classification = gestureClassifierRef.current.update(bio, velocity);
+    setCurrentGesture(classification.gesture);
+    setConfidence(classification.confidence);
+    onGestureDetected?.(classification.gesture);
 
-// Gesture state machine for stable detection
-class GestureStateMachine {
-    private currentGesture: string = 'none';
-    private candidateGesture: string = 'none';
-    private candidateFrames: number = 0;
-    private requiredFrames: number;
-    private exitFrames: number = 0;
-    private requiredExitFrames: number;
-
-    constructor(requiredFrames = 3, requiredExitFrames = 2) {
-        this.requiredFrames = requiredFrames;
-        this.requiredExitFrames = requiredExitFrames;
+    // 6. Action Dispatching
+    // A. Fist Gesture = Freeze
+    if (classification.gesture === 'fist') {
+      onFreeze?.(true);
+    } else {
+      onFreeze?.(false);
     }
 
-    update(detected: string): string {
-        if (detected === this.currentGesture) {
-            // Staying in current gesture
-            this.candidateGesture = detected;
-            this.candidateFrames = this.requiredFrames;
-            this.exitFrames = 0;
-            return this.currentGesture;
-        }
-
-        if (detected !== this.candidateGesture) {
-            // New candidate
-            this.candidateGesture = detected;
-            this.candidateFrames = 1;
-            this.exitFrames++;
-        } else {
-            // Same candidate, count up
-            this.candidateFrames++;
-        }
-
-        // Check if candidate should become current
-        if (this.candidateFrames >= this.requiredFrames) {
-            this.currentGesture = this.candidateGesture;
-            this.exitFrames = 0;
-            return this.currentGesture;
-        }
-
-        // Check if we should exit current gesture
-        if (this.exitFrames >= this.requiredExitFrames && this.currentGesture !== 'none') {
-            // Don't immediately go to none, wait for new gesture
-            if (detected === 'none') {
-                this.currentGesture = 'none';
-            }
-        }
-
-        return this.currentGesture;
+    // B. Swipe Gesture = Trigger Directional Swipe
+    if (classification.gesture.startsWith('swipe_')) {
+      const dir = classification.gesture.replace('swipe_', '') as 'left' | 'right' | 'up' | 'down';
+      onSwipe?.(dir);
     }
 
-    get(): string {
-        return this.currentGesture;
+    // C. Open Palm or Point = Continuous 3D Steering
+    if (classification.gesture === 'open' || classification.gesture === 'point') {
+      const x = mirrorMode ? 1.0 - bio.palmCenter.x : bio.palmCenter.x;
+      const y = bio.palmCenter.y;
+      onHandPosition?.(x, y, bio.orientation.roll);
     }
 
-    reset() {
-        this.currentGesture = 'none';
-        this.candidateGesture = 'none';
-        this.candidateFrames = 0;
-        this.exitFrames = 0;
-    }
-}
+    // D. Pinch Gesture = Precision Continuous Zoom
+    if (classification.gesture === 'pinch') {
+      const rawPinch = bio.indexPinchDistance;
+      const smoothPinch = pinchFilterRef.current.filter(rawPinch, now);
 
-// Landmark smoothing with per-point Kalman filters
-class LandmarkKalmanSmoother {
-    private filters: { x: KalmanFilter; y: KalmanFilter; z: KalmanFilter }[] = [];
+      if (lastPinchRef.current > 0) {
+        // Delta > 0: Fingers moving apart = Zoom In
+        // Delta < 0: Fingers closing = Zoom Out
+        const delta = (smoothPinch - lastPinchRef.current) * 12.0 * sensitivity;
 
-    update(landmarks: { x: number; y: number; z: number }[]): { x: number; y: number; z: number }[] {
-        // Initialize filters if needed
-        if (this.filters.length !== landmarks.length) {
-            this.filters = landmarks.map(() => ({
-                x: new KalmanFilter(0.001, 0.05),
-                y: new KalmanFilter(0.001, 0.05),
-                z: new KalmanFilter(0.001, 0.1)
-            }));
+        if (Math.abs(delta) > 0.001) {
+          onZoomChange?.((prev) => {
+            const next = Math.max(0.4, Math.min(3.5, prev + delta));
+            return next;
+          });
         }
-
-        return landmarks.map((lm, i) => ({
-            x: this.filters[i].x.filter(lm.x),
-            y: this.filters[i].y.filter(lm.y),
-            z: this.filters[i].z.filter(lm.z || 0)
-        }));
+      }
+      lastPinchRef.current = smoothPinch;
+    } else {
+      lastPinchRef.current = 0;
+      pinchFilterRef.current.reset();
     }
 
-    reset() {
-        this.filters = [];
+    // 7. Holographic HUD Canvas Rendering
+    if (ctx && canvas && showSkeleton) {
+      hudRendererRef.current.render(
+        ctx,
+        canvas.width,
+        canvas.height,
+        smoothedLandmarks,
+        bio,
+        classification.gesture,
+        classification.confidence,
+        mirrorMode
+      );
+    } else if (ctx && canvas) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
-}
+  }, [mirrorMode, onFreeze, onGestureDetected, onHandPosition, onSwipe, onZoomChange, sensitivity, showSkeleton]);
 
-// ============== HELPER FUNCTIONS ==============
+  // -------------------------------------------------------------
+  // Camera & MediaPipe Initialization Engine
+  // -------------------------------------------------------------
+  const startTracking = async () => {
+    if (isTracking || isLoading) return;
+    setIsLoading(true);
+    setError(null);
 
-const getDistance = (p1: { x: number; y: number }, p2: { x: number; y: number }) => {
-    return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
-};
+    try {
+      // 1. Initialize MediaPipe Vision Tasks with GPU & CPU Fallback
+      const vision = await FilesetResolver.forVisionTasks(
+        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22-rc.20250304/wasm'
+      );
 
-const get3DDistance = (p1: { x: number; y: number; z: number }, p2: { x: number; y: number; z: number }) => {
-    return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2) + Math.pow((p2.z || 0) - (p1.z || 0), 2));
-};
+      try {
+        handLandmarkerRef.current = await HandLandmarker.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath:
+              'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
+            delegate: 'GPU',
+          },
+          runningMode: 'VIDEO',
+          numHands: 1,
+          minHandDetectionConfidence: 0.65,
+          minHandPresenceConfidence: 0.65,
+          minTrackingConfidence: 0.65,
+        });
+      } catch (gpuErr) {
+        console.warn('[HandTracker] GPU delegate failed, falling back to CPU:', gpuErr);
+        handLandmarkerRef.current = await HandLandmarker.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath:
+              'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
+            delegate: 'CPU',
+          },
+          runningMode: 'VIDEO',
+          numHands: 1,
+          minHandDetectionConfidence: 0.6,
+          minHandPresenceConfidence: 0.6,
+          minTrackingConfidence: 0.6,
+        });
+      }
 
-// Angle between three points (in radians)
-const getAngle = (a: { x: number; y: number }, b: { x: number; y: number }, c: { x: number; y: number }) => {
-    const ab = Math.sqrt(Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2));
-    const bc = Math.sqrt(Math.pow(c.x - b.x, 2) + Math.pow(c.y - b.y, 2));
-    const ac = Math.sqrt(Math.pow(c.x - a.x, 2) + Math.pow(c.y - a.y, 2));
-    return Math.acos((ab * ab + bc * bc - ac * ac) / (2 * ab * bc));
-};
-
-// ============== MAIN COMPONENT ==============
-
-export function HandTracker({ onZoomChange, onGestureDetected, onSwipe, onHandPosition }: HandTrackerProps) {
-    const [isExpanded, setIsExpanded] = useState(false);
-    const [isTracking, setIsTracking] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
-    const [currentGesture, setCurrentGesture] = useState<string>('none');
-    const [zoomLevel, setZoomLevel] = useState(1);
-    const [confidence, setConfidence] = useState(0);
-    const [error, setError] = useState<string | null>(null);
-    const [handedness, setHandedness] = useState<string>('');
-    const [fps, setFps] = useState(0);
-
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const handLandmarkerRef = useRef<any>(null);
-    const streamRef = useRef<MediaStream | null>(null);
-    const animationFrameRef = useRef<number>(0);
-    const isTrackingRef = useRef<boolean>(false); // Use ref for closure stability
-
-    // Advanced smoothing instances
-    const landmarkSmootherRef = useRef(new LandmarkKalmanSmoother());
-    const gestureStateMachineRef = useRef(new GestureStateMachine(4, 3)); // 4 frames to enter, 3 to exit
-
-    // Per-value Kalman filters
-    const pinchFilterRef = useRef(new KalmanFilter(0.005, 0.02));
-    const zoomFilterRef = useRef(new KalmanFilter(0.001, 0.01));
-    const handXFilterRef = useRef(new KalmanFilter(0.002, 0.03));
-    const handYFilterRef = useRef(new KalmanFilter(0.002, 0.03));
-
-    // Velocity trackers
-    const wristVelocityRef = useRef(new VelocityTracker());
-
-    // State refs
-    const lastPinchRef = useRef<number>(0);
-    const lastFrameTimeRef = useRef<number>(0);
-    const frameCountRef = useRef<number>(0);
-    const swipeCooldownRef = useRef<number>(0);
-    const lastWristXRef = useRef<number>(0);
-    const drawFrameRef = useRef<number>(0); // Throttle canvas drawing
-
-    const processLandmarks = useCallback((results: any) => {
-        // FPS calculation
-        const now = performance.now();
-        frameCountRef.current++;
-        if (now - lastFrameTimeRef.current >= 1000) {
-            setFps(frameCountRef.current);
-            frameCountRef.current = 0;
-            lastFrameTimeRef.current = now;
-        }
-
-        if (!results.landmarks || results.landmarks.length === 0) {
-            gestureStateMachineRef.current.update('none');
-            setCurrentGesture('none');
-            setConfidence(0);
-            onGestureDetected?.('none');
-            // Clear canvas when no hand detected
-            const ctx = canvasRef.current?.getContext('2d');
-            if (ctx && canvasRef.current) {
-                ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-            }
-            return;
-        }
-
-        // Apply Kalman smoothing to landmarks
-        const smoothedLandmarks = landmarkSmootherRef.current.update(results.landmarks[0]);
-
-        if (results.handedness?.[0]?.[0]) {
-            setHandedness(results.handedness[0][0].categoryName);
-        }
-
-        // Extract key landmarks
-        const wrist = smoothedLandmarks[0];
-        const thumbTip = smoothedLandmarks[4];
-        const thumbIp = smoothedLandmarks[3];
-        const thumbMcp = smoothedLandmarks[2];
-        const indexTip = smoothedLandmarks[8];
-        const indexPip = smoothedLandmarks[6];
-        const indexMcp = smoothedLandmarks[5];
-        const middleTip = smoothedLandmarks[12];
-        const middlePip = smoothedLandmarks[10];
-        const middleMcp = smoothedLandmarks[9];
-        const ringTip = smoothedLandmarks[16];
-        const ringPip = smoothedLandmarks[14];
-        const ringMcp = smoothedLandmarks[13];
-        const pinkyTip = smoothedLandmarks[20];
-        const pinkyPip = smoothedLandmarks[18];
-        const pinkyMcp = smoothedLandmarks[17];
-
-        // Palm size for normalization
-        const palmSize = getDistance(wrist, middleMcp);
-
-        // ========== FINGER CURL DETECTION (angle-based, more accurate) ==========
-        const indexCurl = getAngle(indexMcp, indexPip, indexTip);
-        const middleCurl = getAngle(middleMcp, middlePip, middleTip);
-        const ringCurl = getAngle(ringMcp, ringPip, ringTip);
-        const pinkyCurl = getAngle(pinkyMcp, pinkyPip, pinkyTip);
-
-        // Extended = angle > 2.5 radians (~143 degrees = straight)
-        const curlThreshold = 2.3;
-        const indexExtended = indexCurl > curlThreshold;
-        const middleExtended = middleCurl > curlThreshold;
-        const ringExtended = ringCurl > curlThreshold;
-        const pinkyExtended = pinkyCurl > curlThreshold;
-
-        // Thumb extension (distance-based)
-        const thumbExtended = getDistance(thumbTip, wrist) > palmSize * 0.85;
-
-        const extendedCount = [indexExtended, middleExtended, ringExtended, pinkyExtended].filter(Boolean).length;
-
-        // ========== PINCH DETECTION (3D distance) ==========
-        const rawPinchDistance = get3DDistance(thumbTip, indexTip);
-        const pinchDistance = pinchFilterRef.current.filter(rawPinchDistance);
-        const normalizedPinch = pinchDistance / palmSize;
-
-        // ========== GESTURE DETECTION ==========
-        let rawGesture = 'none';
-        let gestureConfidence = 0;
-
-        // PINCH: Thumb and index tips close (< 0.45 palm size)
-        if (normalizedPinch < 0.45 && !middleExtended && !ringExtended) {
-            rawGesture = 'pinch';
-            gestureConfidence = Math.min(1, (0.45 - normalizedPinch) / 0.3);
-        }
-        // POINT: Only index extended
-        else if (indexExtended && !middleExtended && !ringExtended && !pinkyExtended) {
-            rawGesture = 'point';
-            gestureConfidence = 0.9;
-        }
-        // OPEN: 3+ fingers extended including thumb
-        else if (extendedCount >= 3 && thumbExtended) {
-            rawGesture = 'open';
-            gestureConfidence = 0.85;
-        }
-        // FIST: 1 or fewer fingers extended (more lenient)
-        else if (extendedCount <= 1 && !thumbExtended) {
-            rawGesture = 'fist';
-            gestureConfidence = 0.85;
-        }
-
-        // Apply gesture state machine for stability
-        const stableGesture = gestureStateMachineRef.current.update(rawGesture);
-        setCurrentGesture(stableGesture);
-        setConfidence(gestureConfidence);
-        onGestureDetected?.(stableGesture);
-
-        // ========== GESTURE ACTIONS ==========
-
-        // PINCH ZOOM: Fingers apart = zoom IN, fingers together = zoom OUT
-        if (stableGesture === 'pinch') {
-            if (lastPinchRef.current > 0) {
-                // Now: positive delta when fingers move APART (normalizedPinch increases)
-                const delta = (normalizedPinch - lastPinchRef.current) * 15; // Higher sensitivity
-                const smoothedDelta = zoomFilterRef.current.filter(delta);
-
-                if (Math.abs(smoothedDelta) > 0.002) {
-                    setZoomLevel(prev => {
-                        // Fingers apart (positive delta) = zoom in (increase)
-                        // Fingers together (negative delta) = zoom out (decrease)
-                        const newZoom = Math.max(0.5, Math.min(3, prev + smoothedDelta));
-                        onZoomChange?.(newZoom);
-                        return newZoom;
-                    });
-                }
-            }
-            lastPinchRef.current = normalizedPinch;
-        } else {
-            lastPinchRef.current = 0;
-            zoomFilterRef.current.reset(0);
-        }
-
-        // OPEN: Hand position for rotation + swipe
-        if (stableGesture === 'open') {
-            // Smooth hand position
-            const smoothX = handXFilterRef.current.filter(wrist.x);
-            const smoothY = handYFilterRef.current.filter(wrist.y);
-            onHandPosition?.(smoothX, smoothY);
-
-            // Velocity-based swipe detection
-            wristVelocityRef.current.add(wrist.x);
-            const velocity = wristVelocityRef.current.getVelocity();
-
-            if (Date.now() > swipeCooldownRef.current) {
-                // High velocity = swipe (velocity > 0.8 = fast movement)
-                if (Math.abs(velocity) > 0.6) {
-                    onSwipe?.(velocity > 0 ? 'right' : 'left');
-                    swipeCooldownRef.current = Date.now() + 600; // 600ms cooldown
-                    wristVelocityRef.current.reset();
-                }
-            }
-        } else {
-            handXFilterRef.current.reset(0.5);
-            handYFilterRef.current.reset(0.5);
-            wristVelocityRef.current.reset();
-        }
-
-        // ========== DRAW VISUALIZATION ==========
-        const ctx = canvasRef.current?.getContext('2d');
-        if (ctx && canvasRef.current) {
-            ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-
-            const w = canvasRef.current.width;
-            const h = canvasRef.current.height;
-
-            // Set stroke style once
-            ctx.strokeStyle = stableGesture === 'open' ? '#22c55e' :
-                stableGesture === 'pinch' ? '#f59e0b' :
-                    stableGesture === 'fist' ? '#ef4444' :
-                        stableGesture === 'point' ? '#3b82f6' : '#888888';
-            ctx.lineWidth = 2;
-
-            // Batched path drawing - single beginPath/stroke
-            ctx.beginPath();
-
-            // Thumb
-            ctx.moveTo(smoothedLandmarks[0].x * w, smoothedLandmarks[0].y * h);
-            for (const i of [1, 2, 3, 4]) ctx.lineTo(smoothedLandmarks[i].x * w, smoothedLandmarks[i].y * h);
-
-            // Index
-            ctx.moveTo(smoothedLandmarks[0].x * w, smoothedLandmarks[0].y * h);
-            for (const i of [5, 6, 7, 8]) ctx.lineTo(smoothedLandmarks[i].x * w, smoothedLandmarks[i].y * h);
-
-            // Middle
-            ctx.moveTo(smoothedLandmarks[0].x * w, smoothedLandmarks[0].y * h);
-            for (const i of [9, 10, 11, 12]) ctx.lineTo(smoothedLandmarks[i].x * w, smoothedLandmarks[i].y * h);
-
-            // Ring
-            ctx.moveTo(smoothedLandmarks[0].x * w, smoothedLandmarks[0].y * h);
-            for (const i of [13, 14, 15, 16]) ctx.lineTo(smoothedLandmarks[i].x * w, smoothedLandmarks[i].y * h);
-
-            // Pinky
-            ctx.moveTo(smoothedLandmarks[0].x * w, smoothedLandmarks[0].y * h);
-            for (const i of [17, 18, 19, 20]) ctx.lineTo(smoothedLandmarks[i].x * w, smoothedLandmarks[i].y * h);
-
-            // Palm connections
-            ctx.moveTo(smoothedLandmarks[5].x * w, smoothedLandmarks[5].y * h);
-            ctx.lineTo(smoothedLandmarks[9].x * w, smoothedLandmarks[9].y * h);
-            ctx.lineTo(smoothedLandmarks[13].x * w, smoothedLandmarks[13].y * h);
-            ctx.lineTo(smoothedLandmarks[17].x * w, smoothedLandmarks[17].y * h);
-
-            ctx.stroke(); // Single stroke call
-
-            // Only draw key landmarks (tips + wrist) - reduced from 21 to 6
-            ctx.fillStyle = '#ffffff';
-            for (const i of [0, 4, 8, 12, 16, 20]) {
-                const lm = smoothedLandmarks[i];
-                ctx.beginPath();
-                ctx.arc(lm.x * w, lm.y * h, i === 4 || i === 8 ? 5 : 3, 0, Math.PI * 2);
-                ctx.fillStyle = i === 4 || i === 8 ? '#ff4444' : '#ffffff';
-                ctx.fill();
-            }
-        }
-    }, [onZoomChange, onGestureDetected, onSwipe, onHandPosition]);
-
-    const startTracking = async () => {
-        if (isTracking) return;
-        setIsLoading(true);
-        setError(null);
-
+      // 2. Request Camera Stream with multi-resolution fallback
+      let stream: MediaStream | null = null;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+        });
+      } catch {
         try {
-            // Initialize HandLandmarker using npm package
-            const vision = await FilesetResolver.forVisionTasks(
-                'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.8/wasm'
-            );
-
-            handLandmarkerRef.current = await HandLandmarker.createFromOptions(vision, {
-                baseOptions: {
-                    modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
-                    delegate: 'GPU'
-                },
-                runningMode: 'VIDEO',
-                numHands: 1,
-                minHandDetectionConfidence: 0.7,
-                minHandPresenceConfidence: 0.7,
-                minTrackingConfidence: 0.7
-            });
-
-            // Get camera
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { width: 640, height: 480, facingMode: 'user' }
-            });
-
-            streamRef.current = stream;
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
-                await videoRef.current.play();
-            }
-
-            isTrackingRef.current = true; // Set ref BEFORE state
-            setIsTracking(true);
-            setIsLoading(false);
-
-            // Detection loop - use ref to avoid stale closure
-            const detect = () => {
-                if (!isTrackingRef.current || !videoRef.current || !handLandmarkerRef.current) return;
-
-                // Ensure video is actively playing and has rendered frames before feeding to MediaPipe
-                if (videoRef.current.readyState >= 2 && videoRef.current.videoWidth > 0) {
-                    try {
-                        const results = handLandmarkerRef.current.detectForVideo(videoRef.current, performance.now());
-                        processLandmarks(results);
-                    } catch (e) {
-                        console.warn('MediaPipe detection frame skipped:', e);
-                    }
-                }
-
-                animationFrameRef.current = requestAnimationFrame(detect);
-            };
-
-            detect();
-        } catch (err: any) {
-            setError(err.message || 'Failed to start tracking');
-            setIsLoading(false);
-            console.error(err);
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+          });
+        } catch {
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
         }
+      }
+
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+
+      isTrackingRef.current = true;
+      setIsTracking(true);
+      setIsLoading(false);
+
+      // 3. Ultra-Smooth 60 FPS Vision Loop
+      const detectLoop = () => {
+        if (!isTrackingRef.current || !videoRef.current || !handLandmarkerRef.current) return;
+
+        if (videoRef.current.readyState >= 2 && videoRef.current.videoWidth > 0) {
+          try {
+            const results = handLandmarkerRef.current.detectForVideo(videoRef.current, performance.now());
+            processHandResults(results);
+          } catch (e) {
+            console.warn('[HandTracker] Frame skipped:', e);
+          }
+        }
+
+        animationFrameRef.current = requestAnimationFrame(detectLoop);
+      };
+
+      detectLoop();
+    } catch (err: any) {
+      console.error('[HandTracker] Initialization error:', err);
+      setError(err.message || 'Unable to access camera or load hand tracking model.');
+      setIsLoading(false);
+      stopTracking();
+    }
+  };
+
+  const stopTracking = () => {
+    isTrackingRef.current = false;
+    setIsTracking(false);
+
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = 0;
+    }
+
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+
+    if (handLandmarkerRef.current) {
+      try {
+        handLandmarkerRef.current.close();
+      } catch {}
+      handLandmarkerRef.current = null;
+    }
+
+    landmarkFilterBankRef.current.reset();
+    gestureClassifierRef.current.reset();
+    velocityTrackerRef.current.reset();
+    pinchFilterRef.current.reset();
+
+    setCurrentGesture('none');
+    setConfidence(0);
+    onGestureDetected?.('none');
+    onFreeze?.(false);
+
+    const ctx = canvasRef.current?.getContext('2d');
+    if (ctx && canvasRef.current) {
+      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      stopTracking();
     };
+  }, []);
 
-    const stopTracking = () => {
-        isTrackingRef.current = false; // Stop the loop first
-        setIsTracking(false);
-        if (animationFrameRef.current) {
-            cancelAnimationFrame(animationFrameRef.current);
-            animationFrameRef.current = 0;
-        }
-        if (streamRef.current) {
-            streamRef.current.getTracks().forEach(t => t.stop());
-            streamRef.current = null;
-        }
-        if (videoRef.current) {
-            videoRef.current.srcObject = null;
-        }
-        if (handLandmarkerRef.current) {
-            try {
-                handLandmarkerRef.current.close();
-            } catch {
-                // Ignore cleanup errors
-            }
-            handLandmarkerRef.current = null;
-        }
-        landmarkSmootherRef.current.reset();
-        gestureStateMachineRef.current.reset();
-    };
+  const gestureColor = GESTURE_COLORS[currentGesture] || GESTURE_COLORS.none;
 
-    useEffect(() => {
-        return () => stopTracking();
-    }, []);
+  return (
+    <>
+      {/* Active Camera Floating Pill */}
+      <AnimatePresence>
+        {isTracking && (
+          <motion.div
+            initial={{ y: -50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -50, opacity: 0 }}
+            className="fixed top-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-950/90 border border-cyan-500/40 text-cyan-300 shadow-glow backdrop-blur-md text-xs font-mono"
+          >
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_#22d3ee]" />
+            <Camera className="w-3.5 h-3.5" />
+            <span className="font-semibold">Vision Tracking Active</span>
+            <span className="text-[10px] text-slate-400 border-l border-white/20 pl-1.5">{fps} FPS</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-    const gestureEmoji = currentGesture === 'open' ? '✋' :
-        currentGesture === 'pinch' ? '🤏' :
-            currentGesture === 'point' ? '👆' :
-                currentGesture === 'fist' ? '✊' : '👋';
+      {/* Floating Holographic Hand Tracker Widget */}
+      <motion.div
+        drag
+        dragMomentum={false}
+        className={cn(
+          'fixed z-40 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-2xl border transition-all select-none',
+          'bottom-20 left-3 sm:bottom-6 sm:left-6',
+          'bg-slate-950/85 border-white/15',
+          isTracking ? 'ring-1 ring-cyan-500/30' : ''
+        )}
+        style={{
+          width: isExpanded ? 300 : 200,
+          boxShadow: isTracking ? '0 10px 30px -5px rgba(0, 240, 255, 0.15)' : '0 10px 25px -5px rgba(0,0,0,0.5)',
+        }}
+      >
+        {/* Widget Header */}
+        <div className="flex items-center justify-between px-3 py-2 border-b border-white/10 bg-slate-900/60 cursor-move">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded-lg bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center">
+              <Hand className="w-3 h-3 text-cyan-400" />
+            </div>
+            <span className="text-[11px] font-bold tracking-wider uppercase text-white font-mono">Quantum Hand HUD</span>
+          </div>
 
-    return (
-        <>
-            {/* Camera in-use notification - fixed at top */}
-            <AnimatePresence>
-                {isTracking && (
-                    <motion.div
-                        initial={{ y: -50, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: -50, opacity: 0 }}
-                        className="fixed top-2 sm:top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-red-500/90 text-white rounded-full shadow-lg"
-                    >
-                        <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                        <Camera className="w-4 h-4" />
-                        <span className="text-xs sm:text-sm font-medium">Camera Active</span>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            <motion.div
-                drag
-                dragMomentum={false}
-                className={cn(
-                    "fixed bottom-20 left-4 sm:bottom-6 sm:left-[320px] z-40 rounded-xl overflow-hidden cursor-move",
-                    "bg-black/40 backdrop-blur-xl border border-white/10 shadow-2xl"
-                )}
-                animate={{ width: isExpanded ? (window.innerWidth < 640 ? 220 : 280) : (window.innerWidth < 640 ? 140 : 180) }}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setShowTutorial(true)}
+              className="p-1 rounded hover:bg-white/10 text-slate-400 hover:text-white"
+              title="Gesture Guide"
             >
+              <HelpCircle className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="p-1 rounded hover:bg-white/10 text-slate-400 hover:text-white"
+              title={isExpanded ? 'Collapse' : 'Expand'}
+            >
+              {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Video & Skeleton Viewport */}
+        {isExpanded && (
+          <div className="p-3 space-y-3">
+            <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-black/80 border border-white/10 flex items-center justify-center">
+              {/* Hidden or visible video element */}
+              <video
+                ref={videoRef}
+                playsInline
+                muted
+                className={cn(
+                  'absolute inset-0 w-full h-full object-cover transition-opacity duration-300',
+                  mirrorMode ? '-scale-x-100' : '',
+                  showVideo && isTracking ? 'opacity-80' : 'opacity-0'
+                )}
+              />
+
+              {/* Holographic Skeleton 2D Canvas */}
+              <canvas
+                ref={canvasRef}
+                width={320}
+                height={240}
+                className="absolute inset-0 w-full h-full pointer-events-none z-10"
+              />
+
+              {/* Inactive Standby Overlay */}
+              {!isTracking && !isLoading && (
+                <div className="text-center p-4 z-20 space-y-2">
+                  <div className="w-10 h-10 rounded-full bg-cyan-500/10 border border-cyan-500/30 mx-auto flex items-center justify-center">
+                    <Zap className="w-5 h-5 text-cyan-400" />
+                  </div>
+                  <p className="text-xs text-slate-300 font-medium">Ready for Vision Control</p>
+                  <p className="text-[10px] text-slate-500">Enable webcam to steer atoms with your hands</p>
+                </div>
+              )}
+
+              {/* Loading Spinner */}
+              {isLoading && (
+                <div className="text-center p-4 z-20 space-y-2">
+                  <RefreshCw className="w-6 h-6 animate-spin text-cyan-400 mx-auto" />
+                  <p className="text-xs text-slate-300 font-mono">Starting Vision Engine...</p>
+                </div>
+              )}
+
+              {/* Viewport Floating Controls */}
+              {isTracking && (
+                <div className="absolute top-2 right-2 z-20 flex items-center gap-1 bg-black/60 backdrop-blur-md p-1 rounded-lg border border-white/10">
+                  <button
+                    onClick={() => setShowVideo(!showVideo)}
+                    className={cn('p-1 rounded text-xs', showVideo ? 'text-cyan-400' : 'text-slate-500')}
+                    title="Toggle Video Stream"
+                  >
+                    {showVideo ? <Video className="w-3 h-3" /> : <VideoOff className="w-3 h-3" />}
+                  </button>
+                  <button
+                    onClick={() => setShowSkeleton(!showSkeleton)}
+                    className={cn('p-1 rounded text-xs', showSkeleton ? 'text-cyan-400' : 'text-slate-500')}
+                    title="Toggle Holographic Skeleton"
+                  >
+                    {showSkeleton ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                  </button>
+                </div>
+              )}
+
+              {/* Live Handedness Badge */}
+              {isTracking && confidence > 0 && (
+                <div className="absolute bottom-2 left-2 z-20 px-2 py-0.5 rounded bg-black/60 backdrop-blur-md text-[9px] font-mono text-slate-300 border border-white/10">
+                  {handedness} Hand ({Math.round(confidence * 100)}%)
+                </div>
+              )}
+            </div>
+
+            {/* Error Message */}
+            {error && (
+              <div className="p-2 rounded-lg bg-red-500/20 border border-red-500/40 text-[11px] text-red-300">
+                {error}
+              </div>
+            )}
+
+            {/* Live Gesture Detection Banner */}
+            {isTracking && (
+              <div
+                className="p-2 rounded-xl border flex items-center justify-between"
+                style={{
+                  backgroundColor: `${gestureColor.primary}15`,
+                  borderColor: `${gestureColor.primary}40`,
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <span
+                    className="w-2.5 h-2.5 rounded-full animate-pulse"
+                    style={{ backgroundColor: gestureColor.primary, boxShadow: `0 0 8px ${gestureColor.primary}` }}
+                  />
+                  <div>
+                    <div className="text-[10px] text-slate-400 uppercase tracking-wider font-mono">Active Command</div>
+                    <div className="text-xs font-bold" style={{ color: gestureColor.primary }}>
+                      {gestureColor.text}
+                    </div>
+                  </div>
+                </div>
+                <span className="text-[10px] font-mono font-bold text-slate-300">
+                  {Math.round(confidence * 100)}%
+                </span>
+              </div>
+            )}
+
+            {/* Quick Sensitivity Controls */}
+            <div className="space-y-1.5 pt-1">
+              <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                <span>Sensitivity</span>
+                <span className="text-white font-bold">{sensitivity.toFixed(1)}x</span>
+              </div>
+              <input
+                type="range"
+                min="0.5"
+                max="2.0"
+                step="0.1"
+                value={sensitivity}
+                onChange={(e) => setSensitivity(Number(e.target.value))}
+                className="w-full accent-cyan-400 cursor-pointer h-1 bg-slate-800 rounded"
+              />
+            </div>
+
+            {/* Main Action Buttons */}
+            <div className="pt-1 flex gap-2">
+              {!isTracking ? (
                 <button
-                    onClick={() => setIsExpanded(!isExpanded)}
-                    className="w-full px-3 py-2 flex items-center justify-between hover:bg-white/5"
+                  onClick={startTracking}
+                  disabled={isLoading}
+                  className="flex-1 py-2 px-3 rounded-xl font-mono text-xs font-bold bg-cyan-500 text-black hover:bg-cyan-400 transition-all flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(6,182,212,0.4)]"
                 >
-                    <div className="flex items-center gap-2">
-                        <Hand className="w-4 h-4 text-white" />
-                        <span className="text-[10px] tracking-widest text-white uppercase font-bold">Hand Tracker</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <span className={cn("w-2 h-2 rounded-full", isTracking ? "bg-green-500 animate-pulse" : "bg-gray-500")} />
-                        {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
-                    </div>
+                  <Zap className="w-3.5 h-3.5 fill-black" />
+                  Enable Vision Control
                 </button>
+              ) : (
+                <button
+                  onClick={stopTracking}
+                  className="flex-1 py-2 px-3 rounded-xl font-mono text-xs font-semibold bg-red-500/20 text-red-300 border border-red-500/40 hover:bg-red-500/30 transition-all flex items-center justify-center gap-1.5"
+                >
+                  <VideoOff className="w-3.5 h-3.5" />
+                  Stop Vision
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
-                <AnimatePresence>
-                    {isExpanded && (
-                        <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            className="overflow-hidden"
-                        >
-                            <div className="p-3 space-y-3">
-                                {error && (
-                                    <div className="text-xs text-red-400 bg-red-500/10 p-2 rounded">{error}</div>
-                                )}
+        {/* Collapsed Pill State */}
+        {!isExpanded && (
+          <div className="p-2.5 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span
+                className={cn(
+                  'w-2 h-2 rounded-full',
+                  isTracking ? 'bg-cyan-400 animate-pulse shadow-[0_0_6px_#22d3ee]' : 'bg-slate-600'
+                )}
+              />
+              <span className="text-xs font-mono font-medium text-white">
+                {isTracking ? gestureColor.text : 'Vision Off'}
+              </span>
+            </div>
 
-                                <div className="relative aspect-[4/3] bg-black rounded-lg overflow-hidden">
-                                    <video ref={videoRef} className="absolute inset-0 w-full h-full object-cover transform scale-x-[-1]" playsInline muted />
-                                    <canvas ref={canvasRef} width={280} height={210} className="absolute inset-0 w-full h-full transform scale-x-[-1]" />
-                                    {!isTracking && (
-                                        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                                            <Camera className="w-8 h-8 text-muted-foreground" />
-                                        </div>
-                                    )}
-                                    {isTracking && (
-                                        <div className="absolute top-1 right-1 text-[10px] bg-black/50 px-1 rounded">
-                                            {fps} FPS
-                                        </div>
-                                    )}
-                                </div>
+            <button
+              onClick={isTracking ? stopTracking : startTracking}
+              disabled={isLoading}
+              className={cn(
+                'px-2 py-1 rounded-lg text-[10px] font-mono font-bold transition-all',
+                isTracking
+                  ? 'bg-red-500/20 text-red-300 border border-red-500/30'
+                  : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/30'
+              )}
+            >
+              {isLoading ? '...' : isTracking ? 'Stop' : 'Start'}
+            </button>
+          </div>
+        )}
+      </motion.div>
 
-                                <button
-                                    onClick={isTracking ? stopTracking : startTracking}
-                                    disabled={isLoading}
-                                    className={cn(
-                                        "w-full py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2",
-                                        isTracking
-                                            ? "bg-red-500/20 text-red-400 hover:bg-red-500/30"
-                                            : "bg-green-500/20 text-green-400 hover:bg-green-500/30",
-                                        isLoading && "opacity-50 cursor-wait"
-                                    )}
-                                >
-                                    {isLoading ? (
-                                        <span className="animate-pulse">Initializing...</span>
-                                    ) : isTracking ? (
-                                        <>
-                                            <VideoOff className="w-4 h-4" />
-                                            Stop Tracking
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Video className="w-4 h-4" />
-                                            Start Tracking
-                                        </>
-                                    )}
-                                </button>
-
-                                {isTracking && (
-                                    <div className="grid grid-cols-2 gap-2 text-xs">
-                                        <div className="bg-white/5 rounded p-2">
-                                            <div className="text-muted-foreground">Gesture</div>
-                                            <div className="font-medium flex items-center gap-1">
-                                                <span className="text-lg">{gestureEmoji}</span>
-                                                <span className="capitalize">{currentGesture}</span>
-                                            </div>
-                                        </div>
-                                        <div className="bg-white/5 rounded p-2">
-                                            <div className="text-muted-foreground">Zoom</div>
-                                            <div className="font-mono font-medium text-primary">{zoomLevel.toFixed(1)}x</div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </motion.div>
-        </>
-    );
-}
+      {/* Gesture Tutorial Guide Modal */}
+      {showTutorial && <GestureTutorial onClose={() => setShowTutorial(false)} />}
+    </>
+  );
+});

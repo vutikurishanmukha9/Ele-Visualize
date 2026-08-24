@@ -8,9 +8,9 @@
  * - Visual feedback: proximity glow, bond lines, particle effects
  */
 
-import { useState, useRef, useMemo, useCallback, memo, MutableRefObject, Suspense } from 'react';
-import { Canvas, useFrame, useThree, ThreeEvent } from '@react-three/fiber';
-import { OrbitControls, Stars, Sphere, Cylinder, Float, Html, Text, Environment, ContactShadows } from '@react-three/drei';
+import { useState, useRef, useMemo, useCallback, MutableRefObject, Suspense } from 'react';
+import { Canvas, useFrame, ThreeEvent } from '@react-three/fiber';
+import { OrbitControls, Stars, Sphere, Cylinder, Html, ContactShadows, Sparkles } from '@react-three/drei';
 import { Physics, RigidBody, RapierRigidBody } from '@react-three/rapier';
 import * as THREE from 'three';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -72,8 +72,8 @@ function PhysicsAtom({ atom, isSelected, canBond, onSelect, positionRef }: Physi
             positionRef.current.set(atom.id, new THREE.Vector3(pos.x, pos.y, pos.z));
         }
 
-        // Animate glow for bondable atoms
-        const targetGlow = canBond ? 0.8 : isSelected ? 0.5 : 0;
+        // Animate glow for bondable atoms with luminous base glow
+        const targetGlow = canBond ? 1.0 : isSelected ? 0.7 : 0.25;
         glowIntensity.current = THREE.MathUtils.lerp(glowIntensity.current, targetGlow, delta * 5);
 
         if (meshRef.current) {
@@ -103,16 +103,19 @@ function PhysicsAtom({ atom, isSelected, canBond, onSelect, positionRef }: Physi
                 <meshPhysicalMaterial
                     color={atom.color}
                     emissive={canBond ? '#00ff88' : atom.color}
-                    emissiveIntensity={0}
-                    transmission={0.9}
+                    emissiveIntensity={0.25}
+                    transmission={0.4}
                     opacity={1}
-                    metalness={0.2}
-                    roughness={0.1}
-                    ior={1.5}
-                    thickness={2}
+                    metalness={0.3}
+                    roughness={0.12}
+                    ior={1.4}
+                    thickness={1.5}
                     clearcoat={1}
+                    clearcoatRoughness={0.08}
                     iridescence={0.5}
                     iridescenceIOR={1.3}
+                    depthWrite={true}
+                    depthTest={true}
                 />
             </Sphere>
 
@@ -165,14 +168,15 @@ function BondLine({ from, to, type }: { from: THREE.Vector3; to: THREE.Vector3; 
     return (
         <group position={midpoint} quaternion={quaternion}>
             {offsets.map((offset, i) => (
-                <Cylinder key={i} args={[0.04, 0.04, length, 8]} position={[offset, 0, 0]}>
+                <Cylinder key={i} args={[0.04, 0.04, length, 16]} position={[offset, 0, 0]}>
                     <meshPhysicalMaterial
-                        color="#222222"
-                        emissive="#000000"
-                        emissiveIntensity={0}
-                        metalness={0.9}
-                        roughness={0.3}
+                        color="#94a3b8"
+                        emissive="#38bdf8"
+                        emissiveIntensity={0.35}
+                        metalness={0.6}
+                        roughness={0.12}
                         clearcoat={1}
+                        clearcoatRoughness={0.08}
                     />
                 </Cylinder>
             ))}
@@ -213,12 +217,17 @@ function BuilderScene({ atoms, bonds, selectedAtomId, particleBursts, onSelectAt
 
     return (
         <>
-            <ambientLight intensity={0.3} />
-            <Environment preset="city" />
+            {/* Studio Lighting Rig */}
+            <ambientLight intensity={0.8} color="#f8fafc" />
+            <hemisphereLight skyColor="#f8fafc" groundColor="#1e1b4b" intensity={0.9} />
+            <directionalLight position={[8, 12, 10]} intensity={1.8} color="#ffffff" />
+            <directionalLight position={[-10, -6, -8]} intensity={1.1} color="#38bdf8" />
+            <directionalLight position={[8, -8, -6]} intensity={0.9} color="#f59e0b" />
+            <directionalLight position={[0, 8, -12]} intensity={2.2} color="#818cf8" />
+            <directionalLight position={[0, -10, 4]} intensity={0.8} color="#06b6d4" />
             <ContactShadows resolution={1024} scale={50} blur={2} opacity={0.3} far={20} position={[0, -4.9, 0]} />
-            <directionalLight position={[5, 8, 5]} intensity={0.4} />
-            <directionalLight position={[-3, -2, -5]} intensity={0.2} color="#4488ff" />
-            <Stars radius={50} depth={30} count={300} factor={3} saturation={0} fade speed={0.3} />
+            <Stars radius={60} depth={40} count={500} factor={3.5} saturation={0.5} fade speed={0.4} />
+            <Sparkles count={50} scale={14} size={3} speed={0.5} opacity={0.6} color="#38bdf8" />
 
             <Physics gravity={[0, -2, 0]}>
                 {/* Ground plane — invisible collision */}

@@ -42,14 +42,18 @@ export function Atom({ element }: AtomProps) {
         <group ref={groupRef}>
             {/* Nucleus */}
             <Sphere args={[0.5, 32, 32]}>
-                <meshStandardMaterial
+                <meshPhysicalMaterial
                     color={color}
                     emissive={color}
-                    emissiveIntensity={2}
-                    toneMapped={false}
+                    emissiveIntensity={1.5}
+                    metalness={0.3}
+                    roughness={0.12}
+                    clearcoat={1}
+                    clearcoatRoughness={0.08}
+                    reflectivity={0.95}
                 />
             </Sphere>
-            <pointLight position={[0, 0, 0]} intensity={5} color={color} distance={10} />
+            <pointLight position={[0, 0, 0]} intensity={4.5} color={color} distance={15} decay={1.8} />
 
             {/* Electron Shells */}
             {element.shells.map((electronCount, shellIndex) => (
@@ -88,7 +92,7 @@ function ElectronShell({ radius, count, speed, color }: { radius: number; count:
             {/* Orbital Path (Visual ring) */}
             <mesh rotation={[Math.PI / 2, 0, 0]}>
                 <ringGeometry args={[radius - 0.02, radius + 0.02, 64]} />
-                <meshBasicMaterial color={color} opacity={0.1} transparent side={THREE.DoubleSide} />
+                <meshBasicMaterial color={color} opacity={0.35} transparent side={THREE.DoubleSide} />
             </mesh>
 
             {/* Electrons */}
@@ -119,14 +123,21 @@ function Electron({ radius, initialAngle, speed, color }: { radius: number; init
 
     return (
         <Trail
-            width={0.2}
-            length={4}
-            color={new THREE.Color(color)}
+            width={0.5}
+            length={10}
+            color={color}
             attenuation={(t) => t * t}
         >
             <mesh ref={ref}>
                 <sphereGeometry args={[0.08, 16, 16]} />
-                <meshBasicMaterial color={color} toneMapped={false} />
+                <meshPhysicalMaterial
+                    color="#ffffff"
+                    emissive={color}
+                    emissiveIntensity={2.5}
+                    metalness={0.8}
+                    roughness={0.1}
+                    clearcoat={1}
+                />
             </mesh>
         </Trail>
     );

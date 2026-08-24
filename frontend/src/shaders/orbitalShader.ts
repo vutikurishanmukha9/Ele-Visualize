@@ -3,39 +3,45 @@ import * as THREE from 'three';
 /**
  * Volumetric Orbital Shader
  * Simulates quantum electron density clouds with noise turbulence,
- * dynamic additive blending, and soft edge fading.
+ * dynamic additive blending, radial core radiance, and soft edge glow.
  */
 export const VolumetricOrbitalShader = {
   uniforms: {
     uTime: { value: 0 },
     uColor: { value: new THREE.Color('#38bdf8') },
+    uCoreColor: { value: new THREE.Color('#ffffff') },
     uOpacity: { value: 0.35 },
-    uNoiseScale: { value: 3.0 },
-    uSpeed: { value: 0.8 },
+    uNoiseScale: { value: 2.8 },
+    uSpeed: { value: 0.6 },
+    uRimPower: { value: 1.8 },
+    uCoreGlow: { value: 1.4 },
   },
   vertexShader: /* glsl */ `
     varying vec3 vNormal;
     varying vec3 vPosition;
-    varying vec3 vWorldPosition;
+    varying vec3 vViewPosition;
 
     void main() {
       vNormal = normalize(normalMatrix * normal);
       vPosition = position;
-      vec4 worldPos = modelMatrix * vec4(position, 1.0);
-      vWorldPosition = worldPos.xyz;
-      gl_Position = projectionMatrix * viewMatrix * worldPos;
+      vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+      vViewPosition = mvPosition.xyz;
+      gl_Position = projectionMatrix * mvPosition;
     }
   `,
   fragmentShader: /* glsl */ `
     uniform float uTime;
     uniform vec3 uColor;
+    uniform vec3 uCoreColor;
     uniform float uOpacity;
     uniform float uNoiseScale;
     uniform float uSpeed;
+    uniform float uRimPower;
+    uniform float uCoreGlow;
 
     varying vec3 vNormal;
     varying vec3 vPosition;
-    varying vec3 vWorldPosition;
+    varying vec3 vViewPosition;
 
     // Simplex 3D noise helper
     vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -87,21 +93,31 @@ export const VolumetricOrbitalShader = {
     }
 
     void main() {
-      vec3 viewDir = normalize(cameraPosition - vWorldPosition);
-      float fresnel = pow(1.0 - abs(dot(viewDir, vNormal)), 1.5);
+      vec3 normal = normalize(vNormal);
+      vec3 viewDir = normalize(-vViewPosition);
+      float normalDot = abs(dot(viewDir, normal));
+      float rim = pow(1.0 - normalDot, uRimPower);
+      float centerGlow = pow(normalDot, 2.0);
 
+      // Quantum turbulence field
       vec3 pos = vPosition * uNoiseScale + vec3(0.0, 0.0, uTime * uSpeed);
-      float n = snoise(pos) * 0.5 + 0.5;
+      float n1 = snoise(pos) * 0.5 + 0.5;
+      float n2 = snoise(pos * 2.0 - vec3(uTime * 0.3)) * 0.5 + 0.5;
+      float n = mix(n1, n2, 0.35);
 
-      float density = (n * 0.7 + fresnel * 0.5);
-      vec3 color = mix(uColor, vec3(1.0), fresnel * 0.4);
+      // Soft volumetric density falloff with edge rim glow
+      float density = (n * 0.65 + rim * 0.75 + centerGlow * 0.2) * uOpacity;
+      
+      // Color grading: Core highlight -> Vibrant element body -> Radiant rim crest
+      vec3 vibrantColor = mix(uColor, uCoreColor, rim * 0.6 + centerGlow * 0.3);
+      vec3 finalColor = vibrantColor * (1.0 + rim * uCoreGlow);
 
-      gl_FragColor = vec4(color, density * uOpacity);
+      gl_FragColor = vec4(finalColor, clamp(density, 0.0, 1.0));
     }
   `,
 };
 
-export function createVolumetricOrbitalMaterial(color: string, opacity: number = 0.35) {
+export function createVolumetricOrbitalMaterial(color: string, opacity: number = 0.35, coreColor: string = '#ffffff') {
   const mat = new THREE.ShaderMaterial({
     uniforms: THREE.UniformsUtils.clone(VolumetricOrbitalShader.uniforms),
     vertexShader: VolumetricOrbitalShader.vertexShader,
@@ -112,6 +128,7 @@ export function createVolumetricOrbitalMaterial(color: string, opacity: number =
     side: THREE.DoubleSide,
   });
   mat.uniforms.uColor.value.set(color);
+  mat.uniforms.uCoreColor.value.set(coreColor);
   mat.uniforms.uOpacity.value = opacity;
   return mat;
 }

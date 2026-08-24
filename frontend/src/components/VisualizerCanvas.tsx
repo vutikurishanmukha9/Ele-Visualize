@@ -1,10 +1,10 @@
-import { MutableRefObject, useSyncExternalStore, useRef, useEffect } from 'react';
+import { MutableRefObject, useSyncExternalStore, useRef, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Box, Maximize2, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
-import { ChemicalElement } from '@/data/elements';
+import { ChemicalElement, getElementColor } from '@/data/elements';
 import { cn } from '@/lib/utils';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Stars, Environment, ContactShadows } from '@react-three/drei';
+import { OrbitControls, Stars, ContactShadows, Sparkles } from '@react-three/drei';
 import { EffectComposer, Bloom, DepthOfField } from '@react-three/postprocessing';
 import { createXRStore, XR } from '@react-three/xr';
 import gsap from 'gsap';
@@ -22,18 +22,25 @@ export const xrStore = createXRStore({
 });
 
 // Ambient Quantum WebGL Background Mesh
-function QuantumBackground() {
+function QuantumBackground({ color }: { color?: string }) {
   const meshRef = useRef<THREE.Mesh>(null);
-  const material = useRef(createQuantumBackgroundMaterial());
+  const material = useMemo(() => createQuantumBackgroundMaterial(color || '#38bdf8'), [color]);
+
+  useEffect(() => {
+    return () => {
+      material.dispose();
+    };
+  }, [material]);
 
   useFrame((state, delta) => {
-    if (material.current) {
-      material.current.uniforms.uTime.value += delta;
+    if (material) {
+      material.uniforms.uTime.value += delta;
+      if (color) material.uniforms.uAccentColor.value.set(color);
     }
   });
 
   return (
-    <mesh ref={meshRef} material={material.current}>
+    <mesh ref={meshRef} material={material}>
       <sphereGeometry args={[80, 32, 32]} />
     </mesh>
   );
@@ -123,6 +130,7 @@ export function VisualizerCanvas({
   isFrozen,
 }: VisualizerCanvasProps) {
   const atomGroupRef = useRef<THREE.Group>(null);
+  const elementColor = selectedElement ? getElementColor(selectedElement) : '#38bdf8';
 
   // Use provided refs or fallback defaults
   const hpx = handPositionX ?? defaultRef(0.5);
@@ -196,13 +204,21 @@ export function VisualizerCanvas({
             {/* 3D Canvas */}
             <Canvas camera={{ position: [0, 0, 15], fov: 45 }}>
               <XR store={xrStore}>
-                <QuantumBackground />
+                <QuantumBackground color={elementColor} />
                 <CameraMotionController selectedElement={selectedElement} />
-                <ambientLight intensity={0.3} />
-                <Environment preset="city" />
+                
+                {/* Studio Lighting Rig */}
+                <ambientLight intensity={0.8} color="#f8fafc" />
+                <hemisphereLight skyColor="#f8fafc" groundColor="#1e1b4b" intensity={0.9} />
+                <directionalLight position={[8, 12, 10]} intensity={1.8} color="#ffffff" />
+                <directionalLight position={[-10, -6, -8]} intensity={1.1} color="#38bdf8" />
+                <directionalLight position={[8, -8, -6]} intensity={0.9} color="#f59e0b" />
+                <directionalLight position={[0, 8, -12]} intensity={2.2} color="#818cf8" />
+                <directionalLight position={[0, -10, 4]} intensity={0.8} color="#06b6d4" />
+                
                 <ContactShadows resolution={1024} scale={50} blur={2} opacity={0.3} far={20} position={[0, -5, 0]} />
-                <pointLight position={[10, 10, 10]} intensity={0.5} />
-                <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+                <Stars radius={100} depth={50} count={2000} factor={4} saturation={0.5} fade speed={0.6} />
+                <Sparkles count={70} scale={18} size={3.0} speed={0.6} opacity={0.7} color={elementColor} />
 
                 <OrbitControls
                   enablePan={false}
@@ -231,7 +247,7 @@ export function VisualizerCanvas({
                 <ARPlacement />
 
                 <EffectComposer>
-                  <Bloom luminanceThreshold={0.2} luminanceSmoothing={0.9} intensity={1.5} />
+                  <Bloom luminanceThreshold={0.2} luminanceSmoothing={0.85} intensity={1.25} />
                   <DepthOfField target={[0, 0, 0]} focalLength={0.05} bokehScale={3} height={700} />
                 </EffectComposer>
               </XR>

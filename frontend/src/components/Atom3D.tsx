@@ -37,37 +37,67 @@ const SHELL_NAMES = ['K', 'L', 'M', 'N', 'O', 'P', 'Q'];
 const SPHERE_SEGMENTS = 24;
 const ORBIT_POINTS = 80;
 
-// Glowing sphere using custom GLSL Fresnel Shader Material
+// Glowing sphere with an opaque physical core (depth-writing) and an outer luminous Fresnel rim
 const GlowingSphere = memo(function GlowingSphere({
-    color, size, position, glowColor = '#38bdf8', emissiveIntensity = 0.8
+    color, size, position, glowColor = '#38bdf8', emissiveIntensity = 1.2
 }: { color: string; size: number; position?: [number, number, number]; glowColor?: string; emissiveIntensity?: number }) {
-    const material = useMemo(() => createFresnelMaterial(color, glowColor), [color, glowColor]);
-    const meshRef = useRef<THREE.Mesh>(null);
+    const fresnelMat = useMemo(() => createFresnelMaterial(color, glowColor, 1.8), [color, glowColor]);
+
+    useEffect(() => {
+        return () => {
+            fresnelMat.dispose();
+        };
+    }, [fresnelMat]);
 
     useFrame((_, delta) => {
-        if (meshRef.current && (meshRef.current.material as THREE.ShaderMaterial).uniforms?.uTime) {
-            (meshRef.current.material as THREE.ShaderMaterial).uniforms.uTime.value += delta;
+        if (fresnelMat.uniforms?.uTime) {
+            fresnelMat.uniforms.uTime.value += delta;
         }
     });
 
     return (
-        <Sphere ref={meshRef} args={[size, SPHERE_SEGMENTS, SPHERE_SEGMENTS]} position={position} material={material} />
+        <group position={position}>
+            {/* Solid inner core for authentic depth occlusion with radiant emission */}
+            <Sphere args={[size * 0.95, SPHERE_SEGMENTS, SPHERE_SEGMENTS]}>
+                <meshPhysicalMaterial
+                    color={color}
+                    emissive={color}
+                    emissiveIntensity={emissiveIntensity * 1.2}
+                    metalness={0.3}
+                    roughness={0.12}
+                    clearcoat={1}
+                    clearcoatRoughness={0.08}
+                    reflectivity={0.9}
+                    transmission={0.05}
+                    ior={1.4}
+                    depthWrite={true}
+                    depthTest={true}
+                />
+            </Sphere>
+            {/* Luminous outer Fresnel atmosphere */}
+            <Sphere args={[size * 1.06, SPHERE_SEGMENTS, SPHERE_SEGMENTS]} material={fresnelMat} />
+        </group>
     );
 });
 
 // Volumetric S orbital using custom Volumetric GLSL Shader Material
 const SOrbital = memo(function SOrbital({ radius, color }: { radius: number; color: string }) {
-    const material = useMemo(() => createVolumetricOrbitalMaterial(color, 0.28), [color]);
-    const meshRef = useRef<THREE.Mesh>(null);
+    const material = useMemo(() => createVolumetricOrbitalMaterial(color, 0.32, '#ffffff'), [color]);
+
+    useEffect(() => {
+        return () => {
+            material.dispose();
+        };
+    }, [material]);
 
     useFrame((_, delta) => {
-        if (meshRef.current && (meshRef.current.material as THREE.ShaderMaterial).uniforms?.uTime) {
-            (meshRef.current.material as THREE.ShaderMaterial).uniforms.uTime.value += delta;
+        if (material.uniforms?.uTime) {
+            material.uniforms.uTime.value += delta;
         }
     });
 
     return (
-        <Sphere ref={meshRef} args={[radius, SPHERE_SEGMENTS, SPHERE_SEGMENTS]} material={material} />
+        <Sphere args={[radius, SPHERE_SEGMENTS, SPHERE_SEGMENTS]} material={material} />
     );
 });
 
@@ -78,25 +108,24 @@ const POrbital = memo(function POrbital({ radius, color, axis }: { radius: numbe
             axis === 'y' ? [0, 0, 0] :
                 [Math.PI / 2, 0, 0];
 
-    const mat1 = useMemo(() => createVolumetricOrbitalMaterial(color, 0.22), [color]);
-    const mat2 = useMemo(() => createVolumetricOrbitalMaterial(color, 0.22), [color]);
+    const mat = useMemo(() => createVolumetricOrbitalMaterial(color, 0.26, '#ffffff'), [color]);
 
-    const m1Ref = useRef<THREE.Mesh>(null);
-    const m2Ref = useRef<THREE.Mesh>(null);
+    useEffect(() => {
+        return () => {
+            mat.dispose();
+        };
+    }, [mat]);
 
     useFrame((_, delta) => {
-        if (m1Ref.current && (m1Ref.current.material as THREE.ShaderMaterial).uniforms?.uTime) {
-            (m1Ref.current.material as THREE.ShaderMaterial).uniforms.uTime.value += delta;
-        }
-        if (m2Ref.current && (m2Ref.current.material as THREE.ShaderMaterial).uniforms?.uTime) {
-            (m2Ref.current.material as THREE.ShaderMaterial).uniforms.uTime.value += delta;
+        if (mat.uniforms?.uTime) {
+            mat.uniforms.uTime.value += delta;
         }
     });
 
     return (
         <group rotation={rotation}>
-            <Sphere ref={m1Ref} args={[radius * 0.55, 18, 18]} position={[0, radius * 0.75, 0]} material={mat1} />
-            <Sphere ref={m2Ref} args={[radius * 0.55, 18, 18]} position={[0, -radius * 0.75, 0]} material={mat2} />
+            <Sphere args={[radius * 0.55, 18, 18]} position={[0, radius * 0.75, 0]} material={mat} />
+            <Sphere args={[radius * 0.55, 18, 18]} position={[0, -radius * 0.75, 0]} material={mat} />
         </group>
     );
 });
@@ -110,7 +139,19 @@ const DOrbital = memo(function DOrbital({ radius, color, type }: { radius: numbe
 
     const lobeSize = radius * 0.42;
     const lobeOffset = radius * 0.62;
-    const mat = useMemo(() => createVolumetricOrbitalMaterial(color, 0.18), [color]);
+    const mat = useMemo(() => createVolumetricOrbitalMaterial(color, 0.22, '#ffffff'), [color]);
+
+    useEffect(() => {
+        return () => {
+            mat.dispose();
+        };
+    }, [mat]);
+
+    useFrame((_, delta) => {
+        if (mat.uniforms?.uTime) {
+            mat.uniforms.uTime.value += delta;
+        }
+    });
 
     return (
         <group rotation={rotation}>
@@ -122,11 +163,44 @@ const DOrbital = memo(function DOrbital({ radius, color, type }: { radius: numbe
     );
 });
 
+// Volumetric F orbital (8-lobed quantum octupole harmonic)
+const FOrbital = memo(function FOrbital({ radius, color, rotation = [0, 0, 0] }: { radius: number; color: string; rotation?: [number, number, number] }) {
+    const lobeSize = radius * 0.32;
+    const offset = radius * 0.52;
+    const mat = useMemo(() => createVolumetricOrbitalMaterial(color, 0.2, '#ffffff'), [color]);
+
+    useEffect(() => {
+        return () => {
+            mat.dispose();
+        };
+    }, [mat]);
+
+    useFrame((_, delta) => {
+        if (mat.uniforms?.uTime) {
+            mat.uniforms.uTime.value += delta;
+        }
+    });
+
+    return (
+        <group rotation={rotation}>
+            <Sphere args={[lobeSize, 12, 12]} position={[offset, offset, offset]} material={mat} />
+            <Sphere args={[lobeSize, 12, 12]} position={[-offset, offset, offset]} material={mat} />
+            <Sphere args={[lobeSize, 12, 12]} position={[offset, -offset, offset]} material={mat} />
+            <Sphere args={[lobeSize, 12, 12]} position={[-offset, -offset, offset]} material={mat} />
+            <Sphere args={[lobeSize, 12, 12]} position={[offset, offset, -offset]} material={mat} />
+            <Sphere args={[lobeSize, 12, 12]} position={[-offset, offset, -offset]} material={mat} />
+            <Sphere args={[lobeSize, 12, 12]} position={[offset, -offset, -offset]} material={mat} />
+            <Sphere args={[lobeSize, 12, 12]} position={[-offset, -offset, -offset]} material={mat} />
+        </group>
+    );
+});
+
 // Orbital clouds
-const OrbitalClouds = memo(function OrbitalClouds({ electrons, elementColor }: { electrons: number[]; elementColor: string }) {
+const OrbitalClouds = memo(function OrbitalClouds({ electrons }: { electrons: number[]; elementColor?: string }) {
     const sColor = '#38bdf8';
     const pColor = '#ec4899';
     const dColor = '#eab308';
+    const fColor = '#a855f7';
 
     const totalElectrons = electrons.reduce((a, b) => a + b, 0);
 
@@ -144,11 +218,14 @@ const OrbitalClouds = memo(function OrbitalClouds({ electrons, elementColor }: {
             {totalElectrons >= 21 && <DOrbital radius={2.2} color={dColor} type="xy" />}
             {totalElectrons >= 22 && <DOrbital radius={2.2} color={dColor} type="xz" />}
             {totalElectrons >= 23 && <DOrbital radius={2.2} color={dColor} type="yz" />}
+            {totalElectrons >= 57 && <FOrbital radius={3.0} color={fColor} rotation={[0, 0, 0]} />}
+            {totalElectrons >= 58 && <FOrbital radius={3.0} color={fColor} rotation={[Math.PI / 4, Math.PI / 4, 0]} />}
+            {totalElectrons >= 59 && <FOrbital radius={3.0} color={fColor} rotation={[0, Math.PI / 4, Math.PI / 4]} />}
         </group>
     );
 });
 
-// High-fidelity Nucleus with dual-mode representation
+// High-fidelity Nucleus with dual-mode representation and rigid concentric center
 const Nucleus = memo(function Nucleus({ protons, neutrons, color, symbol, showParticles }: {
     protons: number;
     neutrons: number;
@@ -192,54 +269,56 @@ const Nucleus = memo(function Nucleus({ protons, neutrons, color, symbol, showPa
     });
 
     return (
-        <Float speed={1.2} rotationIntensity={0.1} floatIntensity={0.15}>
-            <group ref={nucleusRef}>
-                {showParticles ? (
-                    <group>
-                        {particles.map((p, i) => (
-                            <Sphere
-                                key={i}
-                                args={[0.13, 16, 16]}
-                                position={p.pos}
-                            >
-                                <meshPhysicalMaterial
-                                    color={p.isProton ? '#ef4444' : '#38bdf8'}
-                                    emissive={p.isProton ? '#b91c1c' : '#0284c7'}
-                                    emissiveIntensity={0.7}
-                                    metalness={0.6}
-                                    roughness={0.2}
-                                    clearcoat={0.8}
-                                />
-                            </Sphere>
-                        ))}
-                        {/* Proton / Neutron counter badge */}
-                        <Html center distanceFactor={5} position={[0, -0.9, 0]}>
-                            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/75 border border-white/15 text-[10px] font-mono pointer-events-none backdrop-blur-md whitespace-nowrap shadow-xl">
-                                <span className="text-red-400 font-semibold">{protons}p⁺</span>
-                                <span className="text-slate-500">•</span>
-                                <span className="text-sky-400 font-semibold">{neutrons}n⁰</span>
-                            </div>
-                        </Html>
-                    </group>
-                ) : (
-                    <>
-                        <GlowingSphere size={0.68} color={color} glowColor={color} emissiveIntensity={0.9} position={[0, 0, 0]} />
-                        <Html center distanceFactor={4}>
-                            <div
-                                className="font-bold pointer-events-none select-none tracking-tight leading-none"
-                                style={{
-                                    fontSize: symbol.length > 2 ? '20px' : '26px',
-                                    color: '#ffffff',
-                                    textShadow: `0 0 12px ${color}, 0 0 24px rgba(0,0,0,0.9)`,
-                                }}
-                            >
-                                {symbol}
-                            </div>
-                        </Html>
-                    </>
-                )}
-            </group>
-        </Float>
+        <group ref={nucleusRef}>
+            
+            {showParticles ? (
+                <group>
+                    {particles.map((p, i) => (
+                        <Sphere
+                            key={i}
+                            args={[0.13, 16, 16]}
+                            position={p.pos}
+                        >
+                            <meshPhysicalMaterial
+                                color={p.isProton ? '#ef4444' : '#38bdf8'}
+                                emissive={p.isProton ? '#dc2626' : '#0284c7'}
+                                emissiveIntensity={1.4}
+                                metalness={0.4}
+                                roughness={0.12}
+                                clearcoat={1}
+                                clearcoatRoughness={0.08}
+                                depthWrite={true}
+                                depthTest={true}
+                            />
+                        </Sphere>
+                    ))}
+                    {/* Proton / Neutron counter badge with occlusion */}
+                    <Html center distanceFactor={5} position={[0, -0.9, 0]} occlude>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-950/85 border border-white/20 text-[10px] font-mono pointer-events-none backdrop-blur-md whitespace-nowrap shadow-2xl">
+                            <span className="text-red-400 font-semibold">{protons}p⁺</span>
+                            <span className="text-slate-400">•</span>
+                            <span className="text-sky-400 font-semibold">{neutrons}n⁰</span>
+                        </div>
+                    </Html>
+                </group>
+            ) : (
+                <>
+                    <GlowingSphere size={0.68} color={color} glowColor={color} emissiveIntensity={1.3} position={[0, 0, 0]} />
+                    <Html center distanceFactor={4} occlude>
+                        <div
+                            className="font-bold pointer-events-none select-none tracking-tight leading-none"
+                            style={{
+                                fontSize: symbol.length > 2 ? '20px' : '26px',
+                                color: '#ffffff',
+                                textShadow: `0 0 16px ${color}, 0 0 32px rgba(0,0,0,0.9)`,
+                            }}
+                        >
+                            {symbol}
+                        </div>
+                    </Html>
+                </>
+            )}
+        </group>
     );
 });
 
@@ -265,24 +344,25 @@ const Electron = memo(function Electron({ radius, startAngle, speed, color, isPa
         }
     });
 
-    const electronScale = isHighlighted ? 1.4 : 1.0;
+    const electronScale = isHighlighted ? 1.5 : 1.0;
 
     return (
         <group ref={ref}>
             <Trail
-                width={isHighlighted ? 0.8 : 0.45}
-                length={10}
+                width={isHighlighted ? 0.9 : 0.55}
+                length={14}
                 color={color}
-                attenuation={(t) => t * t}
+                attenuation={(t) => t * t * (1 - 0.15 * t)}
             >
-                <Sphere args={[0.08 * electronScale, 12, 12]} position={[0, 0, 0]}>
+                <Sphere args={[0.08 * electronScale, 14, 14]} position={[0, 0, 0]}>
                     <meshPhysicalMaterial
                         color="#ffffff"
                         emissive={color}
-                        emissiveIntensity={isHighlighted ? 2.2 : 1.4}
-                        metalness={0.9}
-                        roughness={0.1}
+                        emissiveIntensity={isHighlighted ? 3.8 : 2.6}
+                        metalness={0.8}
+                        roughness={0.08}
                         clearcoat={1}
+                        clearcoatRoughness={0.05}
                     />
                 </Sphere>
             </Trail>
@@ -334,9 +414,9 @@ const OrbitalShell = memo(function OrbitalShell({
             <Line
                 points={orbitPoints}
                 color={isFocused ? '#ffffff' : color}
-                lineWidth={isFocused ? 2.5 : 1.4}
+                lineWidth={isFocused ? 3.0 : 1.8}
                 transparent
-                opacity={isFocused ? 0.9 : 0.35}
+                opacity={isFocused ? 0.95 : 0.45}
             />
 
             {Array.from({ length: displayElectrons }).map((_, i) => (
@@ -352,16 +432,17 @@ const OrbitalShell = memo(function OrbitalShell({
                 />
             ))}
 
-            {/* Subtle Shell Marker on ring edge */}
+            {/* Subtle Shell Marker on ring edge with occlusion */}
             <Html
                 position={[radius, 0, 0]}
                 center
                 distanceFactor={7}
+                occlude
             >
                 <div
                     onMouseEnter={() => onHover && onHover(shellIndex)}
                     onMouseLeave={() => onHover && onHover(null)}
-                    className="cursor-pointer select-none px-1.5 py-0.5 rounded-md bg-black/60 border border-white/10 hover:border-primary/50 text-[9px] font-mono text-muted-foreground hover:text-white transition-all backdrop-blur-sm shadow-md"
+                    className="cursor-pointer select-none px-2 py-0.5 rounded-md bg-slate-950/80 border border-white/15 hover:border-primary/60 text-[9px] font-mono text-slate-300 hover:text-white transition-all backdrop-blur-md shadow-lg"
                     title={`Shell ${shellName} (n=${shellIndex + 1}): ${electronCount} electrons`}
                 >
                     {shellName}:{electronCount}e⁻
@@ -442,37 +523,40 @@ const AtomScene = memo(function AtomScene({
     });
 
     return (
-        <group ref={groupRef} scale={0}>
-            {/* Dynamic Core Lights */}
-            <pointLight position={[0, 0, 0]} intensity={2.0} color={color} distance={15} decay={2} />
-            <pointLight position={[0, 3, 3]} intensity={0.8} color="#ffffff" distance={10} />
+        <Float speed={1.2} rotationIntensity={0.06} floatIntensity={0.1}>
+            <group ref={groupRef} scale={0}>
+                {/* Radiant Core Luminescence & Dynamic Field Illumination */}
+                <pointLight position={[0, 0, 0]} intensity={4.0} color={color} distance={25} decay={1.8} />
+                <pointLight position={[0, 4, 3]} intensity={1.2} color="#ffffff" distance={15} decay={2} />
+                <pointLight position={[0, -3, -4]} intensity={1.5} color={color} distance={15} decay={2} />
 
-            {showOrbitals && <OrbitalClouds electrons={electrons} elementColor={color} />}
+                {showOrbitals && <OrbitalClouds electrons={electrons} elementColor={color} />}
 
-            <Nucleus
-                protons={protons}
-                neutrons={neutrons}
-                color={color}
-                symbol={symbol}
-                showParticles={showParticles}
-            />
-
-            {!showOrbitals && electrons.map((count, i) => (
-                <OrbitalShell
-                    key={i}
-                    radius={1.1 + i * 0.58}
-                    electronCount={count}
-                    shellIndex={i}
+                <Nucleus
+                    protons={protons}
+                    neutrons={neutrons}
                     color={color}
-                    tiltX={orbitalTilts[i % orbitalTilts.length]?.x || Math.PI / 4}
-                    tiltZ={orbitalTilts[i % orbitalTilts.length]?.z || 0}
-                    isPaused={isPaused}
-                    speedMultiplier={animationSpeed}
-                    isFocused={focusedShell === i}
-                    onHover={setFocusedShell}
+                    symbol={symbol}
+                    showParticles={showParticles}
                 />
-            ))}
-        </group>
+
+                {!showOrbitals && electrons.map((count, i) => (
+                    <OrbitalShell
+                        key={i}
+                        radius={1.1 + i * 0.58}
+                        electronCount={count}
+                        shellIndex={i}
+                        color={color}
+                        tiltX={orbitalTilts[i % orbitalTilts.length]?.x || Math.PI / 4}
+                        tiltZ={orbitalTilts[i % orbitalTilts.length]?.z || 0}
+                        isPaused={isPaused}
+                        speedMultiplier={animationSpeed}
+                        isFocused={focusedShell === i}
+                        onHover={setFocusedShell}
+                    />
+                ))}
+            </group>
+        </Float>
     );
 });
 
@@ -508,16 +592,32 @@ export function Atom3D({
             >
                 <CameraPresetController preset={cameraPreset} />
                 
-                {/* Deep Quantum Field Stars & Ambient Energy Sparks */}
-                <Stars radius={90} depth={50} count={600} factor={4} saturation={0} fade speed={0.4} />
-                <Sparkles count={50} scale={14} size={2.5} speed={0.5} opacity={0.6} color={color} />
+                {/* Deep Quantum Field Stars & Multi-Layer Ambient Energy Sparks */}
+                <Stars radius={100} depth={60} count={800} factor={4} saturation={0.6} fade speed={0.4} />
+                <Sparkles count={70} scale={16} size={3.0} speed={0.6} opacity={0.7} color={color} />
+                <Sparkles count={40} scale={24} size={4.5} speed={0.3} opacity={0.4} color="#60a5fa" />
                 
-                {/* 3-Point Studio Lighting */}
-                <ambientLight intensity={0.7} />
-                <directionalLight position={[6, 8, 6]} intensity={1.0} color="#ffffff" />
-                <directionalLight position={[-6, -4, -6]} intensity={0.6} color={color} />
-                <directionalLight position={[0, -8, 0]} intensity={0.3} color="#38bdf8" />
-                <pointLight position={[0, 0, 0]} intensity={1.5} color={color} distance={10} />
+                {/* Professional Multi-Point Studio Lighting Rig */}
+                {/* 1. Studio Ambient Base */}
+                <ambientLight intensity={0.8} color="#f8fafc" />
+                {/* 2. Omnidirectional Hemisphere Light (eliminates pitch-black dead zones from all 360° camera angles) */}
+                <hemisphereLight skyColor="#f8fafc" groundColor="#1e1b4b" intensity={0.9} />
+                {/* 3. Key Directional Light for crisp specular highlights and form definition */}
+                <directionalLight position={[8, 12, 10]} intensity={1.8} color="#ffffff" />
+                {/* 4. Cool Cyan Fill Light (diffuse bounce) */}
+                <directionalLight position={[-10, -6, -8]} intensity={1.1} color="#38bdf8" />
+                {/* 5. Warm Amber Fill Light (ground bounce) */}
+                <directionalLight position={[8, -8, -6]} intensity={0.9} color="#f59e0b" />
+                {/* 6. Dynamic Rim / Backlight (silhouette & orbital shell edge illumination) */}
+                <directionalLight position={[0, 8, -12]} intensity={2.2} color="#818cf8" />
+                {/* 7. Bottom Rim Bounce Light */}
+                <directionalLight position={[0, -10, 4]} intensity={0.8} color="#06b6d4" />
+
+                {/* Ground Radial Energy Halo Stage Pedestal */}
+                <mesh position={[0, -5.5, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                    <ringGeometry args={[1.5, 7.5, 64]} />
+                    <meshBasicMaterial color={color} transparent opacity={0.1} side={THREE.DoubleSide} />
+                </mesh>
 
                 <AtomScene
                     protons={protons}
@@ -556,11 +656,11 @@ export function Atom3D({
                     <EffectComposer multisampling={0} disableNormalPass>
                         <Bloom
                             luminanceThreshold={0.2}
-                            luminanceSmoothing={0.9}
-                            intensity={1.1}
+                            luminanceSmoothing={0.85}
+                            intensity={1.25}
                             mipmapBlur
                         />
-                        <Vignette eskil={false} offset={0.2} darkness={0.6} />
+                        <Vignette eskil={false} offset={0.15} darkness={0.45} />
                     </EffectComposer>
                 )}
             </Canvas>

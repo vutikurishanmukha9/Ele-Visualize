@@ -700,8 +700,13 @@ function VisualStage({
       </div>
 
       {/* Main Full-Viewport Canvas Stage */}
-      <div className="stage-canvas w-full h-full flex-1 relative flex items-center justify-center overflow-hidden">
-        <div className="stage-grid opacity-30 pointer-events-none" />
+      <div
+        className="stage-canvas w-full h-full flex-1 relative flex items-center justify-center overflow-hidden"
+        style={{
+          background: `radial-gradient(circle at 50% 48%, ${stageColor}14 0%, rgba(30, 41, 59, 0.25) 42%, rgba(2, 6, 23, 0.8) 100%)`
+        }}
+      >
+        <div className="stage-grid opacity-35 pointer-events-none" />
 
         <AnimatePresence mode="wait">
           {viewMode === 'atoms' && selectedElement && (
@@ -1311,22 +1316,34 @@ export default function Index() {
   };
 
   const handleGestureDetected = useCallback((gesture: string) => {
-    isHandControlled.current = gesture === 'open';
+    isHandControlled.current = gesture === 'open' || gesture === 'point';
     isFrozen.current = gesture === 'fist';
+    if (gesture === 'victory') {
+      setShowOrbitals(!showOrbitals);
+    }
+  }, [showOrbitals, setShowOrbitals]);
+
+  const handleFreeze = useCallback((frozen: boolean) => {
+    isFrozen.current = frozen;
   }, []);
 
-  const handleHandPosition = useCallback((x: number, y: number) => {
+  const handleHandPosition = useCallback((x: number, y: number, roll?: number) => {
     handPositionX.current = x;
     handPositionY.current = y;
     isHandControlled.current = true;
   }, []);
 
-  const handleSwipe = useCallback((direction: 'left' | 'right') => {
+  const handleSwipe = useCallback((direction: 'left' | 'right' | 'up' | 'down') => {
     const list = viewMode === 'atoms' ? filteredElements : [];
     if (!selectedElement || list.length === 0) return;
     const current = list.findIndex(element => element.atomicNumber === selectedElement.atomicNumber);
-    const nextIndex = direction === 'right' ? (current + 1) % list.length : (current <= 0 ? list.length - 1 : current - 1);
-    selectElement(list[nextIndex]);
+    if (direction === 'right' || direction === 'down') {
+      const nextIndex = (current + 1) % list.length;
+      selectElement(list[nextIndex]);
+    } else if (direction === 'left' || direction === 'up') {
+      const prevIndex = current <= 0 ? list.length - 1 : current - 1;
+      selectElement(list[prevIndex]);
+    }
   }, [filteredElements, selectElement, selectedElement, viewMode]);
 
   const workspaceContent = () => {
@@ -1508,6 +1525,7 @@ export default function Index() {
         onGestureDetected={handleGestureDetected}
         onSwipe={handleSwipe}
         onHandPosition={handleHandPosition}
+        onFreeze={handleFreeze}
       />
     </WorkbenchFrame>
   );

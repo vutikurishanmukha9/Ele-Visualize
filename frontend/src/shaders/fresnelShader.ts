@@ -2,29 +2,29 @@ import * as THREE from 'three';
 
 /**
  * Fresnel Nucleus Shader
- * Creates an Apple-grade glowing sphere with a bright inner core,
- * customizable rim color, and dynamic Fresnel intensity.
+ * Creates a high-fidelity glowing sphere with radiant inner core luminescence,
+ * customizable rim color, and dynamic multi-point Fresnel intensity.
  */
 export const FresnelShader = {
   uniforms: {
     uTime: { value: 0 },
     uColor: { value: new THREE.Color('#f7f8f8') },
     uGlowColor: { value: new THREE.Color('#6366f1') },
-    uFresnelPower: { value: 2.5 },
-    uPulseSpeed: { value: 1.5 },
-    uIntensity: { value: 1.2 },
+    uFresnelPower: { value: 2.2 },
+    uPulseSpeed: { value: 1.8 },
+    uIntensity: { value: 1.6 },
   },
   vertexShader: /* glsl */ `
     varying vec3 vNormal;
-    varying vec3 vPositionWorld;
+    varying vec3 vViewPosition;
     varying vec2 vUv;
 
     void main() {
       vUv = uv;
       vNormal = normalize(normalMatrix * normal);
-      vec4 worldPosition = modelMatrix * vec4(position, 1.0);
-      vPositionWorld = worldPosition.xyz;
-      gl_Position = projectionMatrix * viewMatrix * worldPosition;
+      vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+      vViewPosition = mvPosition.xyz;
+      gl_Position = projectionMatrix * mvPosition;
     }
   `,
   fragmentShader: /* glsl */ `
@@ -36,26 +36,34 @@ export const FresnelShader = {
     uniform float uIntensity;
 
     varying vec3 vNormal;
-    varying vec3 vPositionWorld;
+    varying vec3 vViewPosition;
     varying vec2 vUv;
 
     void main() {
-      vec3 viewDirection = normalize(cameraPosition - vPositionWorld);
-      float fresnel = 1.0 - max(0.0, dot(viewDirection, vNormal));
-      fresnel = pow(fresnel, uFresnelPower);
+      vec3 normal = normalize(vNormal);
+      vec3 viewDirection = normalize(-vViewPosition);
+      float normalDot = max(0.0, dot(viewDirection, normal));
+      float fresnel = 1.0 - normalDot;
+      float rim = pow(fresnel, uFresnelPower);
+      float innerRim = pow(fresnel, uFresnelPower * 0.5);
 
-      float pulse = 0.85 + 0.15 * sin(uTime * uPulseSpeed);
+      // Subtle organic quantum pulse
+      float pulse = 0.9 + 0.1 * sin(uTime * uPulseSpeed);
       
-      vec3 baseColor = mix(uColor, uGlowColor, fresnel * 0.7);
-      vec3 finalColor = baseColor * uIntensity * pulse + (uGlowColor * fresnel * 1.5);
+      // Radiant core + iridescent rim bounce
+      vec3 core = uColor * 0.6;
+      vec3 rimColor = mix(uColor, uGlowColor, 0.6) * rim * 2.2;
+      vec3 innerSheen = uGlowColor * innerRim * 0.8;
+      
+      vec3 finalColor = (core + rimColor + innerSheen) * uIntensity * pulse;
 
-      float alpha = clamp(0.4 + fresnel * 0.6, 0.0, 1.0);
+      float alpha = clamp(0.35 + rim * 0.65, 0.0, 1.0);
       gl_FragColor = vec4(finalColor, alpha);
     }
   `,
 };
 
-export function createFresnelMaterial(color: string, glowColor: string = '#818cf8') {
+export function createFresnelMaterial(color: string, glowColor: string = '#818cf8', intensity: number = 1.6) {
   const mat = new THREE.ShaderMaterial({
     uniforms: THREE.UniformsUtils.clone(FresnelShader.uniforms),
     vertexShader: FresnelShader.vertexShader,
@@ -63,9 +71,10 @@ export function createFresnelMaterial(color: string, glowColor: string = '#818cf
     transparent: true,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
-    side: THREE.DoubleSide,
+    side: THREE.FrontSide,
   });
   mat.uniforms.uColor.value.set(color);
   mat.uniforms.uGlowColor.value.set(glowColor);
+  mat.uniforms.uIntensity.value = intensity;
   return mat;
 }

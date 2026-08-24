@@ -362,7 +362,7 @@
   /* Stage */
   .visual-stage {
     @apply relative flex h-full flex-col overflow-hidden;
-    background-color: var(--color-canvas);
+    background: radial-gradient(circle at 50% 45%, rgba(30, 41, 59, 0.45) 0%, rgba(15, 23, 42, 0.75) 45%, rgba(2, 6, 23, 0.98) 100%);
   }
   .visual-stage.is-fullscreen {
     @apply fixed inset-0 z-[70];
@@ -373,6 +373,17 @@
   }
   .stage-canvas {
     @apply relative flex-1 flex items-center justify-center w-full h-full overflow-hidden;
+    background: radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.08) 0%, rgba(30, 41, 59, 0.15) 35%, transparent 70%);
+  }
+  .stage-grid {
+    @apply absolute inset-0 pointer-events-none;
+    background-image: 
+      radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.14) 0%, transparent 60%),
+      linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    background-size: 100% 100%, 48px 48px, 48px 48px;
+    mask-image: radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.4) 60%, transparent 80%);
+    -webkit-mask-image: radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.4) 60%, transparent 80%);
   }
   .stage-status {
     @apply flex h-10 items-center gap-4 px-4 text-xs;
