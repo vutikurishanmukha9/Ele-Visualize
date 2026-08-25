@@ -235,13 +235,51 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
 
             {/* Periodic Trends Overlay Banner */}
             {showTrendsOverlay && (
-                <div className="px-3 py-1.5 bg-amber-50 border-b border-amber-200 flex flex-wrap items-center justify-between text-[11px] text-amber-900 z-10 gap-2">
+                <div className="px-3 py-1.5 bg-amber-50 border-b border-amber-200 flex flex-wrap items-center justify-between text-[11px] text-amber-900 z-10 gap-2 font-mono">
                     <span className="flex items-center gap-1.5 font-bold">
                         <TrendingUp className="w-3.5 h-3.5 text-amber-600" /> Periodic Law Vectors:
                     </span>
                     <span>↗ <strong>Electronegativity & Ionization:</strong> Increases Left → Right & Bottom → Top</span>
                     <span>↙ <strong>Atomic Radius:</strong> Increases Right → Left & Top → Bottom</span>
                     <span>↘ <strong>Metallic Character:</strong> Increases toward bottom-left (Fr)</span>
+                </div>
+            )}
+
+            {/* Dynamic Heatmap Spectrum Legend Bar */}
+            {heatmapMode !== 'category' && (
+                <div className="px-4 py-1.5 bg-white/95 border-b border-slate-200 flex flex-wrap items-center justify-between text-[11px] font-mono text-slate-700 z-10 gap-2 backdrop-blur-md">
+                    <div className="flex items-center gap-2">
+                        <span className="font-bold uppercase text-[#087f5b] text-[10px]">
+                            {heatmapMode === 'electronegativity' && 'Pauling Electronegativity (χ):'}
+                            {heatmapMode === 'ionization' && '1st Ionization Energy:'}
+                            {heatmapMode === 'radius' && 'Calculated Atomic Radius:'}
+                            {heatmapMode === 'density' && 'Room-Temp Density:'}
+                        </span>
+                        <span className="text-[10px] text-slate-500">
+                            {heatmapMode === 'electronegativity' && '0.79 (Fr) → 3.98 (F)'}
+                            {heatmapMode === 'ionization' && '375.7 kJ/mol (Cs) → 2372.3 kJ/mol (He)'}
+                            {heatmapMode === 'radius' && '31 pm (He) → 298 pm (Cs)'}
+                            {heatmapMode === 'density' && '0.089 g/L (H) → 22.59 g/cm³ (Os)'}
+                        </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-slate-500">Low</span>
+                        <div
+                            className="w-32 sm:w-48 h-2 rounded-full border border-black/10"
+                            style={{
+                                background:
+                                    heatmapMode === 'electronegativity'
+                                        ? 'linear-gradient(to right, hsl(210, 85%, 50%), hsl(280, 85%, 50%), hsl(350, 85%, 50%))'
+                                        : heatmapMode === 'ionization'
+                                        ? 'linear-gradient(to right, hsl(180, 80%, 45%), hsl(260, 80%, 45%), hsl(340, 85%, 50%))'
+                                        : heatmapMode === 'radius'
+                                        ? 'linear-gradient(to right, hsl(140, 80%, 45%), hsl(60, 85%, 45%), hsl(15, 85%, 50%))'
+                                        : 'linear-gradient(to right, hsl(35, 90%, 45%), hsl(160, 90%, 45%), hsl(315, 90%, 45%))',
+                            }}
+                        />
+                        <span className="text-[10px] font-bold text-slate-900">High</span>
+                    </div>
                 </div>
             )}
 

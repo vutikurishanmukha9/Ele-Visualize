@@ -158,39 +158,39 @@ export const LibraryManager = memo(function LibraryManager({
                         {filteredCurriculum.map((mod) => (
                             <div
                                 key={mod.id}
-                                className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between space-y-3 hover:border-sky-300 transition-all group"
+                                className="p-4 rounded-2xl bg-white/95 border border-black/[0.06] shadow-card flex flex-col justify-between space-y-3 hover:border-[#16a875]/40 hover:shadow-elevated transition-all group"
                             >
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-start gap-2">
-                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200">
+                                        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#e6f6ef] text-[#087f5b] border border-[#bce8d5]">
                                             {mod.category}
                                         </span>
-                                        <span className="text-[9px] text-slate-400 uppercase font-mono">{mod.level}</span>
+                                        <span className="text-[9.5px] text-slate-400 uppercase font-mono font-bold tracking-wider">{mod.level}</span>
                                     </div>
 
-                                    <h3 className="font-extrabold text-sm text-slate-900 group-hover:text-sky-700 transition-colors">
+                                    <h3 className="font-extrabold text-sm text-slate-900 group-hover:text-[#087f5b] transition-colors">
                                         {mod.title}
                                     </h3>
 
-                                    <p className="text-xs text-slate-600 leading-relaxed">
+                                    <p className="text-xs text-slate-600 leading-relaxed font-sans">
                                         {mod.description}
                                     </p>
 
                                     {/* Objectives */}
-                                    <div className="space-y-1 pt-1 border-t border-slate-100">
-                                        <span className="text-[9px] text-slate-400 uppercase font-bold">Key Objectives:</span>
+                                    <div className="space-y-1 pt-2 border-t border-slate-100 font-sans">
+                                        <span className="text-[9px] text-slate-400 uppercase font-bold tracking-wider font-mono">Key Objectives:</span>
                                         {mod.objectives.map((obj, i) => (
-                                            <div key={i} className="text-[10px] text-slate-600 flex items-start gap-1">
-                                                <span className="text-sky-600">•</span>
+                                            <div key={i} className="text-[10.5px] text-slate-600 flex items-start gap-1.5">
+                                                <span className="text-[#16a875] font-bold">•</span>
                                                 <span>{obj}</span>
                                             </div>
                                         ))}
                                     </div>
 
                                     {/* Concept Tags */}
-                                    <div className="flex flex-wrap gap-1 pt-1">
+                                    <div className="flex flex-wrap gap-1 pt-1 font-mono">
                                         {mod.keyConcepts.map((k) => (
-                                            <span key={k} className="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
+                                            <span key={k} className="text-[9px] bg-slate-100/90 text-slate-600 px-2 py-0.5 rounded-md border border-slate-200/60 font-semibold">
                                                 #{k}
                                             </span>
                                         ))}
@@ -199,7 +199,7 @@ export const LibraryManager = memo(function LibraryManager({
 
                                 <button
                                     onClick={() => handleLaunchCurriculum(mod)}
-                                    className="w-full py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all shadow-sm"
+                                    className="w-full py-2 bg-[#16a875] hover:bg-[#087f5b] active:scale-[0.99] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-emerald"
                                 >
                                     <span>Launch Interactive Module</span>
                                     <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />

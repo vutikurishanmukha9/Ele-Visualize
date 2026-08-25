@@ -130,14 +130,27 @@ function DecayScene({
       ]);
     }
 
-    // Update particle positions
+    // Update particle positions with electromagnetic deflection
     setParticles((prev) =>
       prev
-        .map((p) => ({
-          ...p,
-          pos: p.pos.clone().add(p.vel.clone().multiplyScalar(delta)),
-          life: p.life - delta * 0.4,
-        }))
+        .map((p) => {
+          const deflection =
+            p.type === 'alpha'
+              ? new THREE.Vector3(0, delta * 0.35, 0)
+              : p.type === 'beta-minus'
+              ? new THREE.Vector3(-delta * 1.8, 0, 0)
+              : p.type === 'beta-plus'
+              ? new THREE.Vector3(delta * 1.8, 0, 0)
+              : new THREE.Vector3(0, 0, 0);
+
+          const newVel = p.vel.clone().add(deflection);
+          return {
+            ...p,
+            vel: newVel,
+            pos: p.pos.clone().add(newVel.clone().multiplyScalar(delta)),
+            life: p.life - delta * 0.4,
+          };
+        })
         .filter((p) => p.life > 0)
     );
   });

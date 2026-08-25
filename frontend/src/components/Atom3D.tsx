@@ -529,7 +529,7 @@ const OrbitalShell = memo(function OrbitalShell({
                 ))}
             </group>
 
-            {/* Subtle Shell Marker on ring edge with occlusion */}
+            {/* Interactive Shell Marker on ring edge with occlusion */}
             <Html
                 position={[radius, 0, 0]}
                 center
@@ -540,14 +540,15 @@ const OrbitalShell = memo(function OrbitalShell({
                     onMouseEnter={() => onHover && onHover(shellIndex)}
                     onMouseLeave={() => onHover && onHover(null)}
                     className={cn(
-                        "cursor-pointer select-none px-2 py-0.5 rounded-full border text-[9px] font-mono transition-all backdrop-blur-md shadow-xs font-semibold",
+                        "cursor-pointer select-none px-2.5 py-1 rounded-full border text-[10px] font-mono transition-all backdrop-blur-md shadow-xs font-semibold flex items-center gap-1.5",
                         isFocused
-                            ? "bg-[#16a875] text-white border-[#16a875] scale-105 shadow-sm"
-                            : "bg-white/90 border-slate-200/80 text-slate-600 hover:border-[#16a875] hover:text-[#16a875]"
+                            ? "bg-[#16a875] text-white border-[#16a875] scale-110 shadow-emerald"
+                            : "bg-white/95 border-slate-200/90 text-slate-700 hover:border-[#16a875] hover:text-[#16a875]"
                     )}
-                    title={`Shell ${shellName} (n=${shellIndex + 1}): ${electronCount} electrons`}
                 >
-                    {shellName}:{electronCount}e⁻
+                    <span className="font-extrabold">{shellName}</span>
+                    <span className="text-[9px] opacity-80 font-normal">n={shellIndex + 1}</span>
+                    <span className="bg-black/10 px-1 rounded text-[9px] font-bold">{electronCount}e⁻</span>
                 </div>
             </Html>
         </group>

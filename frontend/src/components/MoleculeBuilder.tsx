@@ -99,9 +99,10 @@ const LiveMolecule3D = memo(function LiveMolecule3D({
     return (
         <div className="w-full h-44 rounded-xl bg-slate-100/90 border border-slate-200 overflow-hidden relative shadow-inner">
             <Canvas camera={{ position: [0, 0, 9], fov: 45 }}>
-                <ambientLight intensity={0.9} />
-                <pointLight position={[10, 10, 10]} intensity={1.4} color="#ffffff" />
-                <pointLight position={[-10, -10, -10]} intensity={0.6} color="#38bdf8" />
+                <ambientLight intensity={0.9} color="#f8fafc" />
+                <directionalLight position={[10, 10, 10]} intensity={1.6} color="#ffffff" />
+                <directionalLight position={[-10, -10, -10]} intensity={0.8} color="#38bdf8" />
+                <directionalLight position={[0, -8, 4]} intensity={0.6} color="#f59e0b" />
                 <OrbitControls autoRotate autoRotateSpeed={1.8} />
 
                 {/* 3D Atoms */}
@@ -114,8 +115,18 @@ const LiveMolecule3D = memo(function LiveMolecule3D({
 
                     return (
                         <group key={atom.id} position={[cx, cy, cz]}>
-                            <Sphere args={[radius, 20, 20]}>
-                                <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.25} roughness={0.15} metalness={0.2} />
+                            <Sphere args={[radius, 24, 24]}>
+                                <meshPhysicalMaterial
+                                    color={color}
+                                    emissive={color}
+                                    emissiveIntensity={0.35}
+                                    roughness={0.06}
+                                    metalness={0.25}
+                                    transmission={0.6}
+                                    ior={1.75}
+                                    thickness={0.8}
+                                    clearcoat={1.0}
+                                />
                             </Sphere>
                         </group>
                     );
@@ -134,14 +145,14 @@ const LiveMolecule3D = memo(function LiveMolecule3D({
 
                     return (
                         <group key={bond.id} position={mid}>
-                            <Cylinder args={[0.08, 0.08, length, 12]} rotation={[0, 0, Math.atan2(p2.y - p1.y, p2.x - p1.x) - Math.PI / 2]}>
-                                <meshStandardMaterial color="#cbd5e1" metalness={0.4} roughness={0.3} />
+                            <Cylinder args={[0.06, 0.06, length, 16]} rotation={[0, 0, Math.atan2(p2.y - p1.y, p2.x - p1.x) - Math.PI / 2]}>
+                                <meshStandardMaterial color="#94a3b8" metalness={0.7} roughness={0.2} />
                             </Cylinder>
                         </group>
                     );
                 })}
             </Canvas>
-            <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-white/90 border border-slate-200 text-[9px] font-mono text-slate-700 font-bold backdrop-blur-xs">
+            <div className="absolute top-2 left-2 px-2.5 py-0.5 rounded-full bg-white/90 border border-slate-200 text-[9px] font-mono text-slate-800 font-bold backdrop-blur-xs shadow-2xs">
                 Real-time 3D Ball & Stick Preview
             </div>
         </div>

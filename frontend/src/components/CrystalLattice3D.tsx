@@ -251,6 +251,7 @@ function LatticeScene({
   sphereScale,
   showBonds,
   showUnitCellBox,
+  showMillerPlane = false,
 }: {
   type: LatticeType;
   repeat: number;
@@ -258,6 +259,7 @@ function LatticeScene({
   sphereScale: number;
   showBonds: boolean;
   showUnitCellBox: boolean;
+  showMillerPlane?: boolean;
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const { atoms, bonds } = useMemo(() => generateLatticeSites(type, repeat, preset), [type, repeat, preset]);
@@ -275,6 +277,21 @@ function LatticeScene({
         <mesh>
           <boxGeometry args={[1.6 * repeat, 1.6 * repeat, 1.6 * repeat]} />
           <meshBasicMaterial color="#16a875" wireframe transparent opacity={0.3} />
+        </mesh>
+      )}
+
+      {/* Miller Indices (111) Translucent Close-Packed Slice Plane */}
+      {showMillerPlane && (
+        <mesh rotation={[Math.PI / 4, Math.PI / 4, 0]}>
+          <planeGeometry args={[2.2 * repeat, 2.2 * repeat]} />
+          <meshPhysicalMaterial
+            color="#38bdf8"
+            transparent
+            opacity={0.35}
+            side={THREE.DoubleSide}
+            roughness={0.1}
+            transmission={0.7}
+          />
         </mesh>
       )}
 
@@ -316,6 +333,7 @@ export function CrystalLattice3D({ onClose }: { onClose?: () => void } = {}) {
   const [sphereScale, setSphereScale] = useState<number>(1.0);
   const [showBonds, setShowBonds] = useState<boolean>(true);
   const [showUnitCellBox, setShowUnitCellBox] = useState<boolean>(true);
+  const [showMillerPlane, setShowMillerPlane] = useState<boolean>(false);
 
   const activePreset = useMemo(
     () => LATTICE_PRESETS.find((p) => p.id === selectedType) || LATTICE_PRESETS[0],
@@ -354,6 +372,7 @@ export function CrystalLattice3D({ onClose }: { onClose?: () => void } = {}) {
             sphereScale={sphereScale}
             showBonds={showBonds}
             showUnitCellBox={showUnitCellBox}
+            showMillerPlane={showMillerPlane}
           />
 
           <OrbitControls enableDamping dampingFactor={0.06} minDistance={2} maxDistance={20} />
@@ -374,14 +393,14 @@ export function CrystalLattice3D({ onClose }: { onClose?: () => void } = {}) {
         </div>
 
         {/* Quick View Controls */}
-        <div className="absolute bottom-4 left-4 flex items-center gap-2">
+        <div className="absolute bottom-4 left-4 flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setShowBonds(!showBonds)}
             className={`px-2.5 py-1 text-xs rounded-lg font-mono font-bold border transition-all ${
               showBonds ? 'bg-[#e6f6ef] border-[#bce8d5] text-[#087f5b]' : 'bg-white border-slate-200 text-slate-600'
             }`}
           >
-            Strut Bonds: {showBonds ? 'ON' : 'OFF'}
+            Bonds: {showBonds ? 'ON' : 'OFF'}
           </button>
           <button
             onClick={() => setShowUnitCellBox(!showUnitCellBox)}
@@ -389,7 +408,15 @@ export function CrystalLattice3D({ onClose }: { onClose?: () => void } = {}) {
               showUnitCellBox ? 'bg-[#e6f6ef] border-[#bce8d5] text-[#087f5b]' : 'bg-white border-slate-200 text-slate-600'
             }`}
           >
-            Unit Cell Box: {showUnitCellBox ? 'ON' : 'OFF'}
+            Box: {showUnitCellBox ? 'ON' : 'OFF'}
+          </button>
+          <button
+            onClick={() => setShowMillerPlane(!showMillerPlane)}
+            className={`px-2.5 py-1 text-xs rounded-lg font-mono font-bold border transition-all ${
+              showMillerPlane ? 'bg-[#e0f2fe] border-[#7dd3fc] text-[#0369a1]' : 'bg-white border-slate-200 text-slate-600'
+            }`}
+          >
+            (111) Plane: {showMillerPlane ? 'ON' : 'OFF'}
           </button>
         </div>
       </div>

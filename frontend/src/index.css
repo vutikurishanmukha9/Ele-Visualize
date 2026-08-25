@@ -326,5 +326,34 @@ html, body {
   .mobile-dock button {
     @apply flex flex-col items-center justify-center gap-1 flex-1 py-1.5 text-[10px] font-mono font-semibold text-slate-600 active:text-[#16a875] hover:text-slate-900 transition-all active:scale-95 select-none;
   }
+
+  /* Sub-Micron Precision Laboratory Matrix Background */
+  .matrix-grid-bg {
+    background-color: #f8faf8;
+    background-image: 
+      linear-gradient(to right, rgba(20, 35, 30, 0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(20, 35, 30, 0.04) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  /* Glassmorphism Sheen & Aura */
+  .glass-card-interactive {
+    @apply bg-white/90 border border-black/[0.06] rounded-2xl shadow-card transition-all duration-200 hover:shadow-elevated hover:border-[#16a875]/40 hover:-translate-y-0.5;
+  }
+
+  .glow-badge {
+    @apply px-2.5 py-1 rounded-full text-xs font-mono font-bold border transition-all;
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.04);
+  }
 }
 

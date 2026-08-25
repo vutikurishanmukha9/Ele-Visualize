@@ -159,10 +159,12 @@ const CollisionChamber = memo(function CollisionChamber({
     reactants,
     temperatureK,
     isReacting,
+    isExothermic = true,
 }: {
     reactants: string[];
     temperatureK: number;
     isReacting: boolean;
+    isExothermic?: boolean;
 }) {
     return (
         <div className="w-full h-44 rounded-xl overflow-hidden border border-slate-200 shadow-inner relative select-none bg-slate-900/5 cursor-grab active:cursor-grabbing">
@@ -181,6 +183,14 @@ const CollisionChamber = memo(function CollisionChamber({
                 <directionalLight position={[6, 10, 8]} intensity={1.6} color="#ffffff" />
                 <directionalLight position={[-6, -4, -6]} intensity={0.8} color="#38bdf8" />
                 <directionalLight position={[0, -8, 4]} intensity={0.6} color="#f59e0b" />
+                {isReacting && (
+                    <pointLight
+                        position={[0, 0, 0]}
+                        intensity={isExothermic ? 4.5 : 3.0}
+                        color={isExothermic ? '#f59e0b' : '#38bdf8'}
+                        distance={8}
+                    />
+                )}
 
                 <CollisionScene3D
                     reactants={reactants}
@@ -191,7 +201,8 @@ const CollisionChamber = memo(function CollisionChamber({
                 <OrbitControls enableZoom={false} enablePan={false} autoRotate autoRotateSpeed={1.5} />
             </Canvas>
 
-            <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-white/90 border border-slate-200 text-[10px] font-mono text-slate-800 font-bold backdrop-blur-xs shadow-2xs">
+            <div className="absolute top-2 left-2 px-2.5 py-0.5 rounded-full bg-white/90 border border-slate-200 text-[10px] font-mono text-slate-800 font-bold backdrop-blur-xs shadow-2xs flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#16a875] animate-pulse" />
                 3D Kinetic Chamber • v_rms: {calculateMolecularVelocity(18, temperatureK)} m/s
             </div>
         </div>
@@ -362,6 +373,7 @@ export const ReactionSimulator = memo(function ReactionSimulator({ onClose }: Re
                         reactants={selectedElements}
                         temperatureK={reactionTempK}
                         isReacting={isReacting}
+                        isExothermic={thermo ? thermo.deltaH < 0 : true}
                     />
 
                     {currentReaction && thermo ? (

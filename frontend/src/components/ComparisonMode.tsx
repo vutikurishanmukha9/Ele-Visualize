@@ -155,14 +155,18 @@ const TelemetryDeltaRow = memo(function TelemetryDeltaRow({
     const p1 = val1 ? Math.min((val1 / max) * 100, 100) : 0;
     const p2 = val2 ? Math.min((val2 / max) * 100, 100) : 0;
     const diff = val1 !== null && val2 !== null ? val1 - val2 : null;
+    const percentDiff = val1 !== null && val2 !== null && val2 !== 0 ? ((val1 - val2) / val2) * 100 : null;
 
     return (
         <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 font-mono text-xs space-y-1">
             <div className="flex justify-between items-center text-[10px] text-slate-500">
                 <span className="uppercase font-semibold">{label}</span>
                 {diff !== null && (
-                    <span className={diff > 0 ? 'text-sky-700 font-bold' : diff < 0 ? 'text-amber-700 font-bold' : 'text-slate-500'}>
+                    <span className={diff > 0 ? 'text-[#087f5b] font-bold' : diff < 0 ? 'text-amber-700 font-bold' : 'text-slate-500'}>
                         Δ {diff > 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2)} {unit}
+                        {percentDiff !== null && Math.abs(percentDiff) < 1000 && (
+                            <span className="ml-1 opacity-80">({percentDiff > 0 ? `+${percentDiff.toFixed(1)}%` : `${percentDiff.toFixed(1)}%`})</span>
+                        )}
                     </span>
                 )}
             </div>
