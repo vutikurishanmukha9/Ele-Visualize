@@ -22,6 +22,16 @@ interface Particle3D {
 }
 
 // Interactive 3D Kinetic Collision Chamber Scene
+const REACTANT_PARTICLE_COLORS: Record<string, string> = {
+    H: '#38bdf8',
+    O: '#ef4444',
+    C: '#334155',
+    Na: '#eab308',
+    Cl: '#10b981',
+    N: '#8b5cf6',
+    Fe: '#f97316',
+};
+
 function CollisionScene3D({
     reactants,
     temperatureK,
@@ -32,15 +42,6 @@ function CollisionScene3D({
     isReacting: boolean;
 }) {
     const boxSize = 2.4;
-    const colors: Record<string, string> = {
-        H: '#38bdf8',
-        O: '#ef4444',
-        C: '#334155',
-        Na: '#eab308',
-        Cl: '#10b981',
-        N: '#8b5cf6',
-        Fe: '#f97316',
-    };
 
     // Initialize 14 bouncing reactant particles in 3D Euclidean space
     const particles = useRef<Particle3D[]>([]);
@@ -49,7 +50,6 @@ function CollisionScene3D({
     useEffect(() => {
         const count = 14;
         const pts: Particle3D[] = [];
-        const speedScale = Math.sqrt(temperatureK / 298) * 1.5;
 
         for (let i = 0; i < count; i++) {
             const sym = reactants[i % (reactants.length || 1)] || 'H';
@@ -61,11 +61,11 @@ function CollisionScene3D({
                     (Math.random() - 0.5) * (boxSize * 1.6)
                 ),
                 vel: new THREE.Vector3(
-                    (Math.random() - 0.5) * speedScale,
-                    (Math.random() - 0.5) * speedScale,
-                    (Math.random() - 0.5) * speedScale
+                    (Math.random() - 0.5) * 1.5,
+                    (Math.random() - 0.5) * 1.5,
+                    (Math.random() - 0.5) * 1.5
                 ),
-                color: colors[sym] || '#0284c7',
+                color: REACTANT_PARTICLE_COLORS[sym] || '#0284c7',
                 symbol: sym,
                 radius: 0.16,
             });

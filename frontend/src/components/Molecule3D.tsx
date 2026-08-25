@@ -200,7 +200,7 @@ export function Molecule3D({
     molecule,
     zoom = 1,
     autoRotate = false,
-    enableBloom = true,
+    enableBloom: _enableBloom = true,
     spaceFilling = false
 }: Molecule3DProps) {
     return (

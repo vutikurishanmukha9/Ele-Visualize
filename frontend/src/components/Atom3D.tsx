@@ -675,7 +675,7 @@ export function Atom3D({
     protons, neutrons, electrons, color, symbol,
     zoom = 1,
     showOrbitals = false, showNucleusDetail = false, animationSpeed = 1, isPaused = false,
-    autoRotate = false, enableBloom = true,
+    autoRotate = false, enableBloom: _enableBloom = true,
     cameraPreset = '3d', onSelectShell
 }: Atom3DProps) {
     const [focusedShell, setFocusedShell] = useState<number | null>(null);

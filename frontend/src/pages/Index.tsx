@@ -172,33 +172,40 @@ function TopBar({
   };
 
   return (
-    <header className="workbench-topbar">
+    <header className="workbench-topbar gap-2 sm:gap-4">
       {/* Brand logo & editorial title */}
-      <button className="flex min-w-0 items-center gap-3 text-left transition-transform hover:scale-[1.01]" onClick={handleHome}>
-        <div className="w-9 h-9 rounded-xl bg-[#e6f6ef] border border-[#bce8d5] flex items-center justify-center text-[#16a875] shadow-xs">
-          <Atom className="h-5 w-5 animate-[spin_12s_linear_infinite]" />
+      <button className="flex min-w-0 items-center gap-2 sm:gap-3 text-left transition-transform hover:scale-[1.01] shrink-0" onClick={handleHome}>
+        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#e6f6ef] border border-[#bce8d5] flex items-center justify-center text-[#16a875] shadow-xs shrink-0">
+          <Atom className="h-4 w-4 sm:h-5 sm:w-5 animate-[spin_12s_linear_infinite]" />
         </div>
         <div className="min-w-0">
-          <div className="font-serif text-lg font-bold tracking-tight text-slate-900 leading-tight">
+          <div className="font-serif text-base sm:text-lg font-bold tracking-tight text-slate-900 leading-tight truncate">
             Ele-visualize
           </div>
-          <div className="hidden truncate text-xs text-slate-500 sm:block font-normal">
+          <div className="hidden truncate text-xs text-slate-500 md:block font-normal">
             Visualize the building blocks of the universe.
           </div>
         </div>
       </button>
 
-      {/* Pill Search Input */}
-      <button className="command-trigger group" onClick={() => setCommandOpen(!commandOpen)}>
-        <Search className="h-4 w-4 text-slate-400 group-hover:text-[#16a875] transition-colors" />
-        <span className="truncate flex-1 text-slate-500 font-normal">
+      {/* Pill Search Input (Desktop/Tablet) & Quick Search Button (Mobile) */}
+      <button className="command-trigger group hidden sm:flex" onClick={() => setCommandOpen(!commandOpen)}>
+        <Search className="h-4 w-4 text-slate-400 group-hover:text-[#16a875] transition-colors shrink-0" />
+        <span className="truncate flex-1 text-slate-500 font-normal text-xs">
           Search elements, molecules, or commands...
         </span>
         <span className="hidden rounded-md bg-slate-100 border border-slate-200 px-1.5 py-0.5 text-[10px] text-slate-500 font-mono md:inline">/</span>
       </button>
 
       {/* Right Action Icons & Emerald Save Session Button */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 sm:gap-2 ml-auto shrink-0">
+        <button
+          className="icon-button sm:hidden"
+          onClick={() => setCommandOpen(!commandOpen)}
+          title="Search (/)"
+        >
+          <Search className="h-4 w-4 text-slate-600" />
+        </button>
         <button
           className="icon-button"
           onClick={() => audioEngine.toggleMute()}
@@ -207,22 +214,23 @@ function TopBar({
           <Sun className="h-4 w-4 text-slate-600" />
         </button>
         <button
-          className="icon-button"
+          className="icon-button hidden sm:inline-flex"
           onClick={onOpenShortcuts}
           title="Keyboard Shortcuts (?)"
         >
           <Keyboard className="h-4 w-4 text-slate-600" />
         </button>
-        <div className="w-8 h-8 rounded-full bg-[#e6f6ef] text-[#16a875] border border-[#bce8d5] font-bold text-xs flex items-center justify-center select-none shadow-xs">
+        <div className="hidden md:flex w-8 h-8 rounded-full bg-[#e6f6ef] text-[#16a875] border border-[#bce8d5] font-bold text-xs items-center justify-center select-none shadow-xs">
           E
         </div>
         <button
-          className="emerald-button ml-1"
+          className="emerald-button ml-0.5 sm:ml-1 px-3 sm:px-4 py-1.5 sm:py-2 text-xs"
           onClick={onSave}
           disabled={saveState === 'saving'}
+          title="Save Session"
         >
           <Save className="h-3.5 w-3.5 text-white" />
-          <span>{saveState === 'saving' ? 'Saving...' : saveState === 'saved' ? 'Saved ✓' : 'Save Session'}</span>
+          <span className="hidden xs:inline sm:inline">{saveState === 'saving' ? 'Saving...' : saveState === 'saved' ? 'Saved ✓' : 'Save'}</span>
         </button>
       </div>
     </header>
@@ -1447,6 +1455,24 @@ export default function Index() {
     sessionApi.list().then(setSavedSessions).catch(() => setSavedSessions([]));
   }, [setSavedSessions]);
 
+  const selectElement = useCallback((element: ChemicalElement) => {
+    audioEngine.playElementChime(element.atomicNumber);
+    setSelectedElement(element);
+    setSelectedMolecule(null);
+    setViewMode('atoms');
+    addRecentItem(`element:${element.atomicNumber}`);
+    sendProductEvent({ type: 'presence', workspaceMode });
+  }, [addRecentItem, setSelectedElement, setSelectedMolecule, setViewMode, workspaceMode]);
+
+  const selectMolecule = useCallback((molecule: Molecule) => {
+    audioEngine.playBondingChord();
+    setSelectedMolecule(molecule);
+    setSelectedElement(null);
+    setViewMode('molecules');
+    addRecentItem(`molecule:${molecule.formula}`);
+    sendProductEvent({ type: 'molecule_selected', formula: molecule.formula });
+  }, [addRecentItem, setSelectedElement, setSelectedMolecule, setViewMode]);
+
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
@@ -1481,7 +1507,7 @@ export default function Index() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [setWorkspaceMode, toggleZenMode, togglePaused, setShowOrbitals, showOrbitals, selectedElement]);
+  }, [setWorkspaceMode, toggleZenMode, togglePaused, setShowOrbitals, showOrbitals, selectedElement, selectElement]);
 
   const query = searchQuery.toLowerCase();
   const filteredElements = useMemo(() => elements.filter((element) => {
@@ -1496,24 +1522,6 @@ export default function Index() {
 
   const compareElement1 = useMemo(() => elements.find(element => element.atomicNumber === comparisonBasket[0]) || null, [comparisonBasket]);
   const compareElement2 = useMemo(() => elements.find(element => element.atomicNumber === comparisonBasket[1]) || null, [comparisonBasket]);
-
-  const selectElement = useCallback((element: ChemicalElement) => {
-    audioEngine.playElementChime(element.atomicNumber);
-    setSelectedElement(element);
-    setSelectedMolecule(null);
-    setViewMode('atoms');
-    addRecentItem(`element:${element.atomicNumber}`);
-    sendProductEvent({ type: 'presence', workspaceMode });
-  }, [addRecentItem, setSelectedElement, setSelectedMolecule, setViewMode, workspaceMode]);
-
-  const selectMolecule = useCallback((molecule: Molecule) => {
-    audioEngine.playBondingChord();
-    setSelectedMolecule(molecule);
-    setSelectedElement(null);
-    setViewMode('molecules');
-    addRecentItem(`molecule:${molecule.formula}`);
-    sendProductEvent({ type: 'molecule_selected', formula: molecule.formula });
-  }, [addRecentItem, setSelectedElement, setSelectedMolecule, setViewMode]);
 
   const addCompare = (element: ChemicalElement) => {
     addToComparisonBasket(element.atomicNumber);
