@@ -1,4 +1,5 @@
 /**
+/**
  * App Store — Centralized state management with Zustand
  *
  * Holds all shared UI/application state that was previously scattered
@@ -7,7 +8,7 @@
  */
 
 import { create } from 'zustand';
-import { ChemicalElement, ElementCategory } from '@/data/elements';
+import { ChemicalElement, ElementCategory, elements } from '@/data/elements';
 import { Molecule } from '@/data/molecules';
 
 export type MainViewMode = '3d' | 'grid' | 'compare' | 'reaction' | 'builder';
@@ -59,6 +60,7 @@ interface AppState {
     sidebarOpen: boolean;
     isMobile: boolean;
     zenMode: boolean;
+    mobileDrawer: 'none' | 'discovery' | 'inspector';
 
     // Animation
     zoomLevel: number;
@@ -107,7 +109,7 @@ interface AppState {
 
 export const useAppStore = create<AppState>((set) => ({
     // Initial state
-    selectedElement: null,
+    selectedElement: elements[0] || null,
     selectedMolecule: null,
     compareElement1: null,
     compareElement2: null,
