@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, memo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Sphere } from '@react-three/drei';
 import * as THREE from 'three';
-import { Layers, Box } from 'lucide-react';
+import { Layers, Box, X } from 'lucide-react';
 import { audioEngine } from '@/lib/audioEngine';
 
 export type LatticeType = 'sc' | 'bcc' | 'fcc' | 'diamond' | 'hcp' | 'nacl';
@@ -310,7 +310,7 @@ function LatticeScene({
   );
 }
 
-export function CrystalLattice3D() {
+export function CrystalLattice3D({ onClose }: { onClose?: () => void } = {}) {
   const [selectedType, setSelectedType] = useState<LatticeType>('fcc');
   const [repeat, setRepeat] = useState<number>(1);
   const [sphereScale, setSphereScale] = useState<number>(1.0);
@@ -396,12 +396,22 @@ export function CrystalLattice3D() {
 
       {/* Right Control & Science Dashboard */}
       <div className="w-full md:w-88 p-5 flex flex-col gap-4 overflow-y-auto bg-white/90 backdrop-blur-md">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#087f5b] uppercase tracking-wider mb-1">
-            <Layers className="w-4 h-4 text-[#16a875]" /> Crystal Lattice & Unit Cells
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#087f5b] uppercase tracking-wider mb-1">
+              <Layers className="w-4 h-4 text-[#16a875]" /> Crystal Lattice & Unit Cells
+            </div>
+            <h1 className="text-lg font-serif font-bold text-slate-900">Solid State Physics Lab</h1>
+            <p className="text-xs text-slate-500 mt-0.5">Explore 3D Bravais lattice unit cells and packing fractions.</p>
           </div>
-          <h1 className="text-lg font-serif font-bold text-slate-900">Solid State Physics Lab</h1>
-          <p className="text-xs text-slate-500 mt-0.5">Explore 3D Bravais lattice unit cells, atomic packing fractions, and coordination geometries.</p>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         {/* Lattice Type Selector */}

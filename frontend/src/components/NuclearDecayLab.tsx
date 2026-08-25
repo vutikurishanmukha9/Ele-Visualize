@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Sphere, Html } from '@react-three/drei';
 import * as THREE from 'three';
-import { Radio, Activity, Shield, Play, Pause } from 'lucide-react';
+import { Radio, Activity, Shield, Play, Pause, X } from 'lucide-react';
 import { audioEngine } from '@/lib/audioEngine';
 
 export type DecayMode = 'alpha' | 'beta-minus' | 'beta-plus' | 'gamma';
@@ -217,7 +217,7 @@ function DecayScene({
   );
 }
 
-export function NuclearDecayLab() {
+export function NuclearDecayLab({ onClose }: { onClose?: () => void } = {}) {
   const [selectedIsotope, setSelectedIsotope] = useState<string>('U-238');
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const [elapsedHalfLives, setElapsedHalfLives] = useState<number>(1.0);
@@ -303,12 +303,22 @@ export function NuclearDecayLab() {
 
       {/* Right Control & Physics Inspector */}
       <div className="w-full md:w-88 p-5 flex flex-col gap-4 overflow-y-auto bg-white/90 backdrop-blur-md">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#087f5b] uppercase tracking-wider mb-1">
-            <Radio className="w-4 h-4 text-[#16a875]" /> Nuclear Physics & Radiation
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#087f5b] uppercase tracking-wider mb-1">
+              <Radio className="w-4 h-4 text-[#16a875]" /> Nuclear Physics & Radiation
+            </div>
+            <h1 className="text-lg font-serif font-bold text-slate-900">Radioactivity & Decay Chains</h1>
+            <p className="text-xs text-slate-500 mt-0.5">Explore Alpha, Beta, and Gamma emissions.</p>
           </div>
-          <h1 className="text-lg font-serif font-bold text-slate-900">Radioactivity & Decay Chains</h1>
-          <p className="text-xs text-slate-500 mt-0.5">Explore Alpha, Beta, and Gamma quantum emissions and exponential half-life laws.</p>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         {/* Isotope Selection */}

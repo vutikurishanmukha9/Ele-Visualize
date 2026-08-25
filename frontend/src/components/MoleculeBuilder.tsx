@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo, memo } from 'react';
-import { Atom, Wand2, Trash2, Check, AlertTriangle } from 'lucide-react';
+import { Atom, Wand2, Trash2, Check, AlertTriangle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { audioEngine } from '@/lib/audioEngine';
 import { Canvas } from '@react-three/fiber';

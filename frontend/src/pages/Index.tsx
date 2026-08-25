@@ -1586,8 +1586,8 @@ export default function Index() {
     }
     if (workspaceMode === 'reactions') return <ReactionSimulator onClose={() => setWorkspaceMode('explore')} />;
     if (workspaceMode === 'builder') return <MoleculeBuilder onClose={() => setWorkspaceMode('explore')} />;
-    if (workspaceMode === 'decay') return <NuclearDecayLab />;
-    if (workspaceMode === 'lattice') return <CrystalLattice3D />;
+    if (workspaceMode === 'decay') return <NuclearDecayLab onClose={() => setWorkspaceMode('explore')} />;
+    if (workspaceMode === 'lattice') return <CrystalLattice3D onClose={() => setWorkspaceMode('explore')} />;
     if (workspaceMode === 'library') return <LibraryManager sessions={savedSessions} onOpen={openSession} onDelete={deleteSession} />;
     return (
       <VisualStage
