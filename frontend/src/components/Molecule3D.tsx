@@ -1,7 +1,6 @@
 import { useRef, useMemo, useEffect, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Sphere, Cylinder, Html, Float, Sparkles } from '@react-three/drei';
-import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { Molecule, Atom } from '@/data/molecules';
@@ -255,19 +254,6 @@ export function Molecule3D({
                     autoRotate={autoRotate}
                     autoRotateSpeed={1.0}
                 />
-
-                {/* Photometric Bloom & Subtle Vignette */}
-                {enableBloom && (
-                    <EffectComposer multisampling={0} disableNormalPass>
-                        <Bloom
-                            luminanceThreshold={0.75}
-                            luminanceSmoothing={0.3}
-                            intensity={0.45}
-                            mipmapBlur
-                        />
-                        <Vignette eskil={false} offset={0.12} darkness={0.06} />
-                    </EffectComposer>
-                )}
             </Canvas>
         </div>
     );
