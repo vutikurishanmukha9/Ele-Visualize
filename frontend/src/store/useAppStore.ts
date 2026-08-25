@@ -72,6 +72,7 @@ interface AppState {
     setSelectedMolecule: (mol: Molecule | null) => void;
     setCompareElement1: (el: ChemicalElement | null) => void;
     setCompareElement2: (el: ChemicalElement | null) => void;
+    setComparisonSlot: (slot: 1 | 2, el: ChemicalElement | null) => void;
 
     // Actions — view modes
     setMainViewMode: (mode: MainViewMode) => void;
@@ -111,8 +112,8 @@ export const useAppStore = create<AppState>((set) => ({
     // Initial state
     selectedElement: elements[0] || null,
     selectedMolecule: null,
-    compareElement1: null,
-    compareElement2: null,
+    compareElement1: elements[0] || null, // Hydrogen
+    compareElement2: elements[5] || null, // Carbon
 
     mainViewMode: '3d',
     workspaceMode: 'explore',
@@ -123,7 +124,7 @@ export const useAppStore = create<AppState>((set) => ({
     inspectorTab: 'overview',
     recentItems: [],
     savedSessions: [],
-    comparisonBasket: [],
+    comparisonBasket: [1, 6],
     uiDensity: 'comfortable',
 
     isDarkMode: true,
@@ -144,6 +145,7 @@ export const useAppStore = create<AppState>((set) => ({
     setSelectedMolecule: (mol) => set({ selectedMolecule: mol }),
     setCompareElement1: (el) => set({ compareElement1: el }),
     setCompareElement2: (el) => set({ compareElement2: el }),
+    setComparisonSlot: (slot, el) => set(slot === 1 ? { compareElement1: el } : { compareElement2: el }),
 
     setMainViewMode: (mode) => set({ mainViewMode: mode }),
     setWorkspaceMode: (mode) => set({ workspaceMode: mode }),

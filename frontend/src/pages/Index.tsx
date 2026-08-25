@@ -1348,6 +1348,7 @@ export default function Index() {
     addToComparisonBasket,
     removeSavedSession,
     setComparisonBasket,
+    setComparisonSlot,
     setIsMobile,
     setMainViewMode,
     setMobileDrawer,
@@ -1602,7 +1603,13 @@ export default function Index() {
       );
     }
     if (workspaceMode === 'compare') {
-      return <ComparisonMode element1={compareElement1} element2={compareElement2} onRemoveElement={(slot) => setComparisonBasket(slot === 1 ? comparisonBasket.slice(1) : comparisonBasket.slice(0, 1))} />;
+      return (
+        <ComparisonMode
+          element1={compareElement1}
+          element2={compareElement2}
+          onRemoveElement={(slot) => setComparisonSlot(slot, null)}
+        />
+      );
     }
     if (workspaceMode === 'reactions') return <ReactionSimulator onClose={() => setWorkspaceMode('explore')} />;
     if (workspaceMode === 'builder') return <MoleculeBuilder onClose={() => setWorkspaceMode('explore')} />;
