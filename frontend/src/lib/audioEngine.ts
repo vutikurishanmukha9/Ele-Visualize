@@ -183,6 +183,31 @@ class AudioEngine {
       this.thermalGain.gain.linearRampToValueAtTime(0, now + 0.2);
     }
   }
+
+  /**
+   * Authentic radioactive Geiger counter acoustic pop
+   */
+  public playGeigerClick() {
+    if (!this.initContext() || !this.ctx || !this.masterGain || this.muted) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    // Sharp noise-like impulse click
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(1400 + Math.random() * 800, now);
+    osc.frequency.exponentialRampToValueAtTime(80, now + 0.008);
+
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.012);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(now);
+    osc.stop(now + 0.015);
+  }
 }
 
 export const audioEngine = new AudioEngine();

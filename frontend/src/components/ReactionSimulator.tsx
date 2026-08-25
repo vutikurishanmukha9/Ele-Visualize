@@ -4,11 +4,157 @@ import { elements, getCategoryColor } from '@/data/elements';
 import { Zap, X, Activity, Thermometer, Flame, Scale } from 'lucide-react';
 import { audioEngine } from '@/lib/audioEngine';
 
+import { Canvas, useFrame } from '@react-three/fiber';
+import { OrbitControls, Sphere, Html, Line } from '@react-three/drei';
+import * as THREE from 'three';
+
 interface ReactionSimulatorProps {
     onClose?: () => void;
 }
 
-// Interactive 2D/3D Particle Collision Chamber Canvas
+interface Particle3D {
+    id: number;
+    pos: THREE.Vector3;
+    vel: THREE.Vector3;
+    color: string;
+    symbol: string;
+    radius: number;
+}
+
+// Interactive 3D Kinetic Collision Chamber Scene
+function CollisionScene3D({
+    reactants,
+    temperatureK,
+    isReacting,
+}: {
+    reactants: string[];
+    temperatureK: number;
+    isReacting: boolean;
+}) {
+    const boxSize = 2.4;
+    const colors: Record<string, string> = {
+        H: '#38bdf8',
+        O: '#ef4444',
+        C: '#334155',
+        Na: '#eab308',
+        Cl: '#10b981',
+        N: '#8b5cf6',
+        Fe: '#f97316',
+    };
+
+    // Initialize 14 bouncing reactant particles in 3D Euclidean space
+    const particles = useRef<Particle3D[]>([]);
+    const [bonds, setBonds] = useState<[THREE.Vector3, THREE.Vector3][]>([]);
+
+    useEffect(() => {
+        const count = 14;
+        const pts: Particle3D[] = [];
+        const speedScale = Math.sqrt(temperatureK / 298) * 1.5;
+
+        for (let i = 0; i < count; i++) {
+            const sym = reactants[i % (reactants.length || 1)] || 'H';
+            pts.push({
+                id: i,
+                pos: new THREE.Vector3(
+                    (Math.random() - 0.5) * (boxSize * 1.6),
+                    (Math.random() - 0.5) * (boxSize * 1.6),
+                    (Math.random() - 0.5) * (boxSize * 1.6)
+                ),
+                vel: new THREE.Vector3(
+                    (Math.random() - 0.5) * speedScale,
+                    (Math.random() - 0.5) * speedScale,
+                    (Math.random() - 0.5) * speedScale
+                ),
+                color: colors[sym] || '#0284c7',
+                symbol: sym,
+                radius: 0.16,
+            });
+        }
+        particles.current = pts;
+    }, [reactants]);
+
+    useFrame((_, delta) => {
+        const speedMultiplier = Math.sqrt(temperatureK / 298);
+        const bound = boxSize * 0.9;
+        const currentBonds: [THREE.Vector3, THREE.Vector3][] = [];
+
+        particles.current.forEach((p, idx) => {
+            p.pos.addScaledVector(p.vel, delta * speedMultiplier * 1.2);
+
+            // Bounding box reflections
+            if (p.pos.x < -bound || p.pos.x > bound) {
+                p.vel.x *= -1;
+                p.pos.x = Math.max(-bound, Math.min(bound, p.pos.x));
+            }
+            if (p.pos.y < -bound || p.pos.y > bound) {
+                p.vel.y *= -1;
+                p.pos.y = Math.max(-bound, Math.min(bound, p.pos.y));
+            }
+            if (p.pos.z < -bound || p.pos.z > bound) {
+                p.vel.z *= -1;
+                p.pos.z = Math.max(-bound, Math.min(bound, p.pos.z));
+            }
+
+            // Proximity interaction bonds
+            for (let j = idx + 1; j < particles.current.length; j++) {
+                const p2 = particles.current[j];
+                const dist = p.pos.distanceTo(p2.pos);
+                if (dist < (isReacting ? 1.2 : 0.65)) {
+                    currentBonds.push([p.pos.clone(), p2.pos.clone()]);
+                }
+            }
+        });
+
+        setBonds(currentBonds.slice(0, 12));
+    });
+
+    return (
+        <group>
+            {/* 3D Containment Chamber Wireframe */}
+            <mesh>
+                <boxGeometry args={[boxSize * 2, boxSize * 2, boxSize * 2]} />
+                <meshBasicMaterial color={isReacting ? '#f59e0b' : '#38bdf8'} wireframe transparent opacity={0.35} />
+            </mesh>
+
+            {/* Reactive Collision Snap Lines */}
+            {bonds.map(([start, end], idx) => (
+                <Line
+                    key={idx}
+                    points={[start, end]}
+                    color={isReacting ? '#f59e0b' : '#38bdf8'}
+                    lineWidth={isReacting ? 2.2 : 1.0}
+                    transparent
+                    opacity={isReacting ? 0.9 : 0.4}
+                />
+            ))}
+
+            {/* Reactant Gemstone Spheres */}
+            {particles.current.map((p) => (
+                <group key={p.id} position={p.pos}>
+                    <Sphere args={[p.radius, 20, 20]}>
+                        <meshPhysicalMaterial
+                            color={p.color}
+                            emissive={p.color}
+                            emissiveIntensity={isReacting ? 0.9 : 0.45}
+                            roughness={0.06}
+                            metalness={0.2}
+                            transmission={0.65}
+                            ior={1.75}
+                            thickness={0.8}
+                            clearcoat={1.0}
+                        />
+                    </Sphere>
+                    <Html center distanceFactor={4} occlude>
+                        <div className="font-mono font-bold text-white text-[9px] pointer-events-none select-none drop-shadow-sm">
+                            {p.symbol}
+                        </div>
+                    </Html>
+                </group>
+            ))}
+        </group>
+    );
+}
+
 const CollisionChamber = memo(function CollisionChamber({
     reactants,
     temperatureK,
@@ -18,120 +164,35 @@ const CollisionChamber = memo(function CollisionChamber({
     temperatureK: number;
     isReacting: boolean;
 }) {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        let animId: number;
-        const width = (canvas.width = canvas.parentElement?.clientWidth || 400);
-        const height = (canvas.height = 160);
-
-        // Particle speed scaling
-        const speedScale = Math.sqrt(temperatureK / 298) * 2.2;
-
-        interface Particle {
-            x: number;
-            y: number;
-            vx: number;
-            vy: number;
-            radius: number;
-            color: string;
-            symbol: string;
-        }
-
-        const colors: Record<string, string> = { H: '#38bdf8', O: '#ef4444', C: '#334155', Na: '#eab308', Cl: '#10b981', N: '#8b5cf6', Fe: '#f97316' };
-
-        const particles: Particle[] = [];
-        const count = 16;
-        for (let i = 0; i < count; i++) {
-            const sym = reactants[i % (reactants.length || 1)] || 'H';
-            particles.push({
-                x: Math.random() * (width - 40) + 20,
-                y: Math.random() * (height - 40) + 20,
-                vx: (Math.random() - 0.5) * speedScale,
-                vy: (Math.random() - 0.5) * speedScale,
-                radius: 9,
-                color: colors[sym] || '#0284c7',
-                symbol: sym,
-            });
-        }
-
-        const render = () => {
-            ctx.clearRect(0, 0, width, height);
-
-            // Container background
-            ctx.fillStyle = isReacting ? 'rgba(254, 243, 199, 0.6)' : 'rgba(241, 245, 249, 0.9)';
-            ctx.fillRect(0, 0, width, height);
-
-            // Draw chamber grid
-            ctx.strokeStyle = '#e2e8f0';
-            ctx.lineWidth = 1;
-            for (let x = 0; x < width; x += 30) {
-                ctx.beginPath();
-                ctx.moveTo(x, 0);
-                ctx.lineTo(x, height);
-                ctx.stroke();
-            }
-
-            // Update & draw particles
-            particles.forEach((p, idx) => {
-                p.x += p.vx;
-                p.y += p.vy;
-
-                // Bounce walls
-                if (p.x < p.radius || p.x > width - p.radius) p.vx *= -1;
-                if (p.y < p.radius || p.y > height - p.radius) p.vy *= -1;
-
-                // Particle glow
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-                ctx.fillStyle = p.color;
-                ctx.shadowColor = p.color;
-                ctx.shadowBlur = isReacting ? 14 : 4;
-                ctx.fill();
-                ctx.shadowBlur = 0;
-
-                // Text label
-                ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 8px monospace';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(p.symbol, p.x, p.y);
-
-                // Collision flash connecting lines
-                for (let j = idx + 1; j < particles.length; j++) {
-                    const p2 = particles[j];
-                    const dx = p.x - p2.x;
-                    const dy = p.y - p2.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist < 32) {
-                        ctx.beginPath();
-                        ctx.moveTo(p.x, p.y);
-                        ctx.lineTo(p2.x, p2.y);
-                        ctx.strokeStyle = isReacting ? '#f59e0b' : 'rgba(2, 132, 199, 0.4)';
-                        ctx.lineWidth = isReacting ? 2.5 : 1;
-                        ctx.stroke();
-                    }
-                }
-            });
-
-            animId = requestAnimationFrame(render);
-        };
-
-        render();
-
-        return () => cancelAnimationFrame(animId);
-    }, [reactants, temperatureK, isReacting]);
-
     return (
-        <div className="rounded-xl overflow-hidden border border-slate-200 shadow-inner relative">
-            <canvas ref={canvasRef} className="w-full h-36 block" />
-            <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-white/90 border border-slate-200 text-[9px] font-mono text-slate-700 font-bold backdrop-blur-xs">
-                Kinetic Collision Chamber • v_rms: {calculateMolecularVelocity(18, temperatureK)} m/s
+        <div className="w-full h-44 rounded-xl overflow-hidden border border-slate-200 shadow-inner relative select-none bg-slate-900/5 cursor-grab active:cursor-grabbing">
+            <Canvas
+                camera={{ position: [0, 2.2, 5.2], fov: 45, near: 0.1, far: 50 }}
+                gl={{
+                    antialias: true,
+                    alpha: true,
+                    powerPreference: 'high-performance',
+                    toneMapping: THREE.ACESFilmicToneMapping,
+                    toneMappingExposure: 1.05,
+                }}
+                dpr={[1.5, 2.5]}
+            >
+                <ambientLight intensity={0.9} color="#f8fafc" />
+                <directionalLight position={[6, 10, 8]} intensity={1.6} color="#ffffff" />
+                <directionalLight position={[-6, -4, -6]} intensity={0.8} color="#38bdf8" />
+                <directionalLight position={[0, -8, 4]} intensity={0.6} color="#f59e0b" />
+
+                <CollisionScene3D
+                    reactants={reactants}
+                    temperatureK={temperatureK}
+                    isReacting={isReacting}
+                />
+
+                <OrbitControls enableZoom={false} enablePan={false} autoRotate autoRotateSpeed={1.5} />
+            </Canvas>
+
+            <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-white/90 border border-slate-200 text-[10px] font-mono text-slate-800 font-bold backdrop-blur-xs shadow-2xs">
+                3D Kinetic Chamber • v_rms: {calculateMolecularVelocity(18, temperatureK)} m/s
             </div>
         </div>
     );

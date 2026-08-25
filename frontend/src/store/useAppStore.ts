@@ -12,7 +12,7 @@ import { Molecule } from '@/data/molecules';
 
 export type MainViewMode = '3d' | 'grid' | 'compare' | 'reaction' | 'builder';
 export type SidebarViewMode = 'atoms' | 'molecules';
-export type WorkspaceMode = 'explore' | 'table' | 'compare' | 'reactions' | 'builder' | 'lab' | 'library';
+export type WorkspaceMode = 'explore' | 'table' | 'compare' | 'reactions' | 'builder' | 'decay' | 'lattice' | 'lab' | 'library';
 export type InspectorTab = 'overview' | 'properties' | 'learning' | 'actions';
 export type UIDensity = 'comfortable' | 'compact';
 

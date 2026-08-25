@@ -9,12 +9,13 @@ import {
   FlaskConical,
   GitCompare,
   Grid3X3,
-  Hand,
-  HelpCircle,
   Info,
   Library,
   Maximize2,
   Minimize2,
+  Radio,
+  Layers,
+  Keyboard,
   RotateCcw,
   Save,
   Search,
@@ -26,6 +27,9 @@ import {
 import { Atom3D, CameraPreset } from '@/components/Atom3D';
 import { BohrModel3D } from '@/components/BohrModel3D';
 import { ComparisonMode } from '@/components/ComparisonMode';
+import { CrystalLattice3D } from '@/components/CrystalLattice3D';
+import { NuclearDecayLab } from '@/components/NuclearDecayLab';
+import { ShortcutsModal } from '@/components/ShortcutsModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Molecule3D } from '@/components/Molecule3D';
 import { MoleculeBuilder } from '@/components/MoleculeBuilder';
@@ -50,7 +54,8 @@ const workspaces: { id: WorkspaceMode; label: string; icon: typeof Atom }[] = [
   { id: 'compare', label: 'Compare', icon: GitCompare },
   { id: 'reactions', label: 'Reactions', icon: Zap },
   { id: 'builder', label: 'Builder', icon: Boxes },
-  { id: 'lab', label: 'AR Lab', icon: Hand },
+  { id: 'decay', label: 'Nuclear Decay', icon: Radio },
+  { id: 'lattice', label: 'Crystal Lattice', icon: Layers },
   { id: 'library', label: 'Library', icon: Library },
 ];
 
@@ -144,9 +149,11 @@ function WorkbenchFrame({ children }: ShellProps) {
 function TopBar({
   onSave,
   saveState,
+  onOpenShortcuts,
 }: {
   onSave: () => void;
   saveState: 'idle' | 'saving' | 'saved' | 'error';
+  onOpenShortcuts: () => void;
 }) {
   const {
     commandOpen,
@@ -195,12 +202,16 @@ function TopBar({
         <button
           className="icon-button"
           onClick={() => audioEngine.toggleMute()}
-          title={audioEngine.isMuted() ? "Unmute Audio" : "Mute Audio"}
+          title={audioEngine.isMuted() ? "Unmute Audio (M)" : "Mute Audio (M)"}
         >
           <Sun className="h-4 w-4 text-slate-600" />
         </button>
-        <button className="icon-button" title="Help & Information">
-          <HelpCircle className="h-4 w-4 text-slate-600" />
+        <button
+          className="icon-button"
+          onClick={onOpenShortcuts}
+          title="Keyboard Shortcuts (?)"
+        >
+          <Keyboard className="h-4 w-4 text-slate-600" />
         </button>
         <div className="w-8 h-8 rounded-full bg-[#e6f6ef] text-[#16a875] border border-[#bce8d5] font-bold text-xs flex items-center justify-center select-none shadow-xs">
           E
@@ -230,6 +241,8 @@ function WorkspaceNav() {
       compare: 'compare',
       reactions: 'reaction',
       builder: 'builder',
+      decay: '3d',
+      lattice: '3d',
       lab: '3d',
       library: '3d',
     };
@@ -1318,7 +1331,6 @@ export default function Index() {
     setIsMobile,
     setMainViewMode,
     setMobileDrawer,
-    setSavedSessions,
     setSelectedElement,
     setSelectedMolecule,
     setShowOrbitals,
@@ -1330,6 +1342,7 @@ export default function Index() {
   } = useAppStore();
 
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   // Dynamic Column Resizing & Width States
   const [leftWidth, setLeftWidth] = useState<number>(() => {
@@ -1420,7 +1433,7 @@ export default function Index() {
 
   useEffect(() => {
     const checkMobile = () => {
-      const mobile = window.innerWidth < 820;
+      const mobile = window.innerWidth < 1024;
       setIsMobile(mobile);
       setSidebarOpen(!mobile);
     };
@@ -1436,20 +1449,38 @@ export default function Index() {
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
-      if (event.key === 'g') setWorkspaceMode('table');
-      if (event.key === 'c') setWorkspaceMode('compare');
-      if (event.key === 'b') setWorkspaceMode('builder');
-      if (event.key === 'r') setWorkspaceMode('reactions');
-      if (event.key === 'z' || event.key === 'm') toggleZenMode();
+      if (event.key === '?') {
+        event.preventDefault();
+        setShortcutsOpen((prev) => !prev);
+      }
+      if (event.key === 'e' || event.key === 'E') setWorkspaceMode('explore');
+      if (event.key === 't' || event.key === 'T') setWorkspaceMode('table');
+      if (event.key === 'c' || event.key === 'C') setWorkspaceMode('compare');
+      if (event.key === 'r' || event.key === 'R') setWorkspaceMode('reactions');
+      if (event.key === 'b' || event.key === 'B') setWorkspaceMode('builder');
+      if (event.key === 'd' || event.key === 'D') setWorkspaceMode('decay');
+      if (event.key === 'l' || event.key === 'L') setWorkspaceMode('lattice');
+      if (event.key === 'z' || event.key === 'Z') toggleZenMode();
+      if (event.key === 'm' || event.key === 'M') audioEngine.toggleMute();
       if (event.key === ' ') {
         event.preventDefault();
         togglePaused();
       }
-      if (event.key === 'o') setShowOrbitals(!showOrbitals);
+      if (event.key === 'o' || event.key === 'O') setShowOrbitals(!showOrbitals);
+      if (event.key === '[') {
+        const currentZ = selectedElement?.atomicNumber || 1;
+        const prevEl = elements.find((e) => e.atomicNumber === Math.max(1, currentZ - 1));
+        if (prevEl) selectElement(prevEl);
+      }
+      if (event.key === ']') {
+        const currentZ = selectedElement?.atomicNumber || 1;
+        const nextEl = elements.find((e) => e.atomicNumber === Math.min(118, currentZ + 1));
+        if (nextEl) selectElement(nextEl);
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [setWorkspaceMode, toggleZenMode, togglePaused, setShowOrbitals, showOrbitals]);
+  }, [setWorkspaceMode, toggleZenMode, togglePaused, setShowOrbitals, showOrbitals, selectedElement]);
 
   const query = searchQuery.toLowerCase();
   const filteredElements = useMemo(() => elements.filter((element) => {
@@ -1554,6 +1585,8 @@ export default function Index() {
     }
     if (workspaceMode === 'reactions') return <ReactionSimulator onClose={() => setWorkspaceMode('explore')} />;
     if (workspaceMode === 'builder') return <MoleculeBuilder onClose={() => setWorkspaceMode('explore')} />;
+    if (workspaceMode === 'decay') return <NuclearDecayLab />;
+    if (workspaceMode === 'lattice') return <CrystalLattice3D />;
     if (workspaceMode === 'library') return <LibraryManager sessions={savedSessions} onOpen={openSession} onDelete={deleteSession} />;
     return (
       <VisualStage
@@ -1566,7 +1599,9 @@ export default function Index() {
 
   return (
     <WorkbenchFrame>
-      <TopBar onSave={saveSession} saveState={saveState} />
+      <TopBar onSave={saveSession} saveState={saveState} onOpenShortcuts={() => setShortcutsOpen(true)} />
+
+      <ShortcutsModal isOpen={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
 
       <CommandPalette
         filteredElements={filteredElements}
