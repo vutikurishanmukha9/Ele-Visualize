@@ -4,6 +4,7 @@ import { SavedSession, useAppStore } from '@/store/useAppStore';
 import { elements } from '@/data/elements';
 import { BookOpen, GraduationCap, ArrowRight, Save, Trash2, Download, Upload, FileText, Search } from 'lucide-react';
 import { audioEngine } from '@/lib/audioEngine';
+import { TiltCard } from './ui/TiltCard';
 
 interface LibraryManagerProps {
     sessions: SavedSession[];
@@ -156,9 +157,10 @@ export const LibraryManager = memo(function LibraryManager({
                     {/* Modules Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                         {filteredCurriculum.map((mod) => (
-                            <div
+                            <TiltCard
                                 key={mod.id}
-                                className="p-4 rounded-2xl bg-white/95 border border-black/[0.06] shadow-card flex flex-col justify-between space-y-3 hover:border-[#16a875]/40 hover:shadow-elevated transition-all group"
+                                maxTilt={5}
+                                cardClassName="p-4 rounded-2xl bg-white/95 border border-black/[0.06] shadow-card flex flex-col justify-between space-y-3 hover:border-[#16a875]/40 hover:shadow-elevated transition-all group h-full"
                             >
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-start gap-2">
@@ -204,7 +206,7 @@ export const LibraryManager = memo(function LibraryManager({
                                     <span>Launch Interactive Module</span>
                                     <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                                 </button>
-                            </div>
+                            </TiltCard>
                         ))}
                     </div>
                 </div>

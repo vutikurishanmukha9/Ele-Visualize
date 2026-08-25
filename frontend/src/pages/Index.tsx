@@ -48,6 +48,8 @@ import { sessionApi } from '@/lib/sessions';
 import { audioEngine } from '@/lib/audioEngine';
 import { SavedSession, WorkspaceMode, useAppStore } from '@/store/useAppStore';
 
+import { ShimmerText } from '@/components/ui/ShimmerText';
+
 const workspaces: { id: WorkspaceMode; label: string; icon: typeof Atom }[] = [
   { id: 'explore', label: 'Explore', icon: Atom },
   { id: 'table', label: 'Table', icon: Grid3X3 },
@@ -180,7 +182,7 @@ function TopBar({
         </div>
         <div className="min-w-0">
           <div className="font-serif text-base sm:text-lg font-bold tracking-tight text-slate-900 leading-tight truncate">
-            Ele-visualize
+            <ShimmerText shimmerColor="rgba(22, 168, 117, 0.7)">Ele-visualize</ShimmerText>
           </div>
           <div className="hidden truncate text-xs text-slate-500 md:block font-normal">
             Visualize the building blocks of the universe.
@@ -260,16 +262,26 @@ function WorkspaceNav() {
 
   return (
     <nav className="workspace-nav">
-      {workspaces.map(({ id, label, icon: Icon }) => (
-        <button
-          key={id}
-          onClick={() => selectWorkspace(id)}
-          className={cn('workspace-tab', workspaceMode === id && 'is-active')}
-        >
-          <Icon className="h-3.5 w-3.5" />
-          <span>{label}</span>
-        </button>
-      ))}
+      {workspaces.map(({ id, label, icon: Icon }) => {
+        const isActive = workspaceMode === id;
+        return (
+          <button
+            key={id}
+            onClick={() => selectWorkspace(id)}
+            className={cn('workspace-tab relative', isActive && 'is-active')}
+          >
+            {isActive && (
+              <motion.div
+                layoutId="activeWorkspacePill"
+                className="absolute inset-0 bg-[#e6f6ef] border border-[#bce8d5] rounded-lg -z-10 shadow-xs"
+                transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+              />
+            )}
+            <Icon className="h-3.5 w-3.5 z-10" />
+            <span className="z-10">{label}</span>
+          </button>
+        );
+      })}
     </nav>
   );
 }

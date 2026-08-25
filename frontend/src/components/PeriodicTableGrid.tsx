@@ -8,6 +8,7 @@ import { SpectroscopyBar } from './SpectroscopyBar';
 import { ThermalScrubber } from './ThermalScrubber';
 import { useAppStore } from '@/store/useAppStore';
 import { audioEngine } from '@/lib/audioEngine';
+import { TiltCard } from './ui/TiltCard';
 
 interface PeriodicTableGridProps {
     selectedElement: ChemicalElement | null;
@@ -410,7 +411,11 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
 
                     {/* Active Hovered Element Card */}
                     {activeDisplayElement && (
-                        <div className="p-4 rounded-2xl bg-white/90 border border-black/[0.06] space-y-3 shadow-card md:col-span-2 lg:col-span-1">
+                        <TiltCard
+                            maxTilt={5}
+                            className="md:col-span-2 lg:col-span-1"
+                            cardClassName="p-4 rounded-2xl bg-white/90 border border-black/[0.06] space-y-3 shadow-card"
+                        >
                             <div className="flex items-start justify-between">
                                 <div>
                                     <div className="text-[10px] text-slate-400 uppercase tracking-wider font-mono font-semibold">Active Target</div>
@@ -434,7 +439,7 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                             </div>
 
                             {/* Quick Action Dispatch Buttons */}
-                            <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-slate-100">
+                            <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-slate-100 font-mono">
                                 <button
                                     onClick={() => handleQuickAction('compare', activeDisplayElement)}
                                     className="px-2 py-1.5 bg-[#e6f6ef] hover:bg-[#d8f2e6] border border-[#bce8d5] rounded-xl text-[10px] font-bold text-[#087f5b] flex items-center justify-center gap-1 transition-colors"
@@ -457,7 +462,7 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
 
                             {/* Spectroscopy Real-Time Footprint */}
                             <SpectroscopyBar element={activeDisplayElement} />
-                        </div>
+                        </TiltCard>
                     )}
                 </div>
             </div>

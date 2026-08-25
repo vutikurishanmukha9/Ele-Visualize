@@ -344,6 +344,62 @@ html, body {
   .glow-badge {
     @apply px-2.5 py-1 rounded-full text-xs font-mono font-bold border transition-all;
   }
+
+  /* ==================== TRANSITIONS.DEV & BEUI MOTION TOKENS ==================== */
+  .t-tilt {
+    touch-action: none;
+  }
+  .t-tilt-card {
+    position: relative;
+    border-radius: 16px;
+    transform: perspective(var(--tilt-perspective, 1000px)) rotateX(var(--tilt-rx, 0deg)) rotateY(var(--tilt-ry, 0deg));
+    transform-style: preserve-3d;
+    transition: transform 1000ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform;
+  }
+  .t-tilt-card.is-tilting {
+    transition: transform 400ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .t-tilt-glare {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    opacity: 0;
+    mix-blend-mode: screen;
+    background:
+      radial-gradient(circle 120px at var(--tilt-gx, 50%) var(--tilt-gy, 50%),
+        rgba(255,255,255,0.42), rgba(255,255,255,0.06) 52%, rgba(255,255,255,0) 84%),
+      radial-gradient(circle 240px at var(--tilt-gx, 50%) var(--tilt-gy, 50%),
+        rgba(255,255,255,0.18), rgba(255,255,255,0.04) 58%, rgba(255,255,255,0) 78%);
+    transition: opacity 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .t-tilt.is-hover .t-tilt-glare {
+    opacity: var(--tilt-glare-opacity, 0.35);
+  }
+
+  /* Shimmer Text */
+  .t-shimmer-text {
+    background: linear-gradient(
+      90deg,
+      currentColor 0%,
+      var(--shimmer-color, rgba(22, 168, 117, 0.6)) 50%,
+      currentColor 100%
+    );
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmerSweep var(--shimmer-duration, 3.5s) linear infinite;
+  }
+}
+
+@keyframes shimmerSweep {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 @keyframes pulseGlow {
@@ -356,4 +412,5 @@ html, body {
     transform: scale(1.04);
   }
 }
+
 
