@@ -1,4 +1,4 @@
-import { memo, useState } from 'react';
+import { memo, useState, useMemo } from 'react';
 import { CURRICULUM_MODULES, CurriculumModule } from '@/data/curriculum';
 import { SavedSession, useAppStore } from '@/store/useAppStore';
 import { elements } from '@/data/elements';
