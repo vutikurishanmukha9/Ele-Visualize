@@ -32,7 +32,7 @@ interface Atom3DProps {
 // Shell letter names according to Bohr quantum numbers n=1..7
 const SHELL_NAMES = ['K', 'L', 'M', 'N', 'O', 'P', 'Q'];
 
-const ORBIT_POINTS = 80;
+const ORBIT_POINTS = 160;
 
 // Scientific Laboratory Glowing Core with Subsurface Attenuation and Chromatic Fresnel Refraction
 const GlowingSphere = memo(function GlowingSphere({
@@ -55,7 +55,7 @@ const GlowingSphere = memo(function GlowingSphere({
     return (
         <group position={position}>
             {/* High-Refraction Optical Quartz Core with Subsurface Light Attenuation */}
-            <Sphere args={[size * 0.96, 32, 32]}>
+            <Sphere args={[size * 0.96, 48, 48]}>
                 <meshPhysicalMaterial
                     color={color}
                     emissive={color}
@@ -76,7 +76,7 @@ const GlowingSphere = memo(function GlowingSphere({
                 />
             </Sphere>
             {/* Delicate Spectral Fresnel Atmosphere */}
-            <Sphere args={[size * 1.04, 32, 32]} material={fresnelMat} />
+            <Sphere args={[size * 1.04, 48, 48]} material={fresnelMat} />
         </group>
     );
 });
@@ -322,7 +322,7 @@ const Nucleus = memo(function Nucleus({ protons, neutrons, color, symbol, showPa
                         <Sphere
                             key={i}
                             ref={(el) => { particleMeshesRef.current[i] = el; }}
-                            args={[0.13, 24, 24]}
+                            args={[0.13, 32, 32]}
                             position={[p.pos.x, p.pos.y, p.pos.z]}
                         >
                             {/* Rich Optical Gemstone Materials with Subsurface Light Attenuation */}
@@ -509,7 +509,7 @@ const OrbitalShell = memo(function OrbitalShell({
                         key={idx}
                         position={[Math.cos(angle) * radius, 0, Math.sin(angle) * radius]}
                     >
-                        <Sphere args={[isFocused ? 0.11 : isValence ? 0.088 : 0.076, 24, 24]}>
+                        <Sphere args={[isFocused ? 0.11 : isValence ? 0.088 : 0.076, 32, 32]}>
                             <meshPhysicalMaterial
                                 color={isFocused ? '#ffffff' : isValence ? valenceColor : color}
                                 emissive={isFocused ? '#ffffff' : isValence ? '#d97706' : color}
@@ -700,7 +700,7 @@ export function Atom3D({
                     toneMappingExposure: 1.05
                 }}
                 style={{ background: 'transparent' }}
-                dpr={[1, 2]}
+                dpr={[1.5, 3]}
             >
                 <CameraPresetController preset={cameraPreset} />
                 

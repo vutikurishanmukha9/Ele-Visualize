@@ -24,6 +24,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { Atom3D, CameraPreset } from '@/components/Atom3D';
+import { BohrModel3D } from '@/components/BohrModel3D';
 import { ComparisonMode } from '@/components/ComparisonMode';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Molecule3D } from '@/components/Molecule3D';
@@ -124,44 +125,6 @@ const formatTemp = (kelvin: number | null | undefined, unit: 'C' | 'K' | 'F' = '
   if (unit === 'F') return `${Math.round((kelvin - 273.15) * 9/5 + 32)} °F`;
   return `${Math.round(kelvin - 273.15)} °C`;
 };
-
-// Animated 2D Bohr Model SVG Widget with Light Porcelain Theme
-function BohrModel2D({ shells, color, symbol }: { shells: number[]; color: string; symbol: string }) {
-  const size = 150;
-  const center = size / 2;
-  return (
-    <div className="flex flex-col items-center justify-center p-3.5 bg-white/90 rounded-2xl border border-black/[0.06] relative overflow-hidden select-none shadow-card">
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="overflow-visible">
-        {/* Core Nucleus glow */}
-        <circle cx={center} cy={center} r={18} fill={color} opacity={0.15} />
-        <circle cx={center} cy={center} r={13} fill={color} opacity={0.9} />
-        <text x={center} y={center + 4.5} textAnchor="middle" fill="#ffffff" fontSize="12" fontWeight="bold" fontFamily="sans-serif">
-          {symbol}
-        </text>
-        {/* Orbiting Shells */}
-        {shells.map((count, shellIdx) => {
-          const radius = 22 + shellIdx * (48 / Math.max(shells.length, 1));
-          return (
-            <g key={shellIdx}>
-              <circle cx={center} cy={center} r={radius} fill="none" stroke={color} strokeWidth="1" strokeDasharray="3 3" opacity={0.4} />
-              {Array.from({ length: Math.min(count, 16) }).map((_, electronIdx) => {
-                const angle = (electronIdx / Math.min(count, 16)) * Math.PI * 2;
-                const ex = center + Math.cos(angle) * radius;
-                const ey = center + Math.sin(angle) * radius;
-                return (
-                  <circle key={electronIdx} cx={ex} cy={ey} r={2.5} fill="#16a875" stroke="#ffffff" strokeWidth="1" opacity={0.95} />
-                );
-              })}
-            </g>
-          );
-        })}
-      </svg>
-      <div className="text-[11px] font-mono text-slate-500 mt-2.5 text-center">
-        Bohr Shells: <span className="text-[#087f5b] font-bold bg-[#e6f6ef] px-2 py-0.5 rounded-md border border-[#bce8d5]">{shells.join(' • ')}</span>
-      </div>
-    </div>
-  );
-}
 
 const Loader = () => (
   <div className="flex h-full min-h-[300px] items-center justify-center text-sm text-muted-foreground">
@@ -1096,7 +1059,7 @@ function Inspector({
           {/* Overview Tab */}
           {inspectorTab === 'overview' && (
             <div className="space-y-3">
-              <BohrModel2D shells={selectedElement.shells} color={elementColor} symbol={selectedElement.symbol} />
+              <BohrModel3D shells={selectedElement.shells} color={elementColor} symbol={selectedElement.symbol} />
 
               <QuantumNumbersHUD element={selectedElement} />
 

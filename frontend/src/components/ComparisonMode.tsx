@@ -5,7 +5,8 @@ import { X, Scale, Zap, Atom, ArrowRightLeft } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { audioEngine } from '@/lib/audioEngine';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Sphere } from '@react-three/drei';
+import { OrbitControls, Sphere, Line, Html } from '@react-three/drei';
+import * as THREE from 'three';
 
 interface ComparisonModeProps {
     element1: ChemicalElement | null;
@@ -15,48 +16,124 @@ interface ComparisonModeProps {
 
 const QUICK_PICKS = ['H', 'C', 'N', 'O', 'Na', 'Cl', 'Fe', 'Cu', 'Au', 'U'];
 
-// Lightweight 3D atom stage for side-by-side comparison
+// High-clarity 3D atom stage for side-by-side comparison in React Three Fiber
 const MiniAtomStage = memo(function MiniAtomStage({ element }: { element: ChemicalElement }) {
     const color = categoryColors[element.category] || '#0284c7';
-    return (
-        <div className="w-full h-44 rounded-xl bg-slate-100/90 border border-slate-200 overflow-hidden relative shadow-inner">
-            <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
-                <ambientLight intensity={0.9} />
-                <pointLight position={[10, 10, 10]} intensity={1.5} color="#ffffff" />
-                <pointLight position={[-10, -10, -10]} intensity={0.5} color={color} />
-                <OrbitControls enableZoom={false} autoRotate autoRotateSpeed={2.5} />
 
-                {/* Nucleus */}
-                <Sphere args={[0.55, 16, 16]}>
-                    <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.6} roughness={0.2} metalness={0.4} />
+    const shellData = useMemo(() => {
+        return element.shells.map((count, idx) => {
+            const radius = 0.95 + idx * 0.48;
+            const speed = 1.0 / Math.sqrt(idx + 1);
+            const displayCount = Math.min(count, 12);
+
+            const points: THREE.Vector3[] = [];
+            const steps = 80;
+            for (let i = 0; i <= steps; i++) {
+                const angle = (i / steps) * Math.PI * 2;
+                points.push(new THREE.Vector3(Math.cos(angle) * radius, 0, Math.sin(angle) * radius));
+            }
+
+            const electronAngles = Array.from(
+                { length: displayCount },
+                (_, eIdx) => (eIdx / Math.max(displayCount, 1)) * Math.PI * 2
+            );
+
+            const isValence = idx === element.shells.length - 1;
+
+            return {
+                radius,
+                speed,
+                points,
+                electronAngles,
+                isValence,
+                tiltX: (idx * Math.PI) / 4.5,
+                tiltZ: (idx * Math.PI) / 6,
+            };
+        });
+    }, [element.shells]);
+
+    return (
+        <div className="w-full h-44 rounded-xl bg-slate-100/90 border border-slate-200 overflow-hidden relative shadow-inner select-none cursor-grab active:cursor-grabbing">
+            <Canvas
+                camera={{ position: [0, 2.0, 5.2], fov: 42, near: 0.1, far: 50 }}
+                gl={{
+                    antialias: true,
+                    alpha: true,
+                    powerPreference: 'high-performance',
+                    toneMapping: THREE.ACESFilmicToneMapping,
+                    toneMappingExposure: 1.05,
+                }}
+                dpr={[1.5, 3]}
+            >
+                <ambientLight intensity={0.9} color="#f8fafc" />
+                <directionalLight position={[6, 10, 8]} intensity={1.6} color="#ffffff" />
+                <directionalLight position={[-6, -4, -6]} intensity={0.8} color="#38bdf8" />
+                <directionalLight position={[0, -8, 3]} intensity={0.6} color="#f59e0b" />
+
+                <OrbitControls enableZoom={false} enablePan={false} autoRotate autoRotateSpeed={1.8} />
+
+                {/* Optical Quartz Nucleus */}
+                <Sphere args={[0.45, 32, 32]}>
+                    <meshPhysicalMaterial
+                        color={color}
+                        emissive={color}
+                        emissiveIntensity={0.65}
+                        roughness={0.06}
+                        metalness={0.15}
+                        transmission={0.68}
+                        ior={1.68}
+                        thickness={0.9}
+                        clearcoat={1.0}
+                        reflectivity={0.95}
+                    />
                 </Sphere>
 
-                {/* Bohr Shells */}
-                {element.shells.map((count, idx) => {
-                    const radius = 1.0 + idx * 0.55;
-                    return (
-                        <group key={idx} rotation={[idx * 0.4, idx * 0.6, 0]}>
-                            {/* Orbit Ring */}
-                            <line>
-                                <ringGeometry args={[radius, radius + 0.02, 32]} />
-                                <meshBasicMaterial color={color} transparent opacity={0.35} />
-                            </line>
-                            {/* Electrons */}
-                            {Array.from({ length: Math.min(count, 8) }).map((_, eIdx) => {
-                                const angle = (eIdx / Math.min(count, 8)) * Math.PI * 2;
-                                return (
-                                    <mesh key={eIdx} position={[Math.cos(angle) * radius, Math.sin(angle) * radius, 0]}>
-                                        <sphereGeometry args={[0.08, 8, 8]} />
-                                        <meshStandardMaterial color="#38bdf8" emissive="#38bdf8" emissiveIntensity={1} />
-                                    </mesh>
-                                );
-                            })}
-                        </group>
-                    );
-                })}
+                {/* Laser-Etched Symbol Inset */}
+                <Html center distanceFactor={4} occlude>
+                    <div
+                        className="font-mono font-bold text-white text-[13px] pointer-events-none select-none tracking-tight leading-none"
+                        style={{ textShadow: '0 1px 6px rgba(0,0,0,0.6)' }}
+                    >
+                        {element.symbol}
+                    </div>
+                </Html>
+
+                {/* Crystalline Bohr Shells */}
+                {shellData.map((s, idx) => (
+                    <group key={idx} rotation={[s.tiltX, 0, s.tiltZ]}>
+                        <Line
+                            points={s.points}
+                            color={s.isValence ? '#f59e0b' : color}
+                            lineWidth={1.2}
+                            transparent
+                            opacity={s.isValence ? 0.9 : 0.35}
+                        />
+
+                        {s.electronAngles.map((angle, eIdx) => (
+                            <group
+                                key={eIdx}
+                                position={[Math.cos(angle) * s.radius, 0, Math.sin(angle) * s.radius]}
+                            >
+                                <Sphere args={[s.isValence ? 0.06 : 0.048, 20, 20]}>
+                                    <meshPhysicalMaterial
+                                        color={s.isValence ? '#f59e0b' : color}
+                                        emissive={s.isValence ? '#d97706' : color}
+                                        emissiveIntensity={0.8}
+                                        roughness={0.04}
+                                        metalness={0.18}
+                                        transmission={0.65}
+                                        ior={2.0}
+                                        clearcoat={1.0}
+                                    />
+                                </Sphere>
+                            </group>
+                        ))}
+                    </group>
+                ))}
             </Canvas>
-            <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-white/90 border border-slate-200 text-[10px] font-bold text-slate-800 backdrop-blur-xs">
-                {element.symbol} ({element.shells.length} shells)
+
+            <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-white/90 border border-slate-200/80 text-[10px] font-mono font-bold text-slate-800 backdrop-blur-xs shadow-2xs">
+                {element.symbol} · {element.shells.length} shells · {element.atomicNumber}e⁻
             </div>
         </div>
     );
