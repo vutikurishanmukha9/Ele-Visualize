@@ -394,7 +394,7 @@ export const ReactionSimulator = memo(function ReactionSimulator({ onClose }: Re
                             </div>
 
                             {/* Thermodynamic State Functions Matrix */}
-                            <div className="grid grid-cols-4 gap-2 text-xs">
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                                 <div className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-center">
                                     <span className="text-[9px] text-slate-500 uppercase block">Enthalpy (ΔH°)</span>
                                     <strong className={thermo.deltaH < 0 ? 'text-amber-600' : 'text-sky-600'}>
