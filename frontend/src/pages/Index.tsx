@@ -1331,6 +1331,7 @@ export default function Index() {
     setIsMobile,
     setMainViewMode,
     setMobileDrawer,
+    setSavedSessions,
     setSelectedElement,
     setSelectedMolecule,
     setShowOrbitals,
