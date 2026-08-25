@@ -204,7 +204,7 @@ export function Molecule3D({
     spaceFilling = false
 }: Molecule3DProps) {
     return (
-        <div className="w-full h-full min-h-[380px] relative select-none bg-transparent cursor-grab active:cursor-grabbing">
+        <div className="w-full h-full min-h-[260px] sm:min-h-[360px] relative select-none bg-transparent cursor-grab active:cursor-grabbing touch-none">
             <Canvas
                 camera={{ position: [0, 0, 6], fov: 48, near: 0.1, far: 100 }}
                 gl={{

@@ -39,28 +39,28 @@ export const ShortcutsModal = memo(function ShortcutsModal({ isOpen, onClose }: 
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="w-full max-w-lg bg-white/95 rounded-3xl border border-black/[0.08] shadow-2xl overflow-hidden backdrop-blur-md">
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-slate-100">
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[#e6f6ef] border border-[#bce8d5] flex items-center justify-center text-[#16a875]">
-              <Keyboard className="w-5 h-5" />
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#e6f6ef] border border-[#bce8d5] flex items-center justify-center text-[#16a875] shrink-0">
+              <Keyboard className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <h2 className="text-base font-serif font-bold text-slate-900 leading-none">
+              <h2 className="text-sm sm:text-base font-serif font-bold text-slate-900 leading-none">
                 Laboratory Keyboard Shortcuts
               </h2>
-              <p className="text-[11px] text-slate-500 font-mono mt-1">Fast quantum navigation & 3D controls</p>
+              <p className="text-[10px] sm:text-[11px] text-slate-500 font-mono mt-1">Fast quantum navigation & 3D controls</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors"
+            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors shrink-0"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Shortcut List */}
-        <div className="p-5 max-h-[60vh] overflow-y-auto space-y-4 font-mono">
+        <div className="p-3 sm:p-5 max-h-[72vh] overflow-y-auto space-y-3 sm:space-y-4 font-mono">
           {(['Workspace', '3D Stage', 'Navigation'] as const).map((cat) => (
             <div key={cat} className="space-y-1.5">
               <div className="text-[10px] font-bold text-[#087f5b] uppercase tracking-wider px-1">

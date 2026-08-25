@@ -686,7 +686,7 @@ export function Atom3D({
     };
 
     return (
-        <div className="w-full h-full min-h-[380px] relative select-none bg-transparent cursor-grab active:cursor-grabbing">
+        <div className="w-full h-full min-h-[260px] sm:min-h-[360px] relative select-none bg-transparent cursor-grab active:cursor-grabbing touch-none">
             <Canvas
                 camera={{ position: [0, 0, 12], fov: 48, near: 0.1, far: 150 }}
                 gl={{
@@ -699,7 +699,7 @@ export function Atom3D({
                     toneMappingExposure: 1.05
                 }}
                 style={{ background: 'transparent' }}
-                dpr={[1.5, 3]}
+                dpr={[1, 2.5]}
             >
                 <CameraPresetController preset={cameraPreset} />
                 

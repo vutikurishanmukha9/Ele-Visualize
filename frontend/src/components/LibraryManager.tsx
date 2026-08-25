@@ -91,47 +91,47 @@ export const LibraryManager = memo(function LibraryManager({
     return (
         <div className="h-full flex flex-col p-3 gap-3 bg-slate-50 font-mono text-slate-900 select-none overflow-y-auto matrix-grid-bg">
             {/* Header Telemetry */}
-            <div className="flex items-center justify-between p-3 rounded-xl bg-white border border-slate-200 shadow-sm flex-wrap gap-2">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 gap-2.5 rounded-xl bg-white border border-slate-200 shadow-sm">
                 <div className="flex items-center gap-2">
-                    <BookOpen className="w-4 h-4 text-sky-600 animate-pulse" />
-                    <span className="font-bold text-xs tracking-wider uppercase text-sky-700">
+                    <BookOpen className="w-4 h-4 text-[#16a875] animate-pulse" />
+                    <span className="font-bold text-xs tracking-wider uppercase text-slate-800">
                         SCIENTIFIC CURRICULUM & EXPERIMENT NOTEBOOK LIBRARY
                     </span>
                 </div>
 
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap w-full sm:w-auto">
                     <button
                         onClick={() => setActiveTab('curriculum')}
-                        className={`px-3 py-1 text-xs font-bold rounded-lg border transition-all ${
+                        className={`px-2.5 sm:px-3 py-1 text-xs font-bold rounded-lg border transition-all ${
                             activeTab === 'curriculum'
-                                ? 'bg-sky-600 text-white border-sky-600 shadow-sm'
+                                ? 'bg-[#16a875] text-white border-[#16a875] shadow-sm'
                                 : 'bg-slate-100 text-slate-600 border-slate-200 hover:text-slate-900'
                         }`}
                     >
                         <GraduationCap className="w-3.5 h-3.5 inline mr-1" />
-                        Curriculum Sets ({CURRICULUM_MODULES.length})
+                        Curriculum ({CURRICULUM_MODULES.length})
                     </button>
                     <button
                         onClick={() => setActiveTab('saved')}
-                        className={`px-3 py-1 text-xs font-bold rounded-lg border transition-all ${
+                        className={`px-2.5 sm:px-3 py-1 text-xs font-bold rounded-lg border transition-all ${
                             activeTab === 'saved'
-                                ? 'bg-sky-600 text-white border-sky-600 shadow-sm'
+                                ? 'bg-[#16a875] text-white border-[#16a875] shadow-sm'
                                 : 'bg-slate-100 text-slate-600 border-slate-200 hover:text-slate-900'
                         }`}
                     >
                         <Save className="w-3.5 h-3.5 inline mr-1" />
-                        Saved Explorations ({sessions.length})
+                        Saved ({sessions.length})
                     </button>
                     <button
                         onClick={() => setActiveTab('notebook')}
-                        className={`px-3 py-1 text-xs font-bold rounded-lg border transition-all ${
+                        className={`px-2.5 sm:px-3 py-1 text-xs font-bold rounded-lg border transition-all ${
                             activeTab === 'notebook'
-                                ? 'bg-sky-600 text-white border-sky-600 shadow-sm'
+                                ? 'bg-[#16a875] text-white border-[#16a875] shadow-sm'
                                 : 'bg-slate-100 text-slate-600 border-slate-200 hover:text-slate-900'
                         }`}
                     >
                         <FileText className="w-3.5 h-3.5 inline mr-1" />
-                        Lab Notebook
+                        Lab Notes
                     </button>
                 </div>
             </div>
