@@ -1,6 +1,6 @@
 import { useRef, useMemo, useEffect, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Sphere, Cylinder, Html, Float, Sparkles } from '@react-three/drei';
+import { OrbitControls, Sphere, Cylinder, Html, Float } from '@react-three/drei';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { Molecule, Atom } from '@/data/molecules';
@@ -218,9 +218,6 @@ export function Molecule3D({
                 style={{ background: 'transparent' }}
                 dpr={[1, 2]}
             >
-                {/* Subtle Sub-Micron Quantum Studio Energy Motes */}
-                <Sparkles count={30} scale={10} size={1.6} speed={0.25} opacity={0.25} color="#38bdf8" />
-
                 {/* Professional Multi-Point Studio Lighting Rig */}
                 <ambientLight intensity={0.9} color="#f8fafc" />
                 <hemisphereLight skyColor="#f8fafc" groundColor="#1e293b" intensity={0.85} />

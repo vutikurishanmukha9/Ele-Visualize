@@ -1,6 +1,6 @@
 import { useRef, useMemo, memo, useEffect, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Sphere, Line, Html, Float, Sparkles } from '@react-three/drei';
+import { OrbitControls, Sphere, Line, Html, Float } from '@react-three/drei';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { createFresnelMaterial } from '@/shaders/fresnelShader';
@@ -689,7 +689,7 @@ export function Atom3D({
     return (
         <div className="w-full h-full min-h-[260px] sm:min-h-[360px] relative select-none bg-transparent cursor-grab active:cursor-grabbing touch-none">
             <Canvas
-                camera={{ position: [0, 0, 12], fov: 48, near: 0.1, far: 150 }}
+                camera={{ position: [0, 0, 8.8], fov: 42, near: 0.1, far: 150 }}
                 gl={{
                     antialias: true,
                     alpha: true,
@@ -703,9 +703,6 @@ export function Atom3D({
                 dpr={[1, 2.5]}
             >
                 <CameraPresetController preset={cameraPreset} />
-                
-                {/* Subtle Sub-Micron Quantum Studio Energy Motes */}
-                <Sparkles count={35} scale={14} size={1.8} speed={0.25} opacity={0.3} color={color} />
                 
                 {/* Professional Multi-Point Studio Lighting Rig */}
                 {/* 1. Studio Ambient Base */}

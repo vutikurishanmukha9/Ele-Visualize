@@ -58,13 +58,66 @@ const DISCOVERY_YEARS: Record<number, number> = {
     112: 1996, 113: 2003, 114: 1998, 115: 2003, 116: 2000, 117: 2010, 118: 2002
 };
 
+// Universal IUPAC Standard Periodic Table Block Color System
+export const UNIVERSAL_BLOCK_COLORS: Record<ElementBlock, {
+    label: string;
+    bg: string;
+    hoverBg: string;
+    border: string;
+    text: string;
+    symbol: string;
+    badgeBg: string;
+    activeBg: string;
+}> = {
+    s: {
+        label: 's-block (plus He)',
+        bg: '#fee2e2',         // Soft Coral / Rose Red
+        hoverBg: '#fecaca',
+        border: '#f87171',
+        text: '#991b1b',
+        symbol: '#7f1d1d',
+        badgeBg: '#fef2f2',
+        activeBg: '#ef4444',
+    },
+    p: {
+        label: 'p-block (excl. He)',
+        bg: '#fef9c3',         // Soft Canary / Pastel Yellow
+        hoverBg: '#fef08a',
+        border: '#fde047',
+        text: '#854d0e',
+        symbol: '#713f12',
+        badgeBg: '#fefce8',
+        activeBg: '#eab308',
+    },
+    d: {
+        label: 'd-block (Transition metals)',
+        bg: '#dbeafe',         // Soft Sky / Cornflower Blue
+        hoverBg: '#bfdbfe',
+        border: '#93c5fd',
+        text: '#1e40af',
+        symbol: '#1e3a8a',
+        badgeBg: '#eff6ff',
+        activeBg: '#3b82f6',
+    },
+    f: {
+        label: 'f-block (Lanthanides & Actinides)',
+        bg: '#dcfce7',         // Soft Mint Green
+        hoverBg: '#bbf7d0',
+        border: '#86efac',
+        text: '#166534',
+        symbol: '#14532d',
+        badgeBg: '#f0fdf4',
+        activeBg: '#22c55e',
+    },
+};
+
 export const PeriodicTableGrid = memo(function PeriodicTableGrid({
     selectedElement,
     onSelectElement,
 }: PeriodicTableGridProps) {
     const { setWorkspaceMode, setCompareElement1, setSelectedElement } = useAppStore();
-    const [selectedBlock, setSelectedBlock] = useState<string>('all');
-    const [temperatureK, setTemperatureK] = useState(298); // 25°C standard room temp
+    const [selectedBlock, setSelectedBlock] = useState<string | 'all'>('all');
+    const [temperatureK, setTemperatureK] = useState(298);
     const [heatmapMode, setHeatmapMode] = useState<HeatmapMode>('category');
     const [searchQuery, setSearchQuery] = useState('');
     const [maxYear, setMaxYear] = useState<number>(2026);
@@ -79,13 +132,14 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
         return elements.filter((el) => {
             const block = getElementBlock(el.atomicNumber);
             const matchesBlock = selectedBlock === 'all' || block === selectedBlock;
-            const matchesSearch = !query ||
+            const matchesSearch =
+                !query ||
                 el.name.toLowerCase().includes(query) ||
                 el.symbol.toLowerCase().includes(query) ||
-                el.atomicNumber.toString() === query;
-            const year = DISCOVERY_YEARS[el.atomicNumber] ?? 2026;
-            const matchesYear = year <= maxYear;
-
+                el.atomicNumber.toString().includes(query) ||
+                el.category.toLowerCase().includes(query);
+            const discYear = DISCOVERY_YEARS[el.atomicNumber] ?? 1800;
+            const matchesYear = discYear <= maxYear;
             return matchesBlock && matchesSearch && matchesYear;
         });
     }, [selectedBlock, searchQuery, maxYear]);
@@ -93,40 +147,54 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
     // Active element preview
     const activeDisplayElement = hoveredElement || selectedElement || elements[0];
 
-    // Compute cell background color dynamically based on heatmap
-    const getCellColor = (element: ChemicalElement) => {
-        const props = elementProperties[element.atomicNumber];
-        const baseColor = categoryColors[element.category] || '#0284c7';
+    // Compute universal cell styling based on IUPAC standard block colors or heatmaps
+    const getCellStyles = (element: ChemicalElement, isSelected: boolean, isHovered: boolean) => {
+        const block = getElementBlock(element.atomicNumber);
+        const blockColor = UNIVERSAL_BLOCK_COLORS[block];
 
+        if (heatmapMode === 'category') {
+            return {
+                backgroundColor: isSelected ? '#ffffff' : isHovered ? blockColor.hoverBg : blockColor.bg,
+                borderColor: isSelected ? '#0071e3' : isHovered ? blockColor.border : blockColor.border,
+                symbolColor: blockColor.symbol,
+                textColor: blockColor.text,
+            };
+        }
+
+        const props = elementProperties[element.atomicNumber];
+        let heatColor = '#94a3b8';
         if (heatmapMode === 'electronegativity') {
             const en = props?.electronegativity;
-            if (!en) return '#94a3b8';
-            const ratio = Math.max(0, Math.min(1, (en - 0.7) / (4.0 - 0.7)));
-            return `hsl(${Math.round(210 - ratio * 210)}, 90%, 48%)`;
-        }
-
-        if (heatmapMode === 'ionization') {
+            if (en) {
+                const ratio = Math.max(0, Math.min(1, (en - 0.7) / (4.0 - 0.7)));
+                heatColor = `hsl(${Math.round(210 - ratio * 210)}, 90%, 48%)`;
+            }
+        } else if (heatmapMode === 'ionization') {
             const ie = props?.ionizationEnergy;
-            if (!ie) return '#94a3b8';
-            const ratio = Math.max(0, Math.min(1, (ie - 350) / (2400 - 350)));
-            return `hsl(${Math.round(280 - ratio * 280)}, 90%, 50%)`;
-        }
-
-        if (heatmapMode === 'radius') {
+            if (ie) {
+                const ratio = Math.max(0, Math.min(1, (ie - 350) / (2400 - 350)));
+                heatColor = `hsl(${Math.round(280 - ratio * 280)}, 90%, 50%)`;
+            }
+        } else if (heatmapMode === 'radius') {
             const r = props?.atomicRadius;
-            if (!r) return '#94a3b8';
-            const ratio = Math.max(0, Math.min(1, (r - 30) / (280 - 30)));
-            return `hsl(${Math.round(180 + ratio * 140)}, 85%, 45%)`;
-        }
-
-        if (heatmapMode === 'density') {
+            if (r) {
+                const ratio = Math.max(0, Math.min(1, (r - 30) / (280 - 30)));
+                heatColor = `hsl(${Math.round(180 + ratio * 140)}, 85%, 45%)`;
+            }
+        } else if (heatmapMode === 'density') {
             const d = props?.density;
-            if (!d) return '#94a3b8';
-            const ratio = Math.max(0, Math.min(1, d / 22.6));
-            return `hsl(${Math.round(35 + ratio * 280)}, 90%, 45%)`;
+            if (d) {
+                const ratio = Math.max(0, Math.min(1, d / 22.6));
+                heatColor = `hsl(${Math.round(35 + ratio * 280)}, 90%, 45%)`;
+            }
         }
 
-        return baseColor;
+        return {
+            backgroundColor: isSelected ? '#ffffff' : isHovered ? `${heatColor}30` : `${heatColor}15`,
+            borderColor: isSelected ? '#0071e3' : `${heatColor}80`,
+            symbolColor: heatColor,
+            textColor: '#475569',
+        };
     };
 
     // Quick action dispatchers
@@ -141,96 +209,140 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
 
     return (
         <div className="h-full flex flex-col bg-[#F8FAF8] text-slate-900 font-sans select-none overflow-hidden relative">
-            {/* Top Command Telemetry Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-white/80 border-b border-black/[0.06] backdrop-blur-md z-20">
-                <div className="flex items-center gap-2.5 flex-wrap">
-                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#e6f6ef] border border-[#bce8d5] text-[#087f5b] text-xs font-bold shadow-xs">
-                        <Grid3X3 className="w-3.5 h-3.5 text-[#16a875]" />
-                        <span>IUPAC PERIODIC MATRIX</span>
+            {/* Top Primary Command Bar (Tier 1) */}
+            <div className="min-h-12 w-full px-3 sm:px-4 py-1.5 flex flex-wrap items-center justify-between border-b border-slate-200/80 bg-white/95 backdrop-blur-md z-20 gap-2">
+                {/* Left: Brand Lockup & Search */}
+                <div className="flex items-center gap-2.5 flex-1 min-w-[200px] max-w-md">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-900 text-white text-xs font-mono font-bold shrink-0 shadow-xs">
+                        <Grid3X3 className="w-3.5 h-3.5 text-white" />
+                        <span className="hidden xs:inline">IUPAC MATRIX</span>
                     </div>
 
                     {/* Search Field */}
-                    <div className="relative flex items-center">
+                    <div className="relative flex items-center flex-1">
                         <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 pointer-events-none" />
                         <input
                             type="text"
-                            placeholder="Filter symbol/name..."
+                            placeholder="Search elements by name, symbol, #..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-8 pr-3 py-1 text-xs bg-white border border-slate-200/80 rounded-xl outline-none focus:border-[#16a875] w-36 sm:w-44 text-slate-800 placeholder:text-slate-400 shadow-xs"
+                            className="w-full pl-8 pr-3 py-1 text-xs bg-slate-50 border border-slate-200/80 rounded-md outline-none focus:border-[#0071e3] focus:bg-white text-slate-900 placeholder:text-slate-400 transition-colors shadow-2xs font-sans"
                         />
-                    </div>
-
-                    {/* Block Quick Filters */}
-                    <div className="hidden sm:flex items-center gap-1 bg-slate-100/80 p-0.5 rounded-xl border border-slate-200/60 text-[10.5px]">
-                        {['all', 's', 'p', 'd', 'f'].map((b) => (
-                            <button
-                                key={b}
-                                onClick={() => setSelectedBlock(b)}
-                                className={cn(
-                                    "px-2.5 py-0.5 rounded-lg uppercase font-bold transition-all",
-                                    selectedBlock === b
-                                        ? "bg-[#e6f6ef] text-[#087f5b] border border-[#bce8d5] shadow-xs"
-                                        : "text-slate-500 hover:text-slate-900"
-                                )}
-                            >
-                                {b === 'all' ? 'All' : `${b}-blk`}
-                            </button>
-                        ))}
                     </div>
                 </div>
 
-                {/* Heatmap & Trends Toggle */}
-                <div className="flex items-center gap-2 flex-wrap">
+                {/* Right: Universal Block Filter Matrix & Trends */}
+                <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                    <div className="flex items-center gap-1 bg-slate-100/90 p-0.5 rounded-md border border-slate-200/80 text-xs font-mono">
+                        <button
+                            onClick={() => setSelectedBlock('all')}
+                            className={cn(
+                                "px-2 py-0.5 rounded uppercase font-bold transition-all text-[10.5px]",
+                                selectedBlock === 'all'
+                                    ? "bg-white text-slate-900 shadow-xs font-extrabold border border-slate-200"
+                                    : "text-slate-500 hover:text-slate-900"
+                            )}
+                        >
+                            All Blocks
+                        </button>
+                        {(['s', 'd', 'p', 'f'] as ElementBlock[]).map((b) => {
+                            const isBlockActive = selectedBlock === b;
+                            return (
+                                <button
+                                    key={b}
+                                    onClick={() => setSelectedBlock(b)}
+                                    className={cn(
+                                        "px-2 py-0.5 rounded uppercase font-bold transition-all text-[10.5px] border",
+                                        isBlockActive
+                                            ? b === 's'
+                                                ? "bg-red-500 text-white border-red-600 shadow-xs"
+                                                : b === 'd'
+                                                ? "bg-blue-500 text-white border-blue-600 shadow-xs"
+                                                : b === 'p'
+                                                ? "bg-amber-400 text-slate-900 border-amber-500 shadow-xs"
+                                                : "bg-emerald-500 text-white border-emerald-600 shadow-xs"
+                                            : b === 's'
+                                            ? "bg-[#fee2e2] text-[#991b1b] border-[#fca5a5] hover:bg-[#fecaca]"
+                                            : b === 'd'
+                                            ? "bg-[#dbeafe] text-[#1e40af] border-[#93c5fd] hover:bg-[#bfdbfe]"
+                                            : b === 'p'
+                                            ? "bg-[#fef9c3] text-[#854d0e] border-[#fde047] hover:bg-[#fef08a]"
+                                            : "bg-[#dcfce7] text-[#166534] border-[#86efac] hover:bg-[#bbf7d0]"
+                                    )}
+                                >
+                                    {b}-block
+                                </button>
+                            );
+                        })}
+                    </div>
+
                     <button
                         onClick={() => setShowTrendsOverlay(!showTrendsOverlay)}
                         className={cn(
-                            "px-2.5 py-1 rounded-xl border text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-xs",
-                            showTrendsOverlay ? "bg-amber-100 text-amber-800 border-amber-300" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                            "h-7 px-2.5 rounded-md border text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs",
+                            showTrendsOverlay ? "bg-amber-50 text-amber-900 border-amber-300" : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                         )}
                         title="Toggle Periodic Trend Gradient Vectors"
                     >
-                        <TrendingUp className="w-3.5 h-3.5 text-amber-600" /> Trends
+                        <TrendingUp className="w-3.5 h-3.5 text-amber-600" />
+                        <span className="hidden md:inline">Periodic Trends</span>
                     </button>
+                </div>
+            </div>
 
-                    <div className="flex items-center gap-1 bg-slate-100/80 p-0.5 rounded-xl border border-slate-200/60 text-[10.5px]">
-                        <span className="px-2 text-slate-500 flex items-center gap-1 font-semibold">
-                            <Activity className="w-3.5 h-3.5 text-[#16a875]" /> Heatmap:
-                        </span>
+            {/* Sub-Tier: Quantitative Heatmap & Grid Display Controls (Tier 2) */}
+            <div className="min-h-9 w-full px-3 sm:px-4 py-1 flex flex-wrap items-center justify-between border-b border-slate-200/70 bg-[#fbfbfd] text-xs z-10 gap-2">
+                {/* Left: Heatmap Selector */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold flex items-center gap-1 shrink-0">
+                        <Activity className="w-3 h-3 text-[#0071e3]" />
+                        <span>Color Mode:</span>
+                    </span>
+
+                    <div className="flex items-center gap-0.5 bg-slate-200/60 p-0.5 rounded-md border border-slate-200/80 text-[10.5px] font-mono flex-wrap">
                         {(['category', 'electronegativity', 'ionization', 'radius', 'density'] as HeatmapMode[]).map((mode) => (
                             <button
                                 key={mode}
                                 onClick={() => setHeatmapMode(mode)}
                                 className={cn(
-                                    "px-2 py-0.5 rounded-lg uppercase font-bold transition-all",
+                                    "px-1.5 sm:px-2 py-0.5 rounded font-bold transition-all text-[10px] sm:text-[10.5px]",
                                     heatmapMode === mode
-                                        ? "bg-white text-[#087f5b] border border-slate-200 shadow-xs"
+                                        ? "bg-white text-[#0071e3] shadow-xs"
                                         : "text-slate-500 hover:text-slate-900"
                                 )}
                             >
-                                {mode.slice(0, 4)}
+                                {mode === 'category' ? 'Universal IUPAC' : mode === 'electronegativity' ? 'Electronegativity (χ)' : mode === 'ionization' ? 'Ionization (kJ)' : mode === 'radius' ? 'Radius' : 'Density'}
                             </button>
                         ))}
                     </div>
-                    {/* Column / Cell Sizing Presets */}
-                    <div className="hidden md:flex items-center gap-1 bg-slate-100/80 p-0.5 rounded-xl border border-slate-200/60 text-[10.5px]">
-                        <span className="px-2 text-slate-500 font-semibold">Size:</span>
-                        {(['sm', 'md', 'lg'] as const).map((s) => (
-                            <button
-                                key={s}
-                                onClick={() => setCellSize(s)}
-                                className={cn(
-                                    "px-2 py-0.5 rounded-lg uppercase font-bold transition-all",
-                                    cellSize === s
-                                        ? "bg-white text-[#087f5b] border border-slate-200 shadow-xs"
-                                        : "text-slate-500 hover:text-slate-900"
-                                )}
-                                title={s === 'sm' ? 'Compact Columns' : s === 'md' ? 'Standard Columns' : 'Expansive Columns'}
-                            >
-                                {s.toUpperCase()}
-                            </button>
-                        ))}
+                </div>
+
+                {/* Right: Grid Scale & Status */}
+                <div className="flex items-center gap-2.5 shrink-0 ml-auto">
+                    <div className="flex items-center gap-1 text-[10.5px] font-mono">
+                        <span className="text-slate-400 text-[10px] font-bold uppercase">Grid:</span>
+                        <div className="flex items-center gap-0.5 bg-slate-200/60 p-0.5 rounded-md border border-slate-200/80">
+                            {(['sm', 'md', 'lg'] as const).map((s) => (
+                                <button
+                                    key={s}
+                                    onClick={() => setCellSize(s)}
+                                    className={cn(
+                                        "px-1.5 py-0.5 rounded uppercase font-bold transition-all text-[9.5px]",
+                                        cellSize === s
+                                            ? "bg-white text-[#0071e3] shadow-xs"
+                                            : "text-slate-500 hover:text-slate-900"
+                                    )}
+                                    title={s === 'sm' ? 'Compact Columns' : s === 'md' ? 'Standard Columns' : 'Expansive Columns'}
+                                >
+                                    {s === 'sm' ? 'Compact' : s === 'md' ? 'Standard' : 'Large'}
+                                </button>
+                            ))}
+                        </div>
                     </div>
+
+                    <span className="hidden sm:inline-block text-[10px] font-mono font-bold text-slate-400 pl-2 border-l border-slate-200">
+                        {filteredElements.length} Elements
+                    </span>
                 </div>
             </div>
 
@@ -285,18 +397,18 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
             )}
 
             {/* Main Interactive Stage Area - Scrollable Workspace Container */}
-            <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-4 bg-[#fbfbfd]">
                 {/* 18-Column Interactive Table Grid Hero Container */}
-                <div className="w-full rounded-2xl bg-white/90 border border-black/[0.06] p-4 relative shadow-card overflow-x-auto">
+                <div className="w-full rounded-lg bg-white border border-slate-200/80 p-3.5 sm:p-4 relative shadow-xs overflow-x-auto select-none">
                     <div
-                        className="grid gap-1.5 pb-2"
+                        className="grid gap-1 pb-2"
                         style={{
-                            minWidth: cellSize === 'sm' ? '680px' : cellSize === 'lg' ? '1020px' : '840px',
+                            minWidth: cellSize === 'sm' ? '680px' : cellSize === 'lg' ? '1040px' : '860px',
                             gridTemplateColumns: cellSize === 'sm'
                                 ? 'repeat(18, minmax(36px, 1fr))'
                                 : cellSize === 'lg'
-                                ? 'repeat(18, minmax(52px, 1fr))'
-                                : 'repeat(18, minmax(42px, 1fr))',
+                                ? 'repeat(18, minmax(54px, 1fr))'
+                                : 'repeat(18, minmax(44px, 1fr))',
                             gridTemplateRows: cellSize === 'sm'
                                 ? 'repeat(10, minmax(42px, 1fr))'
                                 : cellSize === 'lg'
@@ -306,7 +418,7 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                     >
                         {/* Period and Group Header Indicators */}
                         {Array.from({ length: 18 }).map((_, i) => (
-                            <div key={`col-${i}`} className="text-center text-[10px] text-slate-400 font-bold self-end pb-1" style={{ gridColumn: i + 1, gridRow: 1 }}>
+                            <div key={`col-${i}`} className="text-center text-[9.5px] font-mono text-slate-400 font-bold self-end pb-1" style={{ gridColumn: i + 1, gridRow: 1 }}>
                                 {i + 1}
                             </div>
                         ))}
@@ -318,12 +430,13 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                             const isSelected = selectedElement?.atomicNumber === el.atomicNumber;
                             const isHovered = hoveredElement?.atomicNumber === el.atomicNumber;
                             const stateAtTemp = getElementStateAtTemp(el.atomicNumber, temperatureK);
-                            const cellColor = getCellColor(el);
+                            const styles = getCellStyles(el, isSelected, isHovered);
 
                             return (
                                 <button
                                     key={el.atomicNumber}
                                     onClick={() => {
+                                        audioEngine.playClick(840);
                                         onSelectElement(el);
                                         setPopupElement(el);
                                     }}
@@ -332,61 +445,132 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                                     style={{
                                         gridRow: row,
                                         gridColumn: col,
-                                        opacity: isFiltered ? 1.0 : 0.15,
-                                        borderColor: isSelected || isHovered ? '#16a875' : `${cellColor}40`,
-                                        backgroundColor: isSelected || isHovered ? `${cellColor}20` : `${cellColor}08`,
-                                        boxShadow: isSelected || isHovered ? `0 0 12px ${cellColor}50` : 'none',
+                                        opacity: isFiltered ? 1.0 : 0.12,
+                                        borderColor: styles.borderColor,
+                                        backgroundColor: styles.backgroundColor,
                                     }}
                                     className={cn(
-                                        'relative rounded-xl p-1 flex flex-col items-center justify-between border transition-all text-left group hover:z-30 hover:scale-105 select-none',
-                                        isSelected && 'ring-2 ring-[#16a875] z-20 shadow-sm'
+                                        'relative rounded-md p-1 flex flex-col items-center justify-between border transition-all text-left group select-none shadow-2xs',
+                                        isSelected
+                                            ? 'ring-2 ring-slate-900 z-20 shadow-md scale-105'
+                                            : 'hover:z-30 hover:scale-[1.08] hover:shadow-md'
                                     )}
                                 >
-                                    {/* Number & State Icon */}
-                                    <div className="w-full flex items-center justify-between text-[9px] text-slate-500 font-mono leading-none px-0.5">
-                                        <span className="font-semibold">{el.atomicNumber}</span>
-                                        <span className="text-[8px]">
-                                            {stateAtTemp === 'gas' ? '💨' : stateAtTemp === 'liquid' ? '💧' : '🧊'}
-                                        </span>
+                                    {/* Number & State Indicator */}
+                                    <div className="w-full flex items-center justify-between text-[8.5px] font-mono leading-none px-0.5">
+                                        <span className="font-bold" style={{ color: styles.textColor }}>{el.atomicNumber}</span>
+                                        <span
+                                            className={cn(
+                                                "w-1.5 h-1.5 rounded-full shrink-0 border border-black/10",
+                                                stateAtTemp === 'gas' ? "bg-amber-500" : stateAtTemp === 'liquid' ? "bg-sky-500" : "bg-slate-400"
+                                            )}
+                                            title={`State at ${temperatureK}K: ${stateAtTemp}`}
+                                        />
                                     </div>
 
                                     {/* Symbol */}
-                                    <div className="text-sm sm:text-base font-extrabold tracking-tight leading-none my-0.5" style={{ color: cellColor }}>
+                                    <div className="text-sm sm:text-base font-black tracking-tight leading-none my-0.5 font-display" style={{ color: styles.symbolColor }}>
                                         {el.symbol}
                                     </div>
 
                                     {/* Mass or Heatmap Value */}
-                                    <div className="w-full text-center text-[8px] text-slate-500 truncate font-mono">
+                                    <div className="w-full text-center text-[8.5px] font-mono truncate leading-none" style={{ color: styles.textColor }}>
                                         {heatmapMode === 'electronegativity' && elementProperties[el.atomicNumber]?.electronegativity
                                             ? `χ ${elementProperties[el.atomicNumber]?.electronegativity}`
                                             : heatmapMode === 'ionization' && elementProperties[el.atomicNumber]?.ionizationEnergy
                                             ? `${elementProperties[el.atomicNumber]?.ionizationEnergy}`
+                                            : heatmapMode === 'radius' && elementProperties[el.atomicNumber]?.atomicRadius
+                                            ? `${elementProperties[el.atomicNumber]?.atomicRadius}pm`
+                                            : heatmapMode === 'density' && elementProperties[el.atomicNumber]?.density
+                                            ? `${elementProperties[el.atomicNumber]?.density}`
                                             : el.atomicMass.toFixed(1)}
                                     </div>
                                 </button>
                             );
                         })}
 
-                        {/* Lanthanide & Actinide Labels */}
-                        <div style={{ gridRow: 6, gridColumn: 3 }} className="flex items-center justify-center text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-xl">
-                            57-71
+                        {/* Lanthanide & Actinide Labels (f-block mint green) */}
+                        <div
+                            style={{ gridRow: 6, gridColumn: 3 }}
+                            className="flex flex-col items-center justify-center text-[9px] font-bold font-mono text-[#166534] bg-[#dcfce7] border border-[#86efac] rounded-md shadow-2xs leading-tight"
+                            title="Lanthanides (La to Yb)"
+                        >
+                            <span>La-Yb</span>
+                            <span className="text-[8px] text-[#15803d]">57-70</span>
                         </div>
-                        <div style={{ gridRow: 7, gridColumn: 3 }} className="flex items-center justify-center text-[10px] font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl">
-                            89-103
+                        <div
+                            style={{ gridRow: 7, gridColumn: 3 }}
+                            className="flex flex-col items-center justify-center text-[9px] font-bold font-mono text-[#166534] bg-[#dcfce7] border border-[#86efac] rounded-md shadow-2xs leading-tight"
+                            title="Actinides (Ac to No)"
+                        >
+                            <span>Ac-No</span>
+                            <span className="text-[8px] text-[#15803d]">89-102</span>
                         </div>
+                    </div>
+
+                    {/* Universal IUPAC Block Classification Bar Legend */}
+                    <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 pt-3 mt-2 border-t border-slate-200/70 text-xs font-mono select-none">
+                        <button
+                            onClick={() => setSelectedBlock(selectedBlock === 's' ? 'all' : 's')}
+                            className={cn(
+                                "flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[11px] font-bold transition-all shadow-2xs",
+                                selectedBlock === 's'
+                                    ? "bg-red-500 text-white border-red-600 ring-2 ring-red-300"
+                                    : "bg-[#fee2e2] text-[#991b1b] border-[#f87171] hover:bg-[#fecaca]"
+                            )}
+                        >
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#ef4444] border border-white" />
+                            <span>s-block (plus He)</span>
+                        </button>
+                        <button
+                            onClick={() => setSelectedBlock(selectedBlock === 'd' ? 'all' : 'd')}
+                            className={cn(
+                                "flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[11px] font-bold transition-all shadow-2xs",
+                                selectedBlock === 'd'
+                                    ? "bg-blue-500 text-white border-blue-600 ring-2 ring-blue-300"
+                                    : "bg-[#dbeafe] text-[#1e40af] border-[#93c5fd] hover:bg-[#bfdbfe]"
+                            )}
+                        >
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#3b82f6] border border-white" />
+                            <span>d-block (Transition metals)</span>
+                        </button>
+                        <button
+                            onClick={() => setSelectedBlock(selectedBlock === 'p' ? 'all' : 'p')}
+                            className={cn(
+                                "flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[11px] font-bold transition-all shadow-2xs",
+                                selectedBlock === 'p'
+                                    ? "bg-amber-400 text-slate-900 border-amber-500 ring-2 ring-amber-200"
+                                    : "bg-[#fef9c3] text-[#854d0e] border-[#fde047] hover:bg-[#fef08a]"
+                            )}
+                        >
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#eab308] border border-white" />
+                            <span>p-block (excluding He)</span>
+                        </button>
+                        <button
+                            onClick={() => setSelectedBlock(selectedBlock === 'f' ? 'all' : 'f')}
+                            className={cn(
+                                "flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[11px] font-bold transition-all shadow-2xs",
+                                selectedBlock === 'f'
+                                    ? "bg-emerald-500 text-white border-emerald-600 ring-2 ring-emerald-300"
+                                    : "bg-[#dcfce7] text-[#166534] border-[#86efac] hover:bg-[#bbf7d0]"
+                            )}
+                        >
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#22c55e] border border-white" />
+                            <span>f-block (Lanthanides & Actinides)</span>
+                        </button>
                     </div>
                 </div>
 
                 {/* Bottom Multi-Column Telemetry & Control Deck */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
                     {/* Discovery Timeline Scrubber Card */}
-                    <div className="p-4 rounded-2xl bg-white/90 border border-black/[0.06] space-y-2.5 shadow-card flex flex-col justify-between">
+                    <div className="p-3.5 rounded-lg bg-white border border-slate-200/80 space-y-2.5 shadow-xs flex flex-col justify-between font-mono">
                         <div className="flex items-center justify-between text-xs">
-                            <span className="flex items-center gap-1.5 text-slate-700 font-bold uppercase text-[10px] tracking-wider">
-                                <History className="w-4 h-4 text-[#16a875]" />
-                                Discovery Timeline:
+                            <span className="flex items-center gap-1.5 text-slate-800 font-bold uppercase text-[10px] tracking-wider">
+                                <History className="w-3.5 h-3.5 text-[#0071e3]" />
+                                <span>Discovery Chronology</span>
                             </span>
-                            <span className="font-bold text-[#087f5b] text-xs font-mono bg-[#e6f6ef] px-2 py-0.5 rounded-md border border-[#bce8d5]">
+                            <span className="font-bold text-[#0071e3] text-xs font-mono bg-blue-50 px-2 py-0.5 rounded border border-blue-200/80">
                                 {maxYear <= 0 ? 'Ancient Antiquity' : `≤ ${maxYear} CE`}
                             </span>
                         </div>
@@ -397,12 +581,12 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                             step="5"
                             value={maxYear}
                             onChange={(e) => setMaxYear(Number(e.target.value))}
-                            className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#16a875]"
+                            className="w-full h-1.5 bg-slate-200 rounded appearance-none cursor-pointer accent-[#0071e3]"
                         />
-                        <div className="flex justify-between text-[9px] text-slate-400 font-mono">
+                        <div className="flex justify-between items-center text-[9.5px] text-slate-500 font-mono pt-1 border-t border-slate-100">
                             <span>1600 (Alchemical)</span>
                             <span>1869 (Mendeleev)</span>
-                            <span>2026 (Modern)</span>
+                            <span>2026 ({filteredElements.length}/118)</span>
                         </div>
                     </div>
 
@@ -411,58 +595,78 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
 
                     {/* Active Hovered Element Card */}
                     {activeDisplayElement && (
-                        <TiltCard
-                            maxTilt={5}
-                            className="md:col-span-2 lg:col-span-1"
-                            cardClassName="p-4 rounded-2xl bg-white/90 border border-black/[0.06] space-y-3 shadow-card"
-                        >
+                        <div className="p-3.5 rounded-lg bg-white border border-slate-200/80 space-y-2.5 shadow-xs flex flex-col justify-between md:col-span-2 lg:col-span-1">
                             <div className="flex items-start justify-between">
-                                <div>
-                                    <div className="text-[10px] text-slate-400 uppercase tracking-wider font-mono font-semibold">Active Target</div>
-                                    <div className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                                        <span style={{ color: categoryColors[activeDisplayElement.category] || '#16a875' }}>
-                                            {activeDisplayElement.name}
+                                <div className="flex items-center gap-2.5">
+                                    <div
+                                        className="w-10 h-10 rounded-md border flex flex-col items-center justify-center font-mono shadow-2xs shrink-0"
+                                        style={{
+                                            backgroundColor: `${categoryColors[activeDisplayElement.category]}10`,
+                                            borderColor: `${categoryColors[activeDisplayElement.category]}40`,
+                                        }}
+                                    >
+                                        <span className="text-[8px] text-slate-400 font-bold leading-none">{activeDisplayElement.atomicNumber}</span>
+                                        <span className="text-sm font-black leading-none mt-0.5" style={{ color: categoryColors[activeDisplayElement.category] }}>
+                                            {activeDisplayElement.symbol}
                                         </span>
-                                        <span className="text-xs text-slate-400 font-mono">#{activeDisplayElement.atomicNumber}</span>
                                     </div>
-                                    <div className="text-[11px] font-semibold" style={{ color: categoryColors[activeDisplayElement.category] || '#16a875' }}>
-                                        {categoryLabels[activeDisplayElement.category]} • {getElementBlock(activeDisplayElement.atomicNumber).toUpperCase()}-Block
+                                    <div>
+                                        <div className="flex items-center gap-1.5">
+                                            <h3 className="font-bold text-sm text-slate-900 font-display">{activeDisplayElement.name}</h3>
+                                            <span className="text-[10px] font-mono font-bold text-slate-400">#{activeDisplayElement.atomicNumber}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 mt-0.5">
+                                            <span
+                                                className="text-[9.5px] font-mono font-bold px-1.5 py-0.2 rounded border"
+                                                style={{
+                                                    backgroundColor: `${categoryColors[activeDisplayElement.category]}14`,
+                                                    color: categoryColors[activeDisplayElement.category],
+                                                    borderColor: `${categoryColors[activeDisplayElement.category]}30`,
+                                                }}
+                                            >
+                                                {categoryLabels[activeDisplayElement.category]}
+                                            </span>
+                                            <span className="text-[9.5px] font-mono text-slate-400">
+                                                {activeDisplayElement.atomicMass.toFixed(2)} u
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
 
                                 <button
                                     onClick={() => handleQuickAction('explore', activeDisplayElement)}
-                                    className="emerald-button text-xs font-bold px-3 py-1.5 rounded-xl shadow-xs"
+                                    className="h-7 px-2.5 rounded-md bg-slate-900 hover:bg-slate-800 text-white font-mono font-bold text-xs flex items-center gap-1 shadow-xs transition-all"
                                 >
-                                    <Atom className="w-3.5 h-3.5" /> Explore
+                                    <Atom className="w-3.5 h-3.5 text-[#0071e3]" />
+                                    <span>Explore 3D</span>
                                 </button>
                             </div>
 
                             {/* Quick Action Dispatch Buttons */}
-                            <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-slate-100 font-mono">
+                            <div className="grid grid-cols-3 gap-1 pt-1 border-t border-slate-100 font-sans">
                                 <button
                                     onClick={() => handleQuickAction('compare', activeDisplayElement)}
-                                    className="px-2 py-1.5 bg-[#e6f6ef] hover:bg-[#d8f2e6] border border-[#bce8d5] rounded-xl text-[10px] font-bold text-[#087f5b] flex items-center justify-center gap-1 transition-colors"
+                                    className="h-7 rounded-md bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1 shadow-2xs transition-colors"
                                 >
-                                    <GitCompare className="w-3 h-3 text-[#16a875]" /> Compare
+                                    <GitCompare className="w-3 h-3 text-[#0071e3]" /> Compare
                                 </button>
                                 <button
                                     onClick={() => handleQuickAction('reactions', activeDisplayElement)}
-                                    className="px-2 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-[10px] font-bold text-amber-900 flex items-center justify-center gap-1 transition-colors"
+                                    className="h-7 rounded-md bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1 shadow-2xs transition-colors"
                                 >
                                     <Zap className="w-3 h-3 text-amber-600" /> React
                                 </button>
                                 <button
                                     onClick={() => handleQuickAction('builder', activeDisplayElement)}
-                                    className="px-2 py-1.5 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-xl text-[10px] font-bold text-teal-900 flex items-center justify-center gap-1 transition-colors"
+                                    className="h-7 rounded-md bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1 shadow-2xs transition-colors"
                                 >
-                                    <Boxes className="w-3 h-3 text-teal-600" /> Build
+                                    <Boxes className="w-3 h-3 text-emerald-600" /> Build
                                 </button>
                             </div>
 
                             {/* Spectroscopy Real-Time Footprint */}
                             <SpectroscopyBar element={activeDisplayElement} />
-                        </TiltCard>
+                        </div>
                     )}
                 </div>
             </div>
@@ -474,34 +678,34 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 select-none"
                         onClick={() => setPopupElement(null)}
                     >
                         <motion.div
-                            initial={{ scale: 0.9, y: 20 }}
+                            initial={{ scale: 0.95, y: 15 }}
                             animate={{ scale: 1, y: 0 }}
-                            exit={{ scale: 0.9, y: 20 }}
-                            className="bg-white border border-slate-200 rounded-2xl p-5 max-w-md w-full shadow-2xl space-y-4 text-slate-900"
+                            exit={{ scale: 0.95, y: 15 }}
+                            className="bg-white border border-slate-200/80 rounded-xl p-5 max-w-md w-full shadow-2xl space-y-3.5 text-slate-900 font-sans"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <div className="flex items-start justify-between">
+                            <div className="flex items-start justify-between border-b border-slate-100 pb-3">
                                 <div className="flex items-center gap-3">
                                     <div
-                                        className="w-14 h-14 rounded-xl flex flex-col items-center justify-center font-bold border-2"
+                                        className="w-12 h-12 rounded-lg flex flex-col items-center justify-center font-bold border shadow-xs"
                                         style={{
                                             borderColor: categoryColors[popupElement.category] || '#0284c7',
-                                            backgroundColor: `${categoryColors[popupElement.category]}15`,
+                                            backgroundColor: `${categoryColors[popupElement.category]}12`,
                                         }}
                                     >
-                                        <span className="text-xs text-slate-500">{popupElement.atomicNumber}</span>
-                                        <span className="text-xl font-extrabold" style={{ color: categoryColors[popupElement.category] || '#0284c7' }}>{popupElement.symbol}</span>
+                                        <span className="text-[10px] text-slate-400 font-mono leading-none">{popupElement.atomicNumber}</span>
+                                        <span className="text-lg font-black leading-none mt-0.5 font-display" style={{ color: categoryColors[popupElement.category] || '#0284c7' }}>{popupElement.symbol}</span>
                                     </div>
                                     <div>
-                                        <h3 className="text-lg font-bold text-slate-900">{popupElement.name}</h3>
-                                        <p className="text-xs text-sky-700 font-mono">{categoryLabels[popupElement.category]}</p>
+                                        <h3 className="text-base font-bold text-slate-900 font-display">{popupElement.name}</h3>
+                                        <p className="text-xs font-mono font-bold" style={{ color: categoryColors[popupElement.category] || '#0284c7' }}>{categoryLabels[popupElement.category]}</p>
                                     </div>
                                 </div>
-                                <button onClick={() => setPopupElement(null)} className="p-1 rounded hover:bg-slate-100 text-slate-500">
+                                <button onClick={() => setPopupElement(null)} className="w-7 h-7 rounded-md hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors">
                                     <X className="w-4 h-4" />
                                 </button>
                             </div>
@@ -509,21 +713,21 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                             <SpectroscopyBar element={popupElement} />
 
                             <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                                <div className="p-2 rounded bg-slate-50 border border-slate-200">
-                                    <span className="text-slate-500">Atomic Mass:</span>
-                                    <div className="font-bold text-slate-900">{popupElement.atomicMass} u</div>
+                                <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200/70">
+                                    <span className="text-slate-400 text-[10px] uppercase block">Atomic Mass:</span>
+                                    <div className="font-bold text-slate-900 mt-0.5">{popupElement.atomicMass} u</div>
                                 </div>
-                                <div className="p-2 rounded bg-slate-50 border border-slate-200">
-                                    <span className="text-slate-500">Electron Shells:</span>
-                                    <div className="font-bold text-slate-900">{popupElement.shells.join(' - ')}</div>
+                                <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200/70">
+                                    <span className="text-slate-400 text-[10px] uppercase block">Electron Shells:</span>
+                                    <div className="font-bold text-slate-900 mt-0.5">{popupElement.shells.join(' · ')}</div>
                                 </div>
-                                <div className="p-2 rounded bg-slate-50 border border-slate-200">
-                                    <span className="text-slate-500">Melting Point:</span>
-                                    <div className="font-bold text-slate-900">{elementProperties[popupElement.atomicNumber]?.meltingPoint ?? 'N/A'} K</div>
+                                <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200/70">
+                                    <span className="text-slate-400 text-[10px] uppercase block">Melting Point:</span>
+                                    <div className="font-bold text-slate-900 mt-0.5">{elementProperties[popupElement.atomicNumber]?.meltingPoint ?? 'N/A'} K</div>
                                 </div>
-                                <div className="p-2 rounded bg-slate-50 border border-slate-200">
-                                    <span className="text-slate-500">Boiling Point:</span>
-                                    <div className="font-bold text-slate-900">{elementProperties[popupElement.atomicNumber]?.boilingPoint ?? 'N/A'} K</div>
+                                <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200/70">
+                                    <span className="text-slate-400 text-[10px] uppercase block">Boiling Point:</span>
+                                    <div className="font-bold text-slate-900 mt-0.5">{elementProperties[popupElement.atomicNumber]?.boilingPoint ?? 'N/A'} K</div>
                                 </div>
                             </div>
 
@@ -534,9 +738,9 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
                                         setPopupElement(null);
                                         handleQuickAction('explore', popupElement);
                                     }}
-                                    className="flex-1 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+                                    className="flex-1 h-8 bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold rounded-md flex items-center justify-center gap-1.5 transition-all shadow-xs"
                                 >
-                                    <ArrowUpRight className="w-3.5 h-3.5" /> 3D Quantum Stage
+                                    <ArrowUpRight className="w-3.5 h-3.5" /> Launch 3D Quantum Stage
                                 </button>
                             </div>
                         </motion.div>

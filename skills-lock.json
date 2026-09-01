@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "skills": {
+    "beui": {
+      "source": "starc007/ui-components",
+      "sourceType": "github",
+      "skillPath": "skills/beui/SKILL.md",
+      "computedHash": "c26ac007b804613b5275c9c1836a997ded209de8c71c039e4c82564d7befcaba"
+    },
+    "beui-pro": {
+      "source": "starc007/ui-components",
+      "sourceType": "github",
+      "skillPath": "skills/beui-pro/SKILL.md",
+      "computedHash": "48f873eeb663a95b75a4344279121c885103fca1d930214f2511c5e75f43bd6e"
+    },
+    "superdesign": {
+      "source": "superdesigndev/superdesign-skill",
+      "sourceType": "github",
+      "skillPath": "skills/superdesign/SKILL.md",
+      "computedHash": "d79ff28d01cb9479e0cccd0ca1c6bbaa2e6a1f97d960f6b610dc578574095097"
+    },
+    "transitions-dev": {
+      "source": "Jakubantalik/transitions.dev",
+      "sourceType": "github",
+      "skillPath": "skills/transitions-dev/SKILL.md",
+      "computedHash": "5425301e8fdda9d1b54698ebd7386a34bbefbc26fdb5d830604ce72f5fa3d7bf"
+    },
+    "transitions-polish": {
+      "source": "Jakubantalik/transitions.dev",
+      "sourceType": "github",
+      "skillPath": "skills/transitions-polish/SKILL.md",
+      "computedHash": "f1dd8e76b5fb275447b5dcd2e24dcd8f9bcda7b93361163754ccdff957e30509"
+    }
+  }
+}

@@ -10,7 +10,7 @@
 
 import { useState, useRef, useMemo, useCallback, MutableRefObject, Suspense } from 'react';
 import { Canvas, useFrame, ThreeEvent } from '@react-three/fiber';
-import { OrbitControls, Stars, Sphere, Cylinder, Html, ContactShadows, Sparkles } from '@react-three/drei';
+import { OrbitControls, Sphere, Cylinder, Html, ContactShadows } from '@react-three/drei';
 import { Physics, RigidBody, RapierRigidBody } from '@react-three/rapier';
 import * as THREE from 'three';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -227,8 +227,6 @@ function BuilderScene({ atoms, bonds, selectedAtomId, particleBursts, onSelectAt
             <directionalLight position={[0, 8, -12]} intensity={2.2} color="#818cf8" />
             <directionalLight position={[0, -10, 4]} intensity={0.8} color="#06b6d4" />
             <ContactShadows resolution={1024} scale={50} blur={2} opacity={0.3} far={20} position={[0, -4.9, 0]} />
-            <Stars radius={60} depth={40} count={500} factor={3.5} saturation={0.5} fade speed={0.4} />
-            <Sparkles count={50} scale={14} size={3} speed={0.5} opacity={0.6} color="#38bdf8" />
 
             <Physics gravity={[0, -2, 0]}>
                 {/* Ground plane — invisible collision */}

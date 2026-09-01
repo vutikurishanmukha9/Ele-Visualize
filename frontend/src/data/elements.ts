@@ -23,16 +23,16 @@ export interface ChemicalElement {
 }
 
 export const categoryColors: Record<ElementCategory, string> = {
-  'alkali-metal': '#f43f5e',
-  'alkaline-earth': '#ea580c',
-  'transition-metal': '#d97706',
-  'post-transition': '#0d9488',
-  'metalloid': '#0284c7',
-  'nonmetal': '#06b6d4',
-  'halogen': '#7c3aed',
-  'noble-gas': '#c026d3',
-  'lanthanide': '#4f46e5',
-  'actinide': '#e11d48',
+  'alkali-metal': '#dc2626',      // Alkali Metals: Flame Red
+  'alkaline-earth': '#ea580c',    // Alkaline Earth: Deep Orange
+  'transition-metal': '#d97706',  // Transition Metals: Metallic Amber / Gold
+  'post-transition': '#059669',   // Post-Transition: Emerald Green
+  'metalloid': '#0891b2',         // Metalloids: Teal / Cyan
+  'nonmetal': '#2563eb',          // Reactive Nonmetals: Royal Blue
+  'halogen': '#7c3aed',           // Halogens: Violet / Purple
+  'noble-gas': '#c026d3',         // Noble Gases: Neon Magenta
+  'lanthanide': '#db2777',        // Lanthanides: Rose Pink
+  'actinide': '#be123c',          // Actinides: Crimson / Deep Ruby
 };
 
 export const categoryGlows: Record<ElementCategory, string> = {

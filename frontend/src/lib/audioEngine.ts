@@ -208,6 +208,37 @@ class AudioEngine {
     osc.start(now);
     osc.stop(now + 0.015);
   }
+
+  /**
+   * Resonant acoustic synthesizer for atomic photon emission
+   * Wavelength λ (nm) inversely maps to acoustic pitch (higher energy UV/Violet = higher frequency)
+   */
+  public playSpectralEmission(wavelengthNm: number = 550) {
+    if (!this.initContext() || !this.ctx || !this.masterGain || this.muted) return;
+
+    const now = this.ctx.currentTime;
+    // Map wavelength (380nm - 750nm) to acoustic frequency (1200Hz - 340Hz)
+    const clampedWl = Math.max(300, Math.min(800, wavelengthNm));
+    const normalizedEnergy = 1 - (clampedWl - 300) / 500; // 0 to 1
+    const fundamentalFreq = 340 + normalizedEnergy * 860; // 340Hz to 1200Hz
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(fundamentalFreq, now);
+    osc.frequency.exponentialRampToValueAtTime(fundamentalFreq * 0.96, now + 0.35);
+
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.18, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(now);
+    osc.stop(now + 0.5);
+  }
 }
 
 export const audioEngine = new AudioEngine();

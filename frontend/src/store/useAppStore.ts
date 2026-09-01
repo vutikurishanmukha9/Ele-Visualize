@@ -14,7 +14,7 @@ import { Molecule } from '@/data/molecules';
 export type MainViewMode = '3d' | 'grid' | 'compare' | 'reaction' | 'builder';
 export type SidebarViewMode = 'atoms' | 'molecules';
 export type WorkspaceMode = 'explore' | 'table' | 'compare' | 'reactions' | 'builder' | 'decay' | 'lattice' | 'lab' | 'library';
-export type InspectorTab = 'overview' | 'properties' | 'learning' | 'actions';
+export type InspectorTab = 'overview' | 'physics' | 'structure' | 'actions' | 'properties' | 'learning';
 export type UIDensity = 'comfortable' | 'compact';
 
 export interface SavedSession {
@@ -110,7 +110,7 @@ interface AppState {
 
 export const useAppStore = create<AppState>((set) => ({
     // Initial state
-    selectedElement: elements[0] || null,
+    selectedElement: null,
     selectedMolecule: null,
     compareElement1: elements[0] || null, // Hydrogen
     compareElement2: elements[5] || null, // Carbon
@@ -127,7 +127,7 @@ export const useAppStore = create<AppState>((set) => ({
     comparisonBasket: [1, 6],
     uiDensity: 'comfortable',
 
-    isDarkMode: true,
+    isDarkMode: false,
     isFullscreen: false,
     showOrbitals: false,
     showTutorial: false,

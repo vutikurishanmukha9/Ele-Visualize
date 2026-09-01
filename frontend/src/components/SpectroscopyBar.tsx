@@ -1,7 +1,7 @@
 import { memo, useMemo, useState } from 'react';
 import { ChemicalElement } from '@/data/elements';
 import { audioEngine } from '@/lib/audioEngine';
-import { Zap, ChevronDown, ChevronUp } from 'lucide-react';
+import { Zap, Activity, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface SpectroscopyBarProps {
   element: ChemicalElement;
@@ -141,15 +141,15 @@ export const SpectroscopyBar = memo(function SpectroscopyBar({
   };
 
   return (
-    <div className={`p-2.5 rounded-xl bg-white/95 border border-slate-200/90 font-mono select-none space-y-2 shadow-md backdrop-blur-md transition-all ${className}`}>
+    <div className={`p-2.5 rounded-lg bg-white border border-slate-200/80 font-mono select-none space-y-2 ${className}`}>
       {/* Telemetry Header */}
-      <div className="flex items-center justify-between text-[10px] text-slate-500 uppercase tracking-wider">
+      <div className="flex items-center justify-between text-[10px] text-slate-500 uppercase tracking-wider font-mono">
         <div className="flex items-center gap-1.5 font-bold text-slate-800">
-          <Zap className="w-3 h-3 text-sky-600 animate-pulse" />
-          <span>Optical Emission Spectroscopy</span>
+          <Activity className="w-3 h-3 text-[#0071e3]" />
+          <span>Emission Spectroscopy</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sky-700 font-bold">
+          <span className="text-[#0071e3] font-bold">
             {activeLine ? `${activeLine.wavelength} nm` : `${spectralLines.length} Lines`}
           </span>
           {collapsible && (
@@ -166,7 +166,7 @@ export const SpectroscopyBar = memo(function SpectroscopyBar({
       {!isCollapsed && (
         <>
           {/* Spectrum Continuous Film Strip */}
-          <div className="relative h-6 rounded-md bg-slate-950 border border-slate-800 overflow-hidden flex items-center shadow-inner cursor-crosshair">
+          <div className="relative h-6 rounded bg-slate-950 border border-slate-800 overflow-hidden flex items-center shadow-inner cursor-crosshair">
             {/* Continuous Rainbow dispersion substrate */}
             <div
               className="absolute inset-0 opacity-25"
@@ -186,12 +186,12 @@ export const SpectroscopyBar = memo(function SpectroscopyBar({
                   onClick={() => handleLineClick(line)}
                   onMouseEnter={() => setHoveredLine(line)}
                   onMouseLeave={() => setHoveredLine(null)}
-                  className="absolute top-0 bottom-0 transition-all hover:scale-y-125 z-10"
+                  className="absolute top-0 bottom-0 transition-all z-10"
                   style={{
                     left: `${leftPercent}%`,
-                    width: isCurrent ? '3px' : '1.5px',
+                    width: isCurrent ? '2.5px' : '1px',
                     backgroundColor: line.color,
-                    boxShadow: isCurrent ? `0 0 10px ${line.color}` : `0 0 3px ${line.color}`,
+                    boxShadow: isCurrent ? `0 0 6px ${line.color}` : 'none',
                     opacity: isCurrent ? 1 : line.intensity,
                   }}
                   title={`${line.name}: ${line.wavelength} nm`}
@@ -200,7 +200,7 @@ export const SpectroscopyBar = memo(function SpectroscopyBar({
             })}
 
             {/* Axis Reference Ticks */}
-            <div className="absolute inset-x-0 bottom-0 flex justify-between px-1.5 text-[7px] text-slate-400 pointer-events-none leading-none">
+            <div className="absolute inset-x-0 bottom-0 flex justify-between px-1 text-[7px] text-slate-400 pointer-events-none leading-none font-mono">
               <span>380nm</span>
               <span>480nm</span>
               <span>580nm</span>
@@ -211,23 +211,23 @@ export const SpectroscopyBar = memo(function SpectroscopyBar({
 
           {/* Selected Spectral Line Detail Inspector */}
           {activeLine && (
-            <div className="grid grid-cols-3 gap-1.5 p-1.5 rounded-lg bg-slate-50 border border-slate-200/80 text-[10px]">
+            <div className="grid grid-cols-3 gap-1 p-1.5 rounded bg-slate-50 border border-slate-200/80 text-[10px] font-mono">
               <div className="flex flex-col">
-                <span className="text-[8px] text-slate-400 uppercase">Energy (E)</span>
-                <span className="font-bold text-sky-700">
+                <span className="text-[8px] text-slate-400 uppercase">Energy</span>
+                <span className="font-bold text-slate-900">
                   {(1239.84 / activeLine.wavelength).toFixed(2)} eV
                 </span>
               </div>
               <div className="flex flex-col">
-                <span className="text-[8px] text-slate-400 uppercase">Frequency (ν)</span>
-                <span className="font-bold text-purple-700">
+                <span className="text-[8px] text-slate-400 uppercase">Frequency</span>
+                <span className="font-bold text-slate-900">
                   {((2.9979e5) / activeLine.wavelength).toFixed(0)} THz
                 </span>
               </div>
               <div className="flex flex-col">
                 <span className="text-[8px] text-slate-400 uppercase">Transition</span>
-                <span className="font-bold text-amber-700 truncate" title={activeLine.transition}>
-                  {activeLine.transition || 'Atomic Shell'}
+                <span className="font-bold text-[#0071e3] truncate" title={activeLine.transition}>
+                  {activeLine.transition || 'Shell Transition'}
                 </span>
               </div>
             </div>
