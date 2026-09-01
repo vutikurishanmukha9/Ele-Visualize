@@ -395,9 +395,9 @@ export function NuclearDecayLab({ onClose }: { onClose?: () => void } = {}) {
   }, [cpm]);
 
   return (
-    <div className="w-full h-full flex flex-row bg-[#fbfbfd] text-slate-900 font-sans select-none overflow-hidden">
+    <div className="w-full h-full flex flex-col lg:flex-row bg-[#fbfbfd] text-slate-900 font-sans select-none overflow-hidden">
       {/* Left 3D Decay Chamber Stage */}
-      <div className="flex-1 min-w-0 h-full relative bg-slate-900/[0.03] cursor-grab active:cursor-grabbing">
+      <div className="h-64 sm:h-80 lg:h-full flex-1 min-w-0 min-h-0 relative bg-slate-900/[0.03] cursor-grab active:cursor-grabbing">
         <Canvas
           camera={{ position: [0, 2.5, 5.5], fov: 42, near: 0.1, far: 50 }}
           gl={{
@@ -518,7 +518,7 @@ export function NuclearDecayLab({ onClose }: { onClose?: () => void } = {}) {
       </div>
 
       {/* Right Control & Physics Inspector Panel */}
-      <div className="w-80 sm:w-96 shrink-0 h-full p-4 flex flex-col gap-3.5 overflow-y-auto bg-white border-l border-slate-200/80 shadow-xs z-10">
+      <div className="w-full lg:w-96 shrink-0 h-auto lg:h-full p-4 flex flex-col gap-3.5 overflow-y-auto bg-white border-t lg:border-t-0 lg:border-l border-slate-200/80 shadow-xs z-10">
         {/* Header Lockup */}
         <div className="flex items-start justify-between border-b border-slate-100 pb-3">
           <div>
