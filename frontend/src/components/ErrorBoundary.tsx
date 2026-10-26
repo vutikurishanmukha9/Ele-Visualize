@@ -28,15 +28,15 @@ export class ErrorBoundary extends Component<Props, State> {
     render() {
         if (this.state.hasError) {
             return this.props.fallback || (
-                <div className="w-full h-full min-h-[300px] flex items-center justify-center p-6 bg-slate-50 border border-slate-200/80 rounded-2xl">
-                    <div className="text-center max-w-md p-6 bg-white rounded-3xl border border-black/[0.08] shadow-card flex flex-col items-center">
-                        <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200/80 flex items-center justify-center text-amber-600 mb-3">
+                <div className="w-full h-full min-h-[300px] flex items-center justify-center p-6 bg-[var(--color-canvas)] border border-[var(--color-hairline)] rounded-lg">
+                    <div className="text-center max-w-md p-6 bg-[var(--color-surface-1)] rounded-lg border border-[var(--color-hairline)] flex flex-col items-center">
+                        <div className="w-12 h-12 rounded-lg bg-[var(--color-surface-2)] border border-[var(--color-hairline)] flex items-center justify-center text-amber-400 mb-3">
                             <AlertTriangle className="w-6 h-6" />
                         </div>
-                        <h3 className="text-base font-serif font-bold text-slate-900 mb-1">
+                        <h3 className="text-base font-display font-bold text-[var(--color-ink)] mb-1">
                             3D Stage Initialization
                         </h3>
-                        <p className="text-xs text-slate-500 mb-4 leading-relaxed font-sans">
+                        <p className="text-xs text-[var(--color-ink-muted)] mb-4 leading-relaxed font-mono">
                             {this.state.error?.message || 'A WebGL shader or rendering event was interrupted.'}
                         </p>
                         <button
@@ -44,7 +44,7 @@ export class ErrorBoundary extends Component<Props, State> {
                                 this.setState({ hasError: false, error: null });
                                 window.location.reload();
                             }}
-                            className="px-4 py-2 bg-[#16a875] hover:bg-[#087f5b] text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-xs transition-colors"
+                            className="px-4 py-2 bg-[var(--color-accent)] hover:bg-[#4f5ac4] text-white text-xs font-bold rounded flex items-center gap-2 transition-colors"
                         >
                             <RotateCcw className="w-3.5 h-3.5" /> Reload Visualizer
                         </button>

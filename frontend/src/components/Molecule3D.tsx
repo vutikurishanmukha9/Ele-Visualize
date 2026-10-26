@@ -220,7 +220,7 @@ export function Molecule3D({
             >
                 {/* Professional Multi-Point Studio Lighting Rig */}
                 <ambientLight intensity={0.9} color="#f8fafc" />
-                <hemisphereLight skyColor="#f8fafc" groundColor="#1e293b" intensity={0.85} />
+                <hemisphereLight args={['#f8fafc', '#1e293b', 0.85]} />
                 <directionalLight position={[8, 12, 10]} intensity={1.6} color="#ffffff" />
                 <directionalLight position={[-10, -6, -8]} intensity={0.8} color="#38bdf8" />
                 <directionalLight position={[8, -8, -6]} intensity={0.65} color="#f59e0b" />

@@ -220,7 +220,7 @@ function BuilderScene({ atoms, bonds, selectedAtomId, particleBursts, onSelectAt
         <>
             {/* Studio Lighting Rig */}
             <ambientLight intensity={0.8} color="#f8fafc" />
-            <hemisphereLight skyColor="#f8fafc" groundColor="#1e1b4b" intensity={0.9} />
+            <hemisphereLight args={['#f8fafc', '#1e1b4b', 0.9]} />
             <directionalLight position={[8, 12, 10]} intensity={1.8} color="#ffffff" />
             <directionalLight position={[-10, -6, -8]} intensity={1.1} color="#38bdf8" />
             <directionalLight position={[8, -8, -6]} intensity={0.9} color="#f59e0b" />
@@ -415,7 +415,7 @@ export function MoleculeBuilder3D({ className }: MoleculeBuilder3DProps) {
     return (
         <div className={cn("w-full h-full flex flex-col", className)}>
             {/* Toolbar */}
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-[var(--color-paper-2)] border-b border-[var(--color-rule)]">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-[var(--color-surface-1)] border-b border-[var(--color-hairline)]">
                 {/* Element palette */}
                 <div className="flex flex-wrap gap-1 flex-shrink-0">
                     {ELEMENT_PALETTE.map(el => (
@@ -423,10 +423,10 @@ export function MoleculeBuilder3D({ className }: MoleculeBuilder3DProps) {
                             key={el.symbol}
                             onClick={() => setSelectedElement(el)}
                             className={cn(
-                                "w-7 h-7 sm:w-9 sm:h-9 rounded-lg text-[10px] sm:text-xs font-bold transition-all border flex-shrink-0",
+                                "w-7 h-7 sm:w-9 sm:h-9 rounded text-[10px] sm:text-xs font-bold transition-all border flex-shrink-0",
                                 selectedElement.symbol === el.symbol
-                                    ? "border-primary scale-110 shadow-lg shadow-primary/20"
-                                    : "border-white/10 hover:border-white/30"
+                                    ? "border-[var(--color-accent)] bg-[var(--color-surface-3)]"
+                                    : "border-[var(--color-hairline)] bg-[var(--color-surface-2)] hover:border-[var(--color-surface-4)]"
                             )}
                             style={{ color: el.color }}
                             title={el.name}
@@ -436,12 +436,12 @@ export function MoleculeBuilder3D({ className }: MoleculeBuilder3DProps) {
                     ))}
                 </div>
 
-                <div className="hidden sm:block w-px h-8 bg-white/10 mx-1 flex-shrink-0" />
+                <div className="hidden sm:block w-px h-8 bg-[var(--color-hairline)] mx-1 flex-shrink-0" />
 
                 {/* Actions */}
                 <button
                     onClick={addAtom}
-                    className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 text-xs sm:text-sm font-medium transition-colors flex-shrink-0"
+                    className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded bg-[var(--color-accent)] text-white hover:bg-[#4f5ac4] text-xs sm:text-sm font-semibold transition-colors flex-shrink-0"
                     title={`Add ${selectedElement.name}`}
                 >
                     <Plus className="w-4 h-4" />
@@ -451,7 +451,7 @@ export function MoleculeBuilder3D({ className }: MoleculeBuilder3DProps) {
                 {selectedAtomId && (
                     <button
                         onClick={removeSelected}
-                        className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs sm:text-sm transition-colors flex-shrink-0"
+                        className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded bg-rose-950/40 text-rose-400 hover:bg-rose-900/60 border border-rose-800/60 text-xs sm:text-sm transition-colors flex-shrink-0"
                     >
                         <Trash2 className="w-4 h-4" />
                     </button>
@@ -459,16 +459,16 @@ export function MoleculeBuilder3D({ className }: MoleculeBuilder3DProps) {
 
                 <button
                     onClick={clearAll}
-                    className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-white/5 text-white/60 hover:bg-white/10 text-xs sm:text-sm transition-colors flex-shrink-0"
+                    className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded bg-[var(--color-surface-2)] text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] border border-[var(--color-hairline)] text-xs sm:text-sm transition-colors flex-shrink-0"
                     title="Clear all"
                 >
                     <RotateCcw className="w-4 h-4" />
                 </button>
 
                 {/* Stats */}
-                <div className="ml-auto flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-white/40 flex-shrink-0">
+                <div className="ml-auto flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-[var(--color-ink-muted)] font-mono flex-shrink-0">
                     <span className="flex items-center gap-1">
-                        <Atom className="w-3.5 h-3.5" />
+                        <Atom className="w-3.5 h-3.5 text-[var(--color-accent)]" />
                         {atoms.length}
                     </span>
                     <span>{bonds.length} bond{bonds.length !== 1 ? 's' : ''}</span>

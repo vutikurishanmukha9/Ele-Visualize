@@ -50,31 +50,33 @@ export const SemanticScaleController = memo(function SemanticScaleController({
   const domains: SemanticScaleDomain[] = ['ATOMIC', 'ORBITAL', 'NUCLEAR', 'SUBATOMIC'];
 
   return (
-    <div className="flex items-center p-0.5 rounded-md bg-slate-100/95 border border-slate-200/90 text-xs font-mono shadow-2xs backdrop-blur-md shrink-0 select-none">
-      <span className="text-[9px] text-slate-400 font-extrabold px-1.5 uppercase tracking-wider hidden sm:inline">SCALE</span>
-      {domains.map((dom) => {
-        const info = SEMANTIC_SCALE_DOMAINS[dom];
-        const isActive = activeDomain === dom;
-        return (
-          <button
-            key={dom}
-            onClick={() => {
-              audioEngine.playClick(840);
-              onSelectDomain(dom);
-            }}
-            className={cn(
-              "px-2 py-0.5 rounded text-[10px] font-mono font-bold transition-all whitespace-nowrap flex items-center gap-1",
-              isActive
-                ? "bg-slate-900 text-white shadow-xs font-extrabold"
-                : "text-slate-500 hover:text-slate-900 hover:bg-white/60"
-            )}
-            title={info.scientificRelevance}
-          >
-            <span className="opacity-70 text-[9px]">{info.metricOrderStr}</span>
-            <span>{info.label}</span>
-          </button>
-        );
-      })}
+    <div className="flex items-center p-0.5 rounded-lg bg-[var(--color-surface-2)]/90 border border-[var(--color-hairline)] text-xs shadow-2xs backdrop-blur-md shrink-0 select-none">
+      <span className="text-[11px] text-[var(--color-ink-muted)] font-medium px-2 hidden sm:inline">Scale</span>
+      <div className="flex items-center gap-0.5">
+        {domains.map((dom) => {
+          const info = SEMANTIC_SCALE_DOMAINS[dom];
+          const isActive = activeDomain === dom;
+          return (
+            <button
+              key={dom}
+              onClick={() => {
+                audioEngine.playClick(840);
+                onSelectDomain(dom);
+              }}
+              className={cn(
+                "px-2.5 py-1 rounded-md text-xs font-medium transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer active:scale-[0.98]",
+                isActive
+                  ? "bg-[#5e6ad2] text-white shadow-2xs font-semibold"
+                  : "text-[var(--color-ink-muted)] hover:text-[var(--color-ink-primary)] hover:bg-[var(--color-surface-3)]"
+              )}
+              title={info.scientificRelevance}
+            >
+              <span className="opacity-70 text-[11px] font-mono">{info.metricOrderStr}</span>
+              <span>{info.label}</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 });

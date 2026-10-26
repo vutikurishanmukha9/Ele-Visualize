@@ -1,7 +1,12 @@
-import { memo, useRef, useMemo } from 'react';
+import { memo, useRef, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Sphere, Line, Html } from '@react-three/drei';
 import * as THREE from 'three';
+import { ChemicalElement, elements } from '@/data/elements';
+import { AtomSvgDiagram } from './AtomSvgDiagram';
+import { Box, Layers } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { audioEngine } from '@/lib/audioEngine';
 
 interface BohrModel3DProps {
   shells: number[];
@@ -9,6 +14,8 @@ interface BohrModel3DProps {
   symbol: string;
   name?: string;
   size?: number; // Canvas height in px (e.g. 160 or 180)
+  element?: ChemicalElement;
+  defaultMode?: '3d' | 'svg';
 }
 
 const ORBIT_STEPS = 96;
@@ -145,48 +152,115 @@ export const BohrModel3D = memo(function BohrModel3D({
   shells,
   color,
   symbol,
-  size = 150,
+  size = 170,
+  element,
+  defaultMode = '3d',
 }: BohrModel3DProps) {
+  const [viewMode, setViewMode] = useState<'3d' | 'svg'>(defaultMode);
+
+  const chemicalElement = useMemo(() => {
+    if (element) return element;
+    const found = elements.find((e) => e.symbol === symbol);
+    if (found) return found;
+    return {
+      symbol,
+      atomicNumber: shells.reduce((a, b) => a + b, 0),
+      name: symbol,
+      atomicMass: shells.reduce((a, b) => a + b, 0) * 2,
+      category: 'nonmetal',
+      shells,
+    } as ChemicalElement;
+  }, [element, symbol, shells]);
+
   return (
-    <div className="flex flex-col items-center justify-center p-3 bg-white/90 rounded-2xl border border-black/[0.06] relative overflow-hidden select-none shadow-card">
-      <div
-        className="w-full relative cursor-grab active:cursor-grabbing"
-        style={{ height: `${size}px` }}
-      >
-        <Canvas
-          camera={{ position: [0, 2.4, 4.2], fov: 42, near: 0.1, far: 50 }}
-          gl={{
-            antialias: true,
-            alpha: true,
-            powerPreference: 'high-performance',
-            toneMapping: THREE.ACESFilmicToneMapping,
-            toneMappingExposure: 1.05,
-          }}
-          style={{ background: 'transparent' }}
-          dpr={[1.5, 3]}
-        >
-          <ambientLight intensity={0.9} color="#f8fafc" />
-          <directionalLight position={[5, 8, 6]} intensity={1.5} color="#ffffff" />
-          <directionalLight position={[-5, -4, -5]} intensity={0.7} color="#38bdf8" />
-          <directionalLight position={[0, -6, 2]} intensity={0.5} color="#f59e0b" />
-
-          <MiniBohrScene shells={shells} color={color} symbol={symbol} />
-
-          <OrbitControls
-            enableZoom={false}
-            enablePan={false}
-            autoRotate
-            autoRotateSpeed={1.5}
-            minPolarAngle={Math.PI / 6}
-            maxPolarAngle={Math.PI - Math.PI / 6}
-          />
-        </Canvas>
+    <div className="flex flex-col items-center justify-center p-3 bg-[var(--color-surface-2)] rounded-lg border border-[var(--color-hairline)] relative overflow-hidden select-none">
+      {/* Top Header Strip with Dual-Engine Switcher */}
+      <div className="w-full flex items-center justify-between pb-2 mb-1 border-b border-[var(--color-hairline)] font-sans">
+        <span className="text-xs font-semibold text-[var(--color-ink-primary)]">
+          {viewMode === '3d' ? '3D Bohr Quantum Shells' : '2D Vector Schematic'}
+        </span>
+        <div className="flex items-center gap-0.5 bg-[var(--color-surface-3)] p-0.5 rounded-lg border border-[var(--color-hairline)] shadow-2xs">
+          <button
+            onClick={() => {
+              audioEngine.playClick(840);
+              setViewMode('3d');
+            }}
+            className={cn(
+              "px-2.5 py-1 rounded-md flex items-center gap-1.5 transition-all text-xs font-medium cursor-pointer select-none",
+              viewMode === '3d'
+                ? "bg-[var(--color-surface-1)] text-[var(--color-ink-primary)] border border-[var(--color-hairline)] shadow-2xs"
+                : "text-[var(--color-ink-muted)] hover:text-[var(--color-ink-primary)]"
+            )}
+          >
+            <Box className="w-3 h-3 text-[var(--color-accent)]" />
+            <span>3D</span>
+          </button>
+          <button
+            onClick={() => {
+              audioEngine.playClick(900);
+              setViewMode('svg');
+            }}
+            className={cn(
+              "px-2.5 py-1 rounded-md flex items-center gap-1.5 transition-all text-xs font-medium cursor-pointer select-none",
+              viewMode === 'svg'
+                ? "bg-[var(--color-surface-1)] text-[var(--color-ink-primary)] border border-[var(--color-hairline)] shadow-2xs"
+                : "text-[var(--color-ink-muted)] hover:text-[var(--color-ink-primary)]"
+            )}
+          >
+            <Layers className="w-3 h-3 text-[var(--color-accent)]" />
+            <span>SVG</span>
+          </button>
+        </div>
       </div>
 
-      <div className="text-[11px] font-mono text-slate-500 mt-1 text-center">
-        Bohr Shells:{' '}
-        <span className="text-[#087f5b] font-bold bg-[#e6f6ef] px-2 py-0.5 rounded-md border border-[#bce8d5]">
-          {shells.join(' • ')}
+      <div
+        className="w-full relative flex items-center justify-center cursor-grab active:cursor-grabbing"
+        style={{ height: `${size}px` }}
+      >
+        {viewMode === '3d' ? (
+          <Canvas
+            camera={{ position: [0, 2.4, 4.2], fov: 42, near: 0.1, far: 50 }}
+            gl={{
+              antialias: true,
+              alpha: true,
+              powerPreference: 'high-performance',
+              toneMapping: THREE.ACESFilmicToneMapping,
+              toneMappingExposure: 1.15,
+            }}
+            style={{ background: 'transparent' }}
+            dpr={[1.5, 3]}
+          >
+            <ambientLight intensity={0.7} color="#ffffff" />
+            <directionalLight position={[5, 8, 6]} intensity={1.6} color="#ffffff" />
+            <directionalLight position={[-5, -4, -5]} intensity={0.8} color="#818cf8" />
+            <directionalLight position={[0, -6, 2]} intensity={0.5} color="#f59e0b" />
+
+            <MiniBohrScene shells={shells} color={color} symbol={symbol} />
+
+            <OrbitControls
+              enableZoom={false}
+              enablePan={false}
+              autoRotate
+              autoRotateSpeed={1.5}
+              minPolarAngle={Math.PI / 6}
+              maxPolarAngle={Math.PI - Math.PI / 6}
+            />
+          </Canvas>
+        ) : (
+          <AtomSvgDiagram
+            element={chemicalElement}
+            size={size}
+            animated={true}
+            interactive={true}
+            showLabels={true}
+          />
+        )}
+      </div>
+
+      <div className="text-xs text-[var(--color-ink-muted)] mt-2 text-center font-sans">
+        Bohr Shell Distribution:{' '}
+        <span className="text-[var(--color-accent)] font-semibold bg-[var(--color-accent)]/10 px-2 py-0.5 rounded border border-[var(--color-accent)]/20 font-mono tnum">
+          {shells.join(' · ')}
         </span>
       </div>
     </div>

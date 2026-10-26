@@ -708,7 +708,7 @@ export function Atom3D({
                 {/* 1. Studio Ambient Base */}
                 <ambientLight intensity={0.9} color="#f8fafc" />
                 {/* 2. Omnidirectional Hemisphere Light */}
-                <hemisphereLight skyColor="#f8fafc" groundColor="#1e293b" intensity={0.85} />
+                <hemisphereLight args={['#f8fafc', '#1e293b', 0.85]} />
                 {/* 3. Key Directional Light for crisp specular highlights */}
                 <directionalLight position={[8, 12, 10]} intensity={1.6} color="#ffffff" />
                 {/* 4. Cool Cyan Fill Light */}

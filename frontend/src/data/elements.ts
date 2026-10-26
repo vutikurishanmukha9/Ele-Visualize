@@ -23,29 +23,29 @@ export interface ChemicalElement {
 }
 
 export const categoryColors: Record<ElementCategory, string> = {
-  'alkali-metal': '#dc2626',      // Alkali Metals: Flame Red
-  'alkaline-earth': '#ea580c',    // Alkaline Earth: Deep Orange
-  'transition-metal': '#d97706',  // Transition Metals: Metallic Amber / Gold
-  'post-transition': '#059669',   // Post-Transition: Emerald Green
-  'metalloid': '#0891b2',         // Metalloids: Teal / Cyan
-  'nonmetal': '#2563eb',          // Reactive Nonmetals: Royal Blue
-  'halogen': '#7c3aed',           // Halogens: Violet / Purple
-  'noble-gas': '#c026d3',         // Noble Gases: Neon Magenta
-  'lanthanide': '#db2777',        // Lanthanides: Rose Pink
-  'actinide': '#be123c',          // Actinides: Crimson / Deep Ruby
+  'alkali-metal': '#f43f5e',      // Alkali Metals: Radiant Carmine Flame Red
+  'alkaline-earth': '#fb923c',    // Alkaline Earth: Luminous Solar Orange
+  'transition-metal': '#eab308',  // Transition Metals: Aurum Amber / Metallic Sheen
+  'post-transition': '#10b981',   // Post-Transition: Crystalline Emerald
+  'metalloid': '#06b6d4',         // Metalloids: Electric Cyan / Semiconductor
+  'nonmetal': '#3b82f6',          // Reactive Nonmetals: Vibrant Cobalt Azure
+  'halogen': '#8b5cf6',           // Halogens: Energetic Halide Violet
+  'noble-gas': '#d946ef',         // Noble Gases: High-Voltage Plasma Magenta
+  'lanthanide': '#ec4899',        // Lanthanides: Rare Earth Orchid Pink
+  'actinide': '#f43f5e',          // Actinides: Heavy Actinide Crimson
 };
 
 export const categoryGlows: Record<ElementCategory, string> = {
-  'alkali-metal': 'rgba(244, 63, 94, 0.35)',
-  'alkaline-earth': 'rgba(234, 88, 12, 0.35)',
-  'transition-metal': 'rgba(217, 119, 6, 0.35)',
-  'post-transition': 'rgba(13, 148, 136, 0.35)',
-  'metalloid': 'rgba(2, 132, 199, 0.35)',
-  'nonmetal': 'rgba(6, 182, 212, 0.35)',
-  'halogen': 'rgba(124, 58, 237, 0.35)',
-  'noble-gas': 'rgba(192, 38, 211, 0.35)',
-  'lanthanide': 'rgba(79, 70, 229, 0.35)',
-  'actinide': 'rgba(225, 29, 72, 0.35)',
+  'alkali-metal': 'rgba(244, 63, 94, 0.45)',
+  'alkaline-earth': 'rgba(251, 146, 60, 0.45)',
+  'transition-metal': 'rgba(234, 179, 8, 0.40)',
+  'post-transition': 'rgba(16, 185, 129, 0.40)',
+  'metalloid': 'rgba(6, 182, 212, 0.45)',
+  'nonmetal': 'rgba(59, 130, 246, 0.45)',
+  'halogen': 'rgba(139, 92, 246, 0.45)',
+  'noble-gas': 'rgba(217, 70, 239, 0.50)',
+  'lanthanide': 'rgba(236, 72, 153, 0.45)',
+  'actinide': 'rgba(244, 63, 94, 0.45)',
 };
 
 export const getElementBlock = (atomicNumber: number): ElementBlock => {
@@ -73,16 +73,107 @@ export const getCategoryGlow = (category: ElementCategory): string => {
   return categoryGlows[category] || 'rgba(56, 189, 248, 0.4)';
 };
 
+export interface ElementPalette {
+  primary: string;       // Authentic CPK / spectroscopic base color
+  secondary: string;     // Shaded volume / ambient occlusion tone
+  highlight: string;     // Specular reflection highlight
+  glow: string;          // Luminous emission / halo tint
+  border: string;        // Vector hairline contour
+  text: string;          // High-contrast label color ('#ffffff' or '#090d16')
+}
+
+// Master scientific IUPAC / CPK / Spectroscopic physical palettes
+export const ELEMENT_PALETTES: Record<string, ElementPalette> = {
+  // Biogenic & Common Nonmetals
+  H: { primary: '#f8fafc', secondary: '#94a3b8', highlight: '#ffffff', glow: 'rgba(56, 189, 248, 0.45)', border: '#38bdf8', text: '#090d16' },
+  C: { primary: '#334155', secondary: '#0f172a', highlight: '#94a3b8', glow: 'rgba(148, 163, 184, 0.4)', border: '#64748b', text: '#ffffff' },
+  N: { primary: '#3b82f6', secondary: '#1d4ed8', highlight: '#93c5fd', glow: 'rgba(59, 130, 246, 0.5)', border: '#60a5fa', text: '#ffffff' },
+  O: { primary: '#ef4444', secondary: '#b91c1c', highlight: '#fca5a5', glow: 'rgba(239, 68, 68, 0.5)', border: '#f87171', text: '#ffffff' },
+  P: { primary: '#f97316', secondary: '#c2410c', highlight: '#fdba74', glow: 'rgba(249, 115, 22, 0.5)', border: '#fb923c', text: '#ffffff' },
+  S: { primary: '#eab308', secondary: '#a16207', highlight: '#fef08a', glow: 'rgba(234, 179, 8, 0.5)', border: '#facc15', text: '#090d16' },
+  
+  // Halogens
+  F: { primary: '#10b981', secondary: '#047857', highlight: '#6ee7b7', glow: 'rgba(16, 185, 129, 0.5)', border: '#34d399', text: '#090d16' },
+  Cl: { primary: '#22c55e', secondary: '#15803d', highlight: '#86efac', glow: 'rgba(34, 197, 94, 0.5)', border: '#4ade80', text: '#090d16' },
+  Br: { primary: '#b91c1c', secondary: '#7f1d1d', highlight: '#fca5a5', glow: 'rgba(185, 28, 28, 0.5)', border: '#ef4444', text: '#ffffff' },
+  I: { primary: '#9333ea', secondary: '#581c87', highlight: '#d8b4fe', glow: 'rgba(147, 51, 234, 0.5)', border: '#a855f7', text: '#ffffff' },
+  At: { primary: '#701a75', secondary: '#4a044e', highlight: '#f0abfc', glow: 'rgba(112, 26, 117, 0.45)', border: '#c026d3', text: '#ffffff' },
+
+  // Noble Gases (Gas Discharge Spectra)
+  He: { primary: '#fde047', secondary: '#ca8a04', highlight: '#fef9c3', glow: 'rgba(250, 204, 21, 0.5)', border: '#facc15', text: '#090d16' },
+  Ne: { primary: '#ff5722', secondary: '#c2410c', highlight: '#fdba74', glow: 'rgba(255, 87, 34, 0.55)', border: '#fb923c', text: '#ffffff' },
+  Ar: { primary: '#c084fc', secondary: '#7e22ce', highlight: '#f3e8ff', glow: 'rgba(192, 132, 252, 0.5)', border: '#d8b4fe', text: '#090d16' },
+  Kr: { primary: '#38bdf8', secondary: '#0284c7', highlight: '#e0f2fe', glow: 'rgba(56, 189, 248, 0.5)', border: '#7dd3fc', text: '#090d16' },
+  Xe: { primary: '#0284c7', secondary: '#0369a1', highlight: '#bae6fd', glow: 'rgba(2, 132, 199, 0.55)', border: '#38bdf8', text: '#ffffff' },
+  Rn: { primary: '#f43f5e', secondary: '#9f1239', highlight: '#fecdd3', glow: 'rgba(244, 63, 94, 0.5)', border: '#fb7185', text: '#ffffff' },
+
+  // Alkali Metals (Flame Emission Spectra)
+  Li: { primary: '#f43f5e', secondary: '#be123c', highlight: '#fda4af', glow: 'rgba(244, 63, 94, 0.5)', border: '#fb7185', text: '#ffffff' },
+  Na: { primary: '#f59e0b', secondary: '#b45309', highlight: '#fef08a', glow: 'rgba(245, 158, 11, 0.5)', border: '#fbbf24', text: '#090d16' },
+  K: { primary: '#a855f7', secondary: '#6b21a8', highlight: '#e9d5ff', glow: 'rgba(168, 85, 247, 0.5)', border: '#c084fc', text: '#ffffff' },
+  Rb: { primary: '#e11d48', secondary: '#881337', highlight: '#fecdd3', glow: 'rgba(225, 29, 72, 0.5)', border: '#fb7185', text: '#ffffff' },
+  Cs: { primary: '#0284c7', secondary: '#075985', highlight: '#bae6fd', glow: 'rgba(2, 132, 199, 0.5)', border: '#38bdf8', text: '#ffffff' },
+
+  // Alkaline Earth Metals
+  Be: { primary: '#10b981', secondary: '#047857', highlight: '#a7f3d0', glow: 'rgba(16, 185, 129, 0.45)', border: '#34d399', text: '#090d16' },
+  Mg: { primary: '#cbd5e1', secondary: '#64748b', highlight: '#f8fafc', glow: 'rgba(203, 213, 225, 0.45)', border: '#e2e8f0', text: '#090d16' },
+  Ca: { primary: '#fb923c', secondary: '#c2410c', highlight: '#fed7aa', glow: 'rgba(251, 146, 60, 0.5)', border: '#f97316', text: '#090d16' },
+  Sr: { primary: '#ef4444', secondary: '#b91c1c', highlight: '#fca5a5', glow: 'rgba(239, 68, 68, 0.5)', border: '#f87171', text: '#ffffff' },
+  Ba: { primary: '#84cc16', secondary: '#4d7c0f', highlight: '#d9f99d', glow: 'rgba(132, 204, 22, 0.5)', border: '#a3e635', text: '#090d16' },
+
+  // Transition & Metallics
+  Ti: { primary: '#94a3b8', secondary: '#475569', highlight: '#f1f5f9', glow: 'rgba(148, 163, 184, 0.45)', border: '#cbd5e1', text: '#090d16' },
+  V: { primary: '#8b5cf6', secondary: '#5b21b6', highlight: '#ddd6fe', glow: 'rgba(139, 92, 246, 0.45)', border: '#a78bfa', text: '#ffffff' },
+  Cr: { primary: '#38bdf8', secondary: '#0284c7', highlight: '#e0f2fe', glow: 'rgba(56, 189, 248, 0.45)', border: '#7dd3fc', text: '#090d16' },
+  Mn: { primary: '#ec4899', secondary: '#9d174d', highlight: '#fce7f3', glow: 'rgba(236, 72, 153, 0.45)', border: '#f472b6', text: '#ffffff' },
+  Fe: { primary: '#e2e8f0', secondary: '#475569', highlight: '#ffffff', glow: 'rgba(226, 232, 240, 0.5)', border: '#94a3b8', text: '#090d16' },
+  Co: { primary: '#2563eb', secondary: '#1e3a8a', highlight: '#bfdbfe', glow: 'rgba(37, 99, 235, 0.5)', border: '#60a5fa', text: '#ffffff' },
+  Ni: { primary: '#6ee7b7', secondary: '#059669', highlight: '#d1fae5', glow: 'rgba(110, 231, 183, 0.5)', border: '#34d399', text: '#090d16' },
+  Cu: { primary: '#ea580c', secondary: '#9a3412', highlight: '#ffedd5', glow: 'rgba(234, 88, 12, 0.55)', border: '#f97316', text: '#ffffff' },
+  Zn: { primary: '#94a3b8', secondary: '#475569', highlight: '#f1f5f9', glow: 'rgba(148, 163, 184, 0.45)', border: '#cbd5e1', text: '#090d16' },
+  Ag: { primary: '#f8fafc', secondary: '#94a3b8', highlight: '#ffffff', glow: 'rgba(248, 250, 252, 0.6)', border: '#e2e8f0', text: '#090d16' },
+  Au: { primary: '#f59e0b', secondary: '#b45309', highlight: '#fef9c3', glow: 'rgba(245, 158, 11, 0.6)', border: '#fbbf24', text: '#090d16' },
+  Pt: { primary: '#e2e8f0', secondary: '#64748b', highlight: '#ffffff', glow: 'rgba(226, 232, 240, 0.55)', border: '#cbd5e1', text: '#090d16' },
+  Hg: { primary: '#cbd5e1', secondary: '#475569', highlight: '#ffffff', glow: 'rgba(203, 213, 225, 0.5)', border: '#94a3b8', text: '#090d16' },
+
+  // Metalloids & Post-transition
+  B: { primary: '#38bdf8', secondary: '#0369a1', highlight: '#e0f2fe', glow: 'rgba(56, 189, 248, 0.45)', border: '#7dd3fc', text: '#090d16' },
+  Al: { primary: '#cbd5e1', secondary: '#64748b', highlight: '#f8fafc', glow: 'rgba(203, 213, 225, 0.45)', border: '#e2e8f0', text: '#090d16' },
+  Si: { primary: '#0ea5e9', secondary: '#0369a1', highlight: '#bae6fd', glow: 'rgba(14, 165, 233, 0.45)', border: '#38bdf8', text: '#ffffff' },
+  Ga: { primary: '#10b981', secondary: '#047857', highlight: '#a7f3d0', glow: 'rgba(16, 185, 129, 0.45)', border: '#34d399', text: '#090d16' },
+  Ge: { primary: '#06b6d4', secondary: '#0e7490', highlight: '#cffafe', glow: 'rgba(6, 182, 212, 0.45)', border: '#22d3ee', text: '#090d16' },
+  As: { primary: '#eab308', secondary: '#854d0e', highlight: '#fef08a', glow: 'rgba(234, 179, 8, 0.45)', border: '#facc15', text: '#090d16' },
+  Sn: { primary: '#94a3b8', secondary: '#475569', highlight: '#f1f5f9', glow: 'rgba(148, 163, 184, 0.45)', border: '#cbd5e1', text: '#090d16' },
+  Pb: { primary: '#64748b', secondary: '#334155', highlight: '#cbd5e1', glow: 'rgba(100, 116, 139, 0.45)', border: '#94a3b8', text: '#ffffff' },
+  Bi: { primary: '#ec4899', secondary: '#9d174d', highlight: '#fce7f3', glow: 'rgba(236, 72, 153, 0.45)', border: '#f472b6', text: '#ffffff' },
+  U: { primary: '#10b981', secondary: '#047857', highlight: '#d1fae5', glow: 'rgba(16, 185, 129, 0.6)', border: '#34d399', text: '#090d16' },
+};
+
+export const getElementPalette = (elementOrSymbol: ChemicalElement | string): ElementPalette => {
+  const symbol = typeof elementOrSymbol === 'string' ? elementOrSymbol : elementOrSymbol.symbol;
+  if (ELEMENT_PALETTES[symbol]) {
+    return ELEMENT_PALETTES[symbol];
+  }
+
+  // Fallback to category-based rich gradient palette
+  const category = typeof elementOrSymbol === 'string' 
+    ? (elements.find(e => e.symbol === symbol)?.category || 'nonmetal')
+    : elementOrSymbol.category;
+
+  const base = categoryColors[category] || '#38bdf8';
+  const glow = categoryGlows[category] || 'rgba(56, 189, 248, 0.45)';
+  return {
+    primary: base,
+    secondary: '#0f172a',
+    highlight: '#ffffff',
+    glow,
+    border: base,
+    text: '#ffffff',
+  };
+};
+
 export const getElementColor = (element: ChemicalElement): string => {
-  // Element specific overrides for iconic elements
-  if (element.symbol === 'Au') return '#ffd700'; // Gold
-  if (element.symbol === 'Cu') return '#f97316'; // Copper
-  if (element.symbol === 'Ag') return '#cbd5e1'; // Silver
-  if (element.symbol === 'S') return '#eab308'; // Sulfur
-  if (element.symbol === 'Cl') return '#22c55e'; // Chlorine green
-  if (element.symbol === 'Br') return '#b91c1c'; // Bromine deep red
-  if (element.symbol === 'I') return '#7e22ce'; // Iodine violet
-  return categoryColors[element.category] || '#38bdf8';
+  return getElementPalette(element).primary;
 };
 
 export const elements: ChemicalElement[] = [

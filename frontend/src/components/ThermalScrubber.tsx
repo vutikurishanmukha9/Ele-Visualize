@@ -42,18 +42,18 @@ export const ThermalScrubber = memo(function ThermalScrubber({
   );
 
   return (
-    <div className={cn("p-3.5 rounded-lg bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-2.5 font-mono select-none", className)}>
+    <div className={cn("p-3.5 rounded-lg bg-[var(--color-surface-1)] border border-[var(--color-hairline)] shadow-xs flex flex-col justify-between space-y-2.5 font-sans select-none", className)}>
       {/* Header & Live Temperature Telemetry */}
       <div className="flex items-center justify-between text-xs">
-        <div className="flex items-center gap-1.5 font-bold text-slate-800 uppercase tracking-wider text-[10px]">
-          <Thermometer className="w-3.5 h-3.5 text-[#0071e3]" />
-          <span>Thermal Core Simulation</span>
+        <div className="flex items-center gap-1.5 font-semibold text-[var(--color-ink-primary)] text-xs">
+          <Thermometer className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+          <span>Thermal Simulation</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs font-bold text-[#0071e3] bg-blue-50 px-2 py-0.5 rounded border border-blue-200/80">
+        <div className="flex items-center gap-1.5 font-mono">
+          <span className="text-xs font-semibold text-[var(--color-accent)] bg-[var(--color-accent)]/10 px-2 py-0.5 rounded border border-[var(--color-hairline)]">
             {temperatureK} K
           </span>
-          <span className="text-[10px] text-slate-400">
+          <span className="text-[10px] text-[var(--color-ink-muted)]">
             ({celsius}°C / {fahrenheit}°F)
           </span>
         </div>
@@ -68,23 +68,23 @@ export const ThermalScrubber = memo(function ThermalScrubber({
           step="10"
           value={temperatureK}
           onChange={(e) => onTemperatureChange(Number(e.target.value))}
-          className="w-full h-1.5 bg-slate-200 rounded appearance-none cursor-pointer accent-[#0071e3]"
+          className="w-full h-1.5 bg-[var(--color-surface-3)] rounded appearance-none cursor-pointer accent-[var(--color-accent)]"
         />
       </div>
 
       {/* Live Phase Distribution Badges */}
-      <div className="flex items-center justify-between text-[10px] bg-slate-50 p-1.5 rounded border border-slate-200/60 font-mono">
-        <div className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full bg-slate-400" />
-          <span className="text-slate-600">Solid: <strong>{phaseCounts.solid}</strong></span>
+      <div className="flex items-center justify-between text-[11px] bg-[var(--color-surface-2)] p-1.5 rounded-md border border-[var(--color-hairline)]">
+        <div className="flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+          <span className="text-[var(--color-ink-muted)]">Solid: <strong className="text-[var(--color-ink-primary)] font-mono font-medium">{phaseCounts.solid}</strong></span>
         </div>
-        <div className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full bg-sky-500" />
-          <span className="text-slate-600">Liquid: <strong>{phaseCounts.liquid}</strong></span>
+        <div className="flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+          <span className="text-[var(--color-ink-muted)]">Liquid: <strong className="text-[var(--color-ink-primary)] font-mono font-medium">{phaseCounts.liquid}</strong></span>
         </div>
-        <div className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full bg-amber-500" />
-          <span className="text-slate-600">Gas: <strong>{phaseCounts.gas}</strong></span>
+        <div className="flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+          <span className="text-[var(--color-ink-muted)]">Gas: <strong className="text-[var(--color-ink-primary)] font-mono font-medium">{phaseCounts.gas}</strong></span>
         </div>
       </div>
 
@@ -100,10 +100,10 @@ export const ThermalScrubber = memo(function ThermalScrubber({
                 onTemperatureChange(preset.value);
               }}
               className={cn(
-                "py-1 rounded text-[9.5px] font-bold transition-all border text-center truncate",
+                "py-1 rounded-md text-[10px] font-medium transition-all border text-center truncate cursor-pointer active:scale-[0.98]",
                 isActive
-                  ? "bg-slate-900 text-white border-slate-900 shadow-xs"
-                  : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+                  ? "bg-[var(--color-accent)] text-white border-[var(--color-accent)] shadow-2xs font-semibold"
+                  : "bg-[var(--color-surface-2)] text-[var(--color-ink-muted)] border-[var(--color-hairline)] hover:bg-[var(--color-surface-3)] hover:text-[var(--color-ink-primary)]"
               )}
               title={preset.title}
             >

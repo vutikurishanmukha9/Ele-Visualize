@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react';
 import { ChemicalElement, elements, categoryColors } from '../data/elements';
 import { elementProperties } from '../data/elementProperties';
-import { X, Scale, Zap, Atom, ArrowRightLeft } from 'lucide-react';
+import { X, Scale, Atom, ArrowRightLeft } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { audioEngine } from '@/lib/audioEngine';
 import { Canvas } from '@react-three/fiber';
@@ -19,7 +19,7 @@ const QUICK_PICKS = ['H', 'C', 'N', 'O', 'Na', 'Cl', 'Fe', 'Cu', 'Au', 'U'];
 
 // High-clarity 3D atom stage for side-by-side comparison in React Three Fiber
 const MiniAtomStage = memo(function MiniAtomStage({ element }: { element: ChemicalElement }) {
-    const color = categoryColors[element.category] || '#0284c7';
+    const color = categoryColors[element.category] || '#5e6ad2';
 
     const shellData = useMemo(() => {
         return element.shells.map((count, idx) => {
@@ -54,7 +54,7 @@ const MiniAtomStage = memo(function MiniAtomStage({ element }: { element: Chemic
     }, [element.shells]);
 
     return (
-        <div className="w-full h-44 rounded-xl bg-slate-100/90 border border-slate-200 overflow-hidden relative shadow-inner select-none cursor-grab active:cursor-grabbing">
+        <div className="w-full h-44 rounded-lg bg-[#0a0c12] border border-[var(--color-hairline)] overflow-hidden relative select-none cursor-grab active:cursor-grabbing">
             <Canvas
                 camera={{ position: [0, 2.0, 5.2], fov: 42, near: 0.1, far: 50 }}
                 gl={{
@@ -62,13 +62,13 @@ const MiniAtomStage = memo(function MiniAtomStage({ element }: { element: Chemic
                     alpha: true,
                     powerPreference: 'high-performance',
                     toneMapping: THREE.ACESFilmicToneMapping,
-                    toneMappingExposure: 1.05,
+                    toneMappingExposure: 1.15,
                 }}
                 dpr={[1.5, 3]}
             >
-                <ambientLight intensity={0.9} color="#f8fafc" />
-                <directionalLight position={[6, 10, 8]} intensity={1.6} color="#ffffff" />
-                <directionalLight position={[-6, -4, -6]} intensity={0.8} color="#38bdf8" />
+                <ambientLight intensity={0.7} color="#ffffff" />
+                <directionalLight position={[6, 10, 8]} intensity={1.8} color="#ffffff" />
+                <directionalLight position={[-6, -4, -6]} intensity={0.9} color="#818cf8" />
                 <directionalLight position={[0, -8, 3]} intensity={0.6} color="#f59e0b" />
 
                 <OrbitControls enableZoom={false} enablePan={false} autoRotate autoRotateSpeed={1.8} />
@@ -93,7 +93,7 @@ const MiniAtomStage = memo(function MiniAtomStage({ element }: { element: Chemic
                 <Html center distanceFactor={4} occlude>
                     <div
                         className="font-mono font-bold text-white text-[13px] pointer-events-none select-none tracking-tight leading-none"
-                        style={{ textShadow: '0 1px 6px rgba(0,0,0,0.6)' }}
+                        style={{ textShadow: '0 1px 6px rgba(0,0,0,0.8)' }}
                     >
                         {element.symbol}
                     </div>
@@ -107,7 +107,7 @@ const MiniAtomStage = memo(function MiniAtomStage({ element }: { element: Chemic
                             color={s.isValence ? '#f59e0b' : color}
                             lineWidth={1.2}
                             transparent
-                            opacity={s.isValence ? 0.9 : 0.35}
+                            opacity={s.isValence ? 0.9 : 0.4}
                         />
 
                         {s.electronAngles.map((angle, eIdx) => (
@@ -133,7 +133,7 @@ const MiniAtomStage = memo(function MiniAtomStage({ element }: { element: Chemic
                 ))}
             </Canvas>
 
-            <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-white/90 border border-slate-200/80 text-[10px] font-mono font-bold text-slate-800 backdrop-blur-xs shadow-2xs">
+            <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-[var(--color-surface-2)]/90 border border-[var(--color-hairline)] text-[10px] font-mono font-semibold text-[var(--color-ink)] backdrop-blur-md">
                 {element.symbol} · {element.shells.length} shells · {element.atomicNumber}e⁻
             </div>
         </div>
@@ -159,11 +159,11 @@ const TelemetryDeltaRow = memo(function TelemetryDeltaRow({
     const percentDiff = val1 !== null && val2 !== null && val2 !== 0 ? ((val1 - val2) / val2) * 100 : null;
 
     return (
-        <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 font-mono text-xs space-y-1">
-            <div className="flex justify-between items-center text-[10px] text-slate-500">
-                <span className="uppercase font-semibold">{label}</span>
+        <div className="p-2.5 rounded-lg bg-[var(--color-surface-2)] border border-[var(--color-hairline)] font-mono text-xs space-y-1.5">
+            <div className="flex justify-between items-center text-[10px] text-[var(--color-ink-muted)]">
+                <span className="uppercase font-semibold tracking-wider">{label}</span>
                 {diff !== null && (
-                    <span className={diff > 0 ? 'text-[#087f5b] font-bold' : diff < 0 ? 'text-amber-700 font-bold' : 'text-slate-500'}>
+                    <span className={diff > 0 ? 'text-emerald-400 font-bold tnum' : diff < 0 ? 'text-amber-400 font-bold tnum' : 'text-[var(--color-ink-muted)] tnum'}>
                         Δ {diff > 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2)} {unit}
                         {percentDiff !== null && Math.abs(percentDiff) < 1000 && (
                             <span className="ml-1 opacity-80">({percentDiff > 0 ? `+${percentDiff.toFixed(1)}%` : `${percentDiff.toFixed(1)}%`})</span>
@@ -175,18 +175,18 @@ const TelemetryDeltaRow = memo(function TelemetryDeltaRow({
             <div className="grid grid-cols-2 gap-3 items-center">
                 {/* Left Element Bar */}
                 <div className="flex items-center gap-2 justify-end">
-                    <span className="text-[11px] font-bold text-sky-700">{val1 ?? 'N/A'}{unit}</span>
-                    <div className="w-28 h-2 bg-slate-200 rounded overflow-hidden flex justify-end">
-                        <div className="h-full bg-sky-600 transition-all duration-300" style={{ width: `${p1}%` }} />
+                    <span className="text-[11px] font-bold text-indigo-400 tnum">{val1 ?? 'N/A'}{unit}</span>
+                    <div className="w-28 h-1.5 bg-[var(--color-surface-4)] rounded-full overflow-hidden flex justify-end">
+                        <div className="h-full bg-indigo-500 transition-all duration-300" style={{ width: `${p1}%` }} />
                     </div>
                 </div>
 
                 {/* Right Element Bar */}
                 <div className="flex items-center gap-2">
-                    <div className="w-28 h-2 bg-slate-200 rounded overflow-hidden">
-                        <div className="h-full bg-amber-600 transition-all duration-300" style={{ width: `${p2}%` }} />
+                    <div className="w-28 h-1.5 bg-[var(--color-surface-4)] rounded-full overflow-hidden">
+                        <div className="h-full bg-amber-500 transition-all duration-300" style={{ width: `${p2}%` }} />
                     </div>
-                    <span className="text-[11px] font-bold text-amber-700">{val2 ?? 'N/A'}{unit}</span>
+                    <span className="text-[11px] font-bold text-amber-400 tnum">{val2 ?? 'N/A'}{unit}</span>
                 </div>
             </div>
         </div>
@@ -246,22 +246,22 @@ export const ComparisonMode = memo(function ComparisonMode({
     };
 
     return (
-        <div className="h-full flex flex-col p-3 gap-3 bg-slate-50 font-mono text-slate-900 select-none overflow-y-auto matrix-grid-bg">
+        <div className="h-full flex flex-col p-3 gap-3 bg-[var(--color-canvas)] font-mono text-[var(--color-ink)] select-none overflow-y-auto">
             {/* Header Title */}
-            <div className="flex items-center justify-between p-3 rounded-xl bg-white border border-slate-200 shadow-sm">
+            <div className="flex items-center justify-between p-3 rounded-lg bg-[var(--color-surface-1)] border border-[var(--color-hairline)]">
                 <div className="flex items-center gap-2">
-                    <Scale className="w-4 h-4 text-sky-600 animate-pulse" />
-                    <span className="font-bold text-xs tracking-wider uppercase text-sky-700">
-                        DUAL-ELEMENT 3D DIFFERENTIAL COMPARISON CONSOLE
+                    <Scale className="w-4 h-4 text-[var(--color-accent)] animate-pulse" />
+                    <span className="font-semibold text-xs text-[var(--color-ink-primary)]">
+                        Dual-Element Differential Comparison Console
                     </span>
                 </div>
                 {element1 && element2 && (
                     <button
                         onClick={handleSwapSlots}
-                        className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-sky-50 border border-slate-200 text-xs text-slate-700 flex items-center gap-1 font-bold transition-colors"
+                        className="px-2.5 py-1 rounded-md bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-3)] border border-[var(--color-hairline)] text-xs text-[var(--color-ink-primary)] flex items-center gap-1.5 font-medium transition-colors cursor-pointer active:scale-95 shadow-2xs"
                         title="Swap Slots A and B"
                     >
-                        <ArrowRightLeft className="w-3.5 h-3.5" /> Swap
+                        <ArrowRightLeft className="w-3.5 h-3.5 text-[var(--color-accent)]" /> Swap
                     </button>
                 )}
             </div>
@@ -271,50 +271,50 @@ export const ComparisonMode = memo(function ComparisonMode({
                 {/* Slot 1 */}
                 <TiltCard
                     maxTilt={6}
-                    cardClassName="p-3 rounded-2xl bg-white border border-sky-300 space-y-2.5 shadow-card flex flex-col justify-between h-full"
+                    cardClassName="p-3.5 rounded-lg bg-[var(--color-surface-1)] border border-[var(--color-hairline)] space-y-3 flex flex-col justify-between h-full"
                 >
                     <div>
                         <div className="flex justify-between items-center mb-1">
-                            <span className="text-[10px] text-sky-700 font-bold uppercase flex items-center gap-1 font-mono">
-                                <Atom className="w-3.5 h-3.5 text-sky-600" /> Element Target A
+                            <span className="text-xs text-indigo-400 font-semibold flex items-center gap-1.5">
+                                <Atom className="w-3.5 h-3.5 text-indigo-400" /> Target A
                             </span>
                             {element1 && (
-                                <button onClick={() => onRemoveElement(1)} className="text-slate-400 hover:text-slate-700">
+                                <button onClick={() => onRemoveElement(1)} className="text-[var(--color-ink-muted)] hover:text-rose-400 transition-colors">
                                     <X className="w-3.5 h-3.5" />
                                 </button>
                             )}
                         </div>
 
                         {element1 ? (
-                            <div className="space-y-2">
+                            <div className="space-y-2.5">
                                 <div className="flex items-center gap-3">
                                     <div
-                                        className="w-12 h-12 rounded-xl flex flex-col items-center justify-center font-black text-lg border shadow-xs"
-                                        style={{ backgroundColor: `${categoryColors[element1.category]}18`, borderColor: categoryColors[element1.category], color: categoryColors[element1.category] }}
+                                        className="w-12 h-12 rounded-lg flex flex-col items-center justify-center font-bold text-lg border font-display"
+                                        style={{ backgroundColor: `${categoryColors[element1.category]}18`, borderColor: `${categoryColors[element1.category]}40`, color: categoryColors[element1.category] }}
                                     >
                                         {element1.symbol}
                                     </div>
                                     <div>
-                                        <div className="font-bold text-slate-900 text-sm">{element1.name}</div>
-                                        <div className="text-[10px] text-slate-500 font-mono">Atomic #{element1.atomicNumber} • {element1.atomicMass.toFixed(2)} u</div>
+                                        <div className="font-semibold text-[var(--color-ink-primary)] text-sm">{element1.name}</div>
+                                        <div className="text-[11px] text-[var(--color-ink-muted)] font-mono tnum">Atomic #{element1.atomicNumber} • {element1.atomicMass.toFixed(2)} u</div>
                                     </div>
                                 </div>
                                 <MiniAtomStage element={element1} />
                             </div>
                         ) : (
-                            <div className="text-xs text-slate-400 py-6 text-center border border-dashed border-slate-200 rounded-xl font-mono">
-                                Select Element A from Quick Picks below
+                            <div className="text-xs text-[var(--color-ink-muted)] py-8 text-center border border-dashed border-[var(--color-hairline)] rounded-lg font-mono">
+                                Select Target A from Quick Picks below
                             </div>
                         )}
                     </div>
 
                     {/* Quick picks */}
-                    <div className="flex gap-1 flex-wrap pt-2 border-t border-slate-100 font-mono">
+                    <div className="flex gap-1.5 flex-wrap pt-2.5 border-t border-[var(--color-hairline)]">
                         {QUICK_PICKS.map((s) => (
                             <button
                                 key={s}
                                 onClick={() => handleSelectQuick(s, 1)}
-                                className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-sky-100 border border-slate-200 text-[9px] text-slate-700 font-bold transition-colors"
+                                className="px-2.5 py-1 rounded-md bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-3)] hover:text-indigo-300 border border-[var(--color-hairline)] text-xs text-[var(--color-ink-muted)] font-medium transition-colors cursor-pointer active:scale-95 shadow-2xs font-mono"
                             >
                                 {s}
                             </button>
@@ -325,50 +325,50 @@ export const ComparisonMode = memo(function ComparisonMode({
                 {/* Slot 2 */}
                 <TiltCard
                     maxTilt={6}
-                    cardClassName="p-3 rounded-2xl bg-white border border-amber-300 space-y-2.5 shadow-card flex flex-col justify-between h-full"
+                    cardClassName="p-3.5 rounded-lg bg-[var(--color-surface-1)] border border-[var(--color-hairline)] space-y-3 flex flex-col justify-between h-full"
                 >
                     <div>
                         <div className="flex justify-between items-center mb-1">
-                            <span className="text-[10px] text-amber-700 font-bold uppercase flex items-center gap-1 font-mono">
-                                <Atom className="w-3.5 h-3.5 text-amber-600" /> Element Target B
+                            <span className="text-xs text-amber-400 font-semibold flex items-center gap-1.5">
+                                <Atom className="w-3.5 h-3.5 text-amber-400" /> Target B
                             </span>
                             {element2 && (
-                                <button onClick={() => onRemoveElement(2)} className="text-slate-400 hover:text-slate-700">
+                                <button onClick={() => onRemoveElement(2)} className="text-[var(--color-ink-muted)] hover:text-rose-400 transition-colors">
                                     <X className="w-3.5 h-3.5" />
                                 </button>
                             )}
                         </div>
 
                         {element2 ? (
-                            <div className="space-y-2">
+                            <div className="space-y-2.5">
                                 <div className="flex items-center gap-3">
                                     <div
-                                        className="w-12 h-12 rounded-xl flex flex-col items-center justify-center font-black text-lg border shadow-xs"
-                                        style={{ backgroundColor: `${categoryColors[element2.category]}18`, borderColor: categoryColors[element2.category], color: categoryColors[element2.category] }}
+                                        className="w-12 h-12 rounded-lg flex flex-col items-center justify-center font-bold text-lg border font-display"
+                                        style={{ backgroundColor: `${categoryColors[element2.category]}18`, borderColor: `${categoryColors[element2.category]}40`, color: categoryColors[element2.category] }}
                                     >
                                         {element2.symbol}
                                     </div>
                                     <div>
-                                        <div className="font-bold text-slate-900 text-sm">{element2.name}</div>
-                                        <div className="text-[10px] text-slate-500 font-mono">Atomic #{element2.atomicNumber} • {element2.atomicMass.toFixed(2)} u</div>
+                                        <div className="font-semibold text-[var(--color-ink-primary)] text-sm">{element2.name}</div>
+                                        <div className="text-[11px] text-[var(--color-ink-muted)] font-mono tnum">Atomic #{element2.atomicNumber} • {element2.atomicMass.toFixed(2)} u</div>
                                     </div>
                                 </div>
                                 <MiniAtomStage element={element2} />
                             </div>
                         ) : (
-                            <div className="text-xs text-slate-400 py-6 text-center border border-dashed border-slate-200 rounded-xl font-mono">
-                                Select Element B from Quick Picks below
+                            <div className="text-xs text-[var(--color-ink-muted)] py-8 text-center border border-dashed border-[var(--color-hairline)] rounded-lg font-mono">
+                                Select Target B from Quick Picks below
                             </div>
                         )}
                     </div>
 
                     {/* Quick picks */}
-                    <div className="flex gap-1 flex-wrap pt-2 border-t border-slate-100 font-mono">
+                    <div className="flex gap-1.5 flex-wrap pt-2.5 border-t border-[var(--color-hairline)]">
                         {QUICK_PICKS.map((s) => (
                             <button
                                 key={s}
                                 onClick={() => handleSelectQuick(s, 2)}
-                                className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-amber-100 border border-slate-200 text-[9px] text-slate-700 font-bold transition-colors"
+                                className="px-2.5 py-1 rounded-md bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-3)] hover:text-amber-300 border border-[var(--color-hairline)] text-xs text-[var(--color-ink-muted)] font-medium transition-colors cursor-pointer active:scale-95 shadow-2xs font-mono"
                             >
                                 {s}
                             </button>
@@ -379,27 +379,27 @@ export const ComparisonMode = memo(function ComparisonMode({
 
             {/* Pauling Chemical Bond Synthesizer Card */}
             {bondAnalysis && (
-                <div className="p-3.5 rounded-xl bg-white border border-slate-200 space-y-2.5 shadow-sm">
+                <div className="p-3.5 rounded-lg bg-[var(--color-surface-1)] border border-[var(--color-hairline)] space-y-2.5">
                     <div className="flex justify-between items-center text-xs flex-wrap gap-2">
-                        <span className="flex items-center gap-1.5 text-slate-900 font-bold uppercase">
-                            <Zap className="w-3.5 h-3.5 text-sky-600" />
+                        <span className="flex items-center gap-1.5 text-[var(--color-ink-primary)] font-semibold text-xs">
+                            <ArrowRightLeft className="w-3.5 h-3.5 text-[var(--color-accent)]" />
                             Pauling Chemical Bonding & Dipole Synthesis
                         </span>
-                        <span className="font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded border border-sky-200">
+                        <span className="font-medium text-[var(--color-accent)] bg-[var(--color-surface-2)] px-2.5 py-0.5 rounded border border-[var(--color-hairline)] tnum font-mono">
                             {bondAnalysis.bondType} (Δχ = {bondAnalysis.deltaEN.toFixed(2)})
                         </span>
                     </div>
 
                     {/* Progress Bar of Character */}
-                    <div className="h-4 w-full bg-slate-200 rounded-full overflow-hidden flex shadow-inner">
+                    <div className="h-3 w-full bg-[var(--color-surface-3)] rounded-full overflow-hidden flex">
                         <div
-                            className="bg-sky-600 flex items-center justify-center text-[8px] font-bold text-white transition-all duration-500"
+                            className="bg-indigo-600 flex items-center justify-center text-[9px] font-medium text-white transition-all duration-500"
                             style={{ width: `${bondAnalysis.percentCovalent}%` }}
                         >
                             {bondAnalysis.percentCovalent > 15 ? `${bondAnalysis.percentCovalent}% Covalent` : ''}
                         </div>
                         <div
-                            className="bg-amber-500 flex items-center justify-center text-[8px] font-bold text-white transition-all duration-500"
+                            className="bg-amber-500 flex items-center justify-center text-[9px] font-medium text-black transition-all duration-500"
                             style={{ width: `${bondAnalysis.percentIonic}%` }}
                         >
                             {bondAnalysis.percentIonic > 15 ? `${bondAnalysis.percentIonic}% Ionic` : ''}
@@ -408,21 +408,21 @@ export const ComparisonMode = memo(function ComparisonMode({
 
                     {/* Dipole and Compound Telemetry */}
                     <div className="grid grid-cols-2 gap-2 text-xs pt-1">
-                        <div className="p-2 rounded bg-slate-50 border border-slate-200 flex justify-between">
-                            <span className="text-slate-500">Dipole Moment Vector (μ):</span>
-                            <span className="font-bold text-sky-700">{bondAnalysis.dipoleEstimate}</span>
+                        <div className="p-2.5 rounded bg-[var(--color-surface-2)] border border-[var(--color-hairline)] flex justify-between items-center">
+                            <span className="text-[var(--color-ink-muted)] text-xs">Dipole Moment Vector (μ):</span>
+                            <span className="font-semibold text-indigo-400 font-mono tnum">{bondAnalysis.dipoleEstimate}</span>
                         </div>
-                        <div className="p-2 rounded bg-slate-50 border border-slate-200 flex justify-between">
-                            <span className="text-slate-500">Binary Compound Complex:</span>
-                            <span className="font-bold text-emerald-700">{bondAnalysis.binaryFormula || 'Solid Solution'}</span>
+                        <div className="p-2.5 rounded bg-[var(--color-surface-2)] border border-[var(--color-hairline)] flex justify-between items-center">
+                            <span className="text-[var(--color-ink-muted)] text-xs">Binary Compound Complex:</span>
+                            <span className="font-semibold text-emerald-400 font-mono">{bondAnalysis.binaryFormula || 'Solid Solution'}</span>
                         </div>
                     </div>
                 </div>
             )}
 
             {/* Differential Telemetry Metrics */}
-            <div className="p-3.5 rounded-xl bg-white border border-slate-200 space-y-2 shadow-sm">
-                <span className="text-[10px] text-slate-500 uppercase font-bold">Physical & Quantum Differential Comparison</span>
+            <div className="p-3.5 rounded-lg bg-[var(--color-surface-1)] border border-[var(--color-hairline)] space-y-2">
+                <span className="section-label">Physical & Quantum Differential Comparison</span>
                 <div className="space-y-1.5">
                     <TelemetryDeltaRow
                         label="Electronegativity (Pauling)"

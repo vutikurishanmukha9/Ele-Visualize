@@ -2,6 +2,7 @@ import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Sphere } from '@react-three/drei';
 import * as THREE from 'three';
+import { getElementPalette, ChemicalElement } from '@/data/elements';
 
 interface AtomProps {
     element: {
@@ -11,25 +12,9 @@ interface AtomProps {
     };
 }
 
-const getCategoryColor = (category: string) => {
-    const colors: Record<string, string> = {
-        'alkali-metal': '#FF3366',
-        'alkaline-earth': '#FF9933',
-        'transition-metal': '#FFCC33',
-        'post-transition': '#33CC99',
-        'metalloid': '#33CCCC',
-        'nonmetal': '#3399FF',
-        'halogen': '#9933FF',
-        'noble-gas': '#CC33FF',
-        'lanthanide': '#FF66CC',
-        'actinide': '#FF3333',
-    };
-    return colors[category] || '#ffffff';
-};
-
 export function Atom({ element }: AtomProps) {
     const groupRef = useRef<THREE.Group>(null);
-    const color = useMemo(() => getCategoryColor(element.category), [element.category]);
+    const palette = useMemo(() => getElementPalette(element.symbol), [element.symbol]);
 
     useFrame((_state) => {
         if (groupRef.current) {
@@ -40,36 +25,43 @@ export function Atom({ element }: AtomProps) {
 
     return (
         <group ref={groupRef}>
-            {/* Nucleus */}
+            {/* Nucleus: High-Refraction Optical Quartz Spherical Core */}
             <Sphere args={[0.5, 32, 32]}>
                 <meshPhysicalMaterial
-                    color={color}
-                    emissive={color}
-                    emissiveIntensity={1.5}
-                    metalness={0.3}
-                    roughness={0.12}
-                    clearcoat={1}
-                    clearcoatRoughness={0.08}
-                    reflectivity={0.95}
+                    color={palette.primary}
+                    emissive={palette.primary}
+                    emissiveIntensity={0.8}
+                    metalness={0.18}
+                    roughness={0.06}
+                    transmission={0.65}
+                    ior={1.68}
+                    thickness={0.9}
+                    clearcoat={1.0}
+                    clearcoatRoughness={0.03}
+                    reflectivity={0.96}
                 />
             </Sphere>
-            <pointLight position={[0, 0, 0]} intensity={4.5} color={color} distance={15} decay={1.8} />
+            <pointLight position={[0, 0, 0]} intensity={4.5} color={palette.primary} distance={15} decay={1.8} />
 
             {/* Electron Shells */}
-            {element.shells.map((electronCount, shellIndex) => (
-                <ElectronShell
-                    key={shellIndex}
-                    radius={2 + shellIndex * 1.5}
-                    count={electronCount}
-                    speed={0.5 - shellIndex * 0.05}
-                    color={color}
-                />
-            ))}
+            {element.shells.map((electronCount, shellIndex) => {
+                const isValence = shellIndex === element.shells.length - 1;
+                return (
+                    <ElectronShell
+                        key={shellIndex}
+                        radius={2 + shellIndex * 1.5}
+                        count={electronCount}
+                        speed={0.5 - shellIndex * 0.05}
+                        color={isValence ? '#f59e0b' : palette.primary}
+                        isValence={isValence}
+                    />
+                );
+            })}
         </group>
     );
 }
 
-function ElectronShell({ radius, count, speed, color }: { radius: number; count: number; speed: number; color: string }) {
+function ElectronShell({ radius, count, speed, color, isValence = false }: { radius: number; count: number; speed: number; color: string; isValence?: boolean }) {
     const electrons = useMemo(() => {
         return new Array(count).fill(0).map((_, i) => ({
             angle: (i / count) * Math.PI * 2,
@@ -92,7 +84,7 @@ function ElectronShell({ radius, count, speed, color }: { radius: number; count:
             {/* Orbital Path (Visual ring) */}
             <mesh rotation={[Math.PI / 2, 0, 0]}>
                 <ringGeometry args={[radius - 0.02, radius + 0.02, 64]} />
-                <meshBasicMaterial color={color} opacity={0.35} transparent side={THREE.DoubleSide} />
+                <meshBasicMaterial color={color} opacity={isValence ? 0.75 : 0.3} transparent side={THREE.DoubleSide} />
             </mesh>
 
             {/* Electrons */}
@@ -103,13 +95,14 @@ function ElectronShell({ radius, count, speed, color }: { radius: number; count:
                     initialAngle={electron.angle}
                     speed={speed}
                     color={color}
+                    isValence={isValence}
                 />
             ))}
         </group>
     );
 }
 
-function Electron({ radius, initialAngle, speed, color }: { radius: number; initialAngle: number; speed: number; color: string }) {
+function Electron({ radius, initialAngle, speed, color, isValence = false }: { radius: number; initialAngle: number; speed: number; color: string; isValence?: boolean }) {
     const ref = useRef<THREE.Mesh>(null);
 
     useFrame((state) => {
@@ -123,13 +116,15 @@ function Electron({ radius, initialAngle, speed, color }: { radius: number; init
 
     return (
         <mesh ref={ref}>
-            <sphereGeometry args={[0.08, 16, 16]} />
+            <sphereGeometry args={[isValence ? 0.095 : 0.078, 16, 16]} />
             <meshPhysicalMaterial
-                color="#ffffff"
+                color={isValence ? '#fef08a' : '#ffffff'}
                 emissive={color}
-                emissiveIntensity={2.5}
-                metalness={0.8}
-                roughness={0.1}
+                emissiveIntensity={isValence ? 3.0 : 1.8}
+                metalness={0.2}
+                roughness={0.08}
+                transmission={0.6}
+                ior={1.8}
                 clearcoat={1}
             />
         </mesh>

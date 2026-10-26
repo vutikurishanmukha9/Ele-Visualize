@@ -393,9 +393,9 @@ export function CrystalLattice3D({ onClose }: { onClose?: () => void } = {}) {
   const filteredPresets = useMemo(() => filterCategory === 'All' ? LATTICE_PRESETS : LATTICE_PRESETS.filter((p) => p.category === filterCategory), [filterCategory]);
 
   return (
-    <div className="w-full h-full flex flex-col lg:flex-row bg-[#fbfbfd] text-slate-900 font-sans select-none overflow-hidden">
+    <div className="w-full h-full flex flex-col lg:flex-row bg-[var(--color-canvas)] text-[var(--color-ink-primary)] font-sans select-none overflow-hidden">
       {/* Left 3D Stage Viewport */}
-      <div className="h-64 sm:h-80 lg:h-full flex-1 min-w-0 min-h-0 relative bg-slate-900/[0.03] cursor-grab active:cursor-grabbing">
+      <div className="h-64 sm:h-80 lg:h-full flex-1 min-w-0 min-h-0 relative bg-[var(--color-canvas)] cursor-grab active:cursor-grabbing">
         <Canvas camera={{ position: [3.5, 3.2, 4.5], fov: 42, near: 0.1, far: 50 }} gl={{ antialias: true, alpha: true, toneMapping: THREE.ACESFilmicToneMapping }}>
           <ambientLight intensity={0.9} />
           <directionalLight position={[6, 12, 8]} intensity={1.5} />
@@ -404,40 +404,40 @@ export function CrystalLattice3D({ onClose }: { onClose?: () => void } = {}) {
         </Canvas>
 
         {/* Top-Left: High-Precision Crystallography HUD */}
-        <div className="absolute top-3 left-3 p-3 rounded-lg bg-white/95 border border-slate-200/80 backdrop-blur-md shadow-xs min-w-[220px] font-mono pointer-events-auto">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase text-slate-500">
-              <Box className="w-3.5 h-3.5 text-[#0071e3]" />
+        <div className="absolute top-3 left-3 p-3 rounded-lg bg-[var(--color-surface-1)]/95 border border-[var(--color-hairline)] backdrop-blur-md shadow-xs min-w-[220px] font-mono pointer-events-auto">
+          <div className="flex items-center justify-between border-b border-[var(--color-hairline)] pb-1.5">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase text-[var(--color-ink-muted)]">
+              <Box className="w-3.5 h-3.5 text-[var(--color-accent)]" />
               <span>Unit Cell Telemetry</span>
             </div>
-            <span className="text-[10px] font-bold text-[#0071e3]">{activePreset.spaceGroup}</span>
+            <span className="text-[10px] font-bold text-[var(--color-accent)]">{activePreset.spaceGroup}</span>
           </div>
-          <div className="text-xs font-bold pt-1.5 text-slate-900">{activePreset.name}</div>
+          <div className="text-xs font-bold pt-1.5 text-[var(--color-ink-primary)]">{activePreset.name}</div>
           <div className="grid grid-cols-3 gap-1 pt-2 text-[10px]">
             <div>
-              <span className="text-slate-400 block text-[9px]">APF</span>
-              <strong className="text-[#0071e3] font-bold">{(activePreset.packingEfficiency * 100).toFixed(1)}%</strong>
+              <span className="text-[var(--color-ink-muted)] block text-[9px]">APF</span>
+              <strong className="text-[var(--color-accent)] font-bold">{(activePreset.packingEfficiency * 100).toFixed(1)}%</strong>
             </div>
             <div>
-              <span className="text-slate-400 block text-[9px]">Coord #</span>
-              <strong className="text-slate-900 font-bold">{activePreset.coordinationNumber}</strong>
+              <span className="text-[var(--color-ink-muted)] block text-[9px]">Coord #</span>
+              <strong className="text-[var(--color-ink-primary)] font-bold">{activePreset.coordinationNumber}</strong>
             </div>
             <div>
-              <span className="text-slate-400 block text-[9px]">Atoms/Cell</span>
-              <strong className="text-slate-900 font-bold">{activePreset.atomsPerCell}</strong>
+              <span className="text-[var(--color-ink-muted)] block text-[9px]">Atoms/Cell</span>
+              <strong className="text-[var(--color-ink-primary)] font-bold">{activePreset.atomsPerCell}</strong>
             </div>
           </div>
         </div>
 
         {/* Top-Right: Camera Navigation Deck */}
-        <div className="absolute top-3 right-3 flex items-center gap-0.5 bg-white/95 border border-slate-200/80 p-0.5 rounded-md backdrop-blur-md shadow-xs">
-          <button onClick={() => setZoomAction({ type: 'in', ts: Date.now() })} className="p-1 rounded hover:bg-slate-100 text-slate-600 hover:text-slate-900" title="Zoom In">
+        <div className="absolute top-3 right-3 flex items-center gap-0.5 bg-[var(--color-surface-1)]/95 border border-[var(--color-hairline)] p-0.5 rounded-md backdrop-blur-md shadow-xs">
+          <button onClick={() => setZoomAction({ type: 'in', ts: Date.now() })} className="p-1 rounded hover:bg-[var(--color-surface-2)] text-[var(--color-ink-muted)] hover:text-[var(--color-ink-primary)] transition-colors" title="Zoom In">
             <ZoomIn className="w-3 h-3" />
           </button>
-          <button onClick={() => setZoomAction({ type: 'out', ts: Date.now() })} className="p-1 rounded hover:bg-slate-100 text-slate-600 hover:text-slate-900" title="Zoom Out">
+          <button onClick={() => setZoomAction({ type: 'out', ts: Date.now() })} className="p-1 rounded hover:bg-[var(--color-surface-2)] text-[var(--color-ink-muted)] hover:text-[var(--color-ink-primary)] transition-colors" title="Zoom Out">
             <ZoomOut className="w-3 h-3" />
           </button>
-          <button onClick={() => setZoomAction({ type: 'reset', ts: Date.now() })} className="p-1 rounded hover:bg-slate-100 text-slate-600 hover:text-slate-900" title="Reset View">
+          <button onClick={() => setZoomAction({ type: 'reset', ts: Date.now() })} className="p-1 rounded hover:bg-[var(--color-surface-2)] text-[var(--color-ink-muted)] hover:text-[var(--color-ink-primary)] transition-colors" title="Reset View">
             <RotateCcw className="w-3 h-3" />
           </button>
         </div>
@@ -448,7 +448,7 @@ export function CrystalLattice3D({ onClose }: { onClose?: () => void } = {}) {
             onClick={() => setShowBonds(!showBonds)}
             className={cn(
               "h-7 px-2.5 rounded-md text-xs font-mono font-bold border transition-all flex items-center gap-1.5 shadow-2xs",
-              showBonds ? "bg-slate-900 text-white border-slate-800" : "bg-white/95 hover:bg-slate-50 border-slate-200 text-slate-600"
+              showBonds ? "bg-[var(--color-surface-3)] text-white border-[var(--color-hairline)] shadow-xs" : "bg-[var(--color-surface-1)]/95 hover:bg-[var(--color-surface-2)] border-[var(--color-hairline)] text-[var(--color-ink-secondary)]"
             )}
           >
             <span>Bonds: {showBonds ? 'ON' : 'OFF'}</span>
@@ -457,7 +457,7 @@ export function CrystalLattice3D({ onClose }: { onClose?: () => void } = {}) {
             onClick={() => setShowUnitCellBox(!showUnitCellBox)}
             className={cn(
               "h-7 px-2.5 rounded-md text-xs font-mono font-bold border transition-all flex items-center gap-1.5 shadow-2xs",
-              showUnitCellBox ? "bg-slate-900 text-white border-slate-800" : "bg-white/95 hover:bg-slate-50 border-slate-200 text-slate-600"
+              showUnitCellBox ? "bg-[var(--color-surface-3)] text-white border-[var(--color-hairline)] shadow-xs" : "bg-[var(--color-surface-1)]/95 hover:bg-[var(--color-surface-2)] border-[var(--color-hairline)] text-[var(--color-ink-secondary)]"
             )}
           >
             <span>Unit Box: {showUnitCellBox ? 'ON' : 'OFF'}</span>
@@ -466,7 +466,7 @@ export function CrystalLattice3D({ onClose }: { onClose?: () => void } = {}) {
             onClick={() => setShowMillerPlane(!showMillerPlane)}
             className={cn(
               "h-7 px-2.5 rounded-md text-xs font-mono font-bold border transition-all flex items-center gap-1.5 shadow-2xs",
-              showMillerPlane ? "bg-[#0071e3] text-white border-[#0071e3]" : "bg-white/95 hover:bg-slate-50 border-slate-200 text-slate-600"
+              showMillerPlane ? "bg-[var(--color-accent)] text-white border-[var(--color-accent)] shadow-xs" : "bg-[var(--color-surface-1)]/95 hover:bg-[var(--color-surface-2)] border-[var(--color-hairline)] text-[var(--color-ink-secondary)]"
             )}
           >
             <span>Plane: {showMillerPlane ? 'ON' : 'OFF'}</span>
@@ -475,20 +475,20 @@ export function CrystalLattice3D({ onClose }: { onClose?: () => void } = {}) {
       </div>
 
       {/* Right Control & Science Dashboard */}
-      <div className="w-full lg:w-96 shrink-0 h-auto lg:h-full p-4 flex flex-col gap-3.5 overflow-y-auto bg-white border-t lg:border-t-0 lg:border-l border-slate-200/80 shadow-xs z-10">
-        <div className="flex items-start justify-between border-b border-slate-100 pb-3">
+      <div className="w-full lg:w-96 shrink-0 h-auto lg:h-full p-4 flex flex-col gap-3.5 overflow-y-auto bg-[var(--color-surface-1)] border-t lg:border-t-0 lg:border-l border-[var(--color-hairline)] shadow-xs z-10">
+        <div className="flex items-start justify-between border-b border-[var(--color-hairline)] pb-3">
           <div>
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-900 text-white text-[10px] font-mono font-bold w-fit mb-1.5 shadow-xs">
-              <Layers className="w-3 h-3 text-[#0071e3]" />
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[var(--color-surface-3)] text-white border border-[var(--color-hairline)] text-[10px] font-mono font-bold w-fit mb-1.5 shadow-xs">
+              <Layers className="w-3 h-3 text-[var(--color-accent)]" />
               <span>SOLID STATE LAB</span>
             </div>
-            <h1 className="text-base font-bold text-slate-900 font-display">Crystal Lattice & Bravais Unit Cells</h1>
-            <p className="text-xs text-slate-500 mt-0.5">Explore 3D atomic packing factors and Miller planes.</p>
+            <h1 className="text-base font-bold text-[var(--color-ink-primary)] font-display">Crystal Lattice & Bravais Unit Cells</h1>
+            <p className="text-xs text-[var(--color-ink-muted)] mt-0.5">Explore 3D atomic packing factors and Miller planes.</p>
           </div>
           {onClose && (
             <button
               onClick={onClose}
-              className="w-7 h-7 rounded-md hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors"
+              className="w-7 h-7 rounded-md hover:bg-[var(--color-surface-2)] flex items-center justify-center text-[var(--color-ink-muted)] hover:text-[var(--color-ink-primary)] transition-colors"
               title="Close Lab"
             >
               <X className="w-4 h-4" />
@@ -499,15 +499,15 @@ export function CrystalLattice3D({ onClose }: { onClose?: () => void } = {}) {
         {/* Category Filters & Lattice Symmetries */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">Lattice Symmetries</label>
-            <div className="flex items-center gap-0.5 bg-slate-100 p-0.5 rounded-md text-[10px] font-mono font-bold">
+            <label className="text-[10px] font-mono font-bold text-[var(--color-ink-muted)] uppercase tracking-wider">Lattice Symmetries</label>
+            <div className="flex items-center gap-0.5 bg-[var(--color-surface-2)] p-0.5 rounded-md border border-[var(--color-hairline)] text-[10px] font-mono font-bold">
               {(['All', 'Cubic', 'Close-Packed', 'Ionic/Binary'] as const).map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setFilterCategory(cat)}
                   className={cn(
                     "px-1.5 py-0.5 rounded transition-colors",
-                    filterCategory === cat ? "bg-white text-[#0071e3] shadow-xs" : "text-slate-500 hover:text-slate-900"
+                    filterCategory === cat ? "bg-[var(--color-surface-3)] text-white shadow-xs font-bold border border-[var(--color-hairline)]" : "text-[var(--color-ink-muted)] hover:text-[var(--color-ink-primary)]"
                   )}
                 >
                   {cat === 'All' ? 'All' : cat === 'Ionic/Binary' ? 'Ionic' : cat}
@@ -516,7 +516,7 @@ export function CrystalLattice3D({ onClose }: { onClose?: () => void } = {}) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-1.5 max-h-48 overflow-y-auto p-1 bg-slate-50 rounded-md border border-slate-200/70">
+          <div className="grid grid-cols-2 gap-1.5 max-h-48 overflow-y-auto p-1 bg-[var(--color-surface-2)] rounded-md border border-[var(--color-hairline)]">
             {filteredPresets.map((p) => (
               <button
                 key={p.id}
@@ -527,28 +527,28 @@ export function CrystalLattice3D({ onClose }: { onClose?: () => void } = {}) {
                 className={cn(
                   "p-2 rounded-md border text-left transition-all flex flex-col justify-between",
                   selectedType === p.id
-                    ? "bg-blue-50 border-[#0071e3] ring-1 ring-[#0071e3]/40 shadow-xs"
-                    : "bg-white border-slate-200/80 hover:border-slate-300 text-slate-700"
+                    ? "bg-[var(--color-surface-3)] border-[var(--color-accent)] ring-1 ring-[var(--color-accent)]/50 shadow-xs"
+                    : "bg-[var(--color-surface-1)] border-[var(--color-hairline)] hover:border-[var(--color-accent)]/40 text-[var(--color-ink-secondary)]"
                 )}
               >
                 <div className="flex items-center justify-between">
-                  <div className="text-xs font-bold truncate text-slate-900 font-mono">{p.shortName}</div>
-                  <span className="text-[8.5px] font-mono uppercase font-bold px-1 rounded text-[#0071e3] bg-blue-50">
+                  <div className="text-xs font-bold truncate text-[var(--color-ink-primary)] font-mono">{p.shortName}</div>
+                  <span className="text-[8.5px] font-mono uppercase font-bold px-1 rounded text-[var(--color-accent)] bg-[var(--color-accent)]/15">
                     {(p.packingEfficiency * 100).toFixed(0)}%
                   </span>
                 </div>
-                <div className="text-[9.5px] font-mono text-slate-400 truncate mt-0.5">{p.category}</div>
+                <div className="text-[9.5px] font-mono text-[var(--color-ink-muted)] truncate mt-0.5">{p.category}</div>
               </button>
             ))}
           </div>
         </div>
 
         {/* Sliders */}
-        <div className="p-3 rounded-lg border border-slate-200/80 bg-slate-50 space-y-2.5 font-mono text-xs shadow-xs">
+        <div className="p-3 rounded-lg border border-[var(--color-hairline)] bg-[var(--color-surface-2)] space-y-2.5 font-mono text-xs shadow-xs">
           <div>
             <div className="flex justify-between items-center text-[11px] font-bold mb-1">
-              <span className="text-slate-600">Repeat (NxNxN):</span>
-              <span className="text-[#0071e3]">{repeat}x{repeat}x{repeat}</span>
+              <span className="text-[var(--color-ink-secondary)]">Repeat (NxNxN):</span>
+              <span className="text-[var(--color-accent)]">{repeat}x{repeat}x{repeat}</span>
             </div>
             <input
               type="range"
@@ -557,14 +557,14 @@ export function CrystalLattice3D({ onClose }: { onClose?: () => void } = {}) {
               step="1"
               value={repeat}
               onChange={(e) => setRepeat(Number(e.target.value))}
-              className="w-full h-1.5 bg-slate-200 rounded appearance-none cursor-pointer accent-[#0071e3]"
+              className="w-full h-1.5 bg-[var(--color-surface-3)] rounded appearance-none cursor-pointer accent-[var(--color-accent)]"
             />
           </div>
 
           <div>
             <div className="flex justify-between items-center text-[11px] font-bold mb-1">
-              <span className="text-slate-600">Radius Scale:</span>
-              <span className="text-[#0071e3]">{(sphereScale * 100).toFixed(0)}%</span>
+              <span className="text-[var(--color-ink-secondary)]">Radius Scale:</span>
+              <span className="text-[var(--color-accent)]">{(sphereScale * 100).toFixed(0)}%</span>
             </div>
             <input
               type="range"
@@ -573,45 +573,45 @@ export function CrystalLattice3D({ onClose }: { onClose?: () => void } = {}) {
               step="0.05"
               value={sphereScale}
               onChange={(e) => setSphereScale(Number(e.target.value))}
-              className="w-full h-1.5 bg-slate-200 rounded appearance-none cursor-pointer accent-[#0071e3]"
+              className="w-full h-1.5 bg-[var(--color-surface-3)] rounded appearance-none cursor-pointer accent-[var(--color-accent)]"
             />
           </div>
         </div>
 
         {/* Unified Properties Card */}
-        <div className="rounded-lg border border-slate-200/80 bg-white overflow-hidden shadow-xs text-xs font-mono">
-          <div className="px-3 py-2 bg-slate-50 border-b border-slate-200/80 flex items-center justify-between">
-            <span className="font-bold text-slate-900 uppercase text-[10px]">Crystallographic Properties</span>
-            <span className="text-[10px] font-bold text-[#0071e3]">{activePreset.spaceGroup}</span>
+        <div className="rounded-lg border border-[var(--color-hairline)] bg-[var(--color-surface-2)] overflow-hidden shadow-xs text-xs font-mono">
+          <div className="px-3 py-2 bg-[var(--color-surface-3)]/40 border-b border-[var(--color-hairline)] flex items-center justify-between">
+            <span className="font-bold text-[var(--color-ink-primary)] uppercase text-[10px]">Crystallographic Properties</span>
+            <span className="text-[10px] font-bold text-[var(--color-accent)]">{activePreset.spaceGroup}</span>
           </div>
 
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-[var(--color-hairline)]">
             <div className="p-2.5 flex items-center justify-between">
-              <span className="text-slate-500 text-[11px]">Packing Efficiency:</span>
-              <strong className="text-[#0071e3] font-bold">{(activePreset.packingEfficiency * 100).toFixed(1)}%</strong>
+              <span className="text-[var(--color-ink-muted)] text-[11px]">Packing Efficiency:</span>
+              <strong className="text-[var(--color-accent)] font-bold">{(activePreset.packingEfficiency * 100).toFixed(1)}%</strong>
             </div>
             <div className="p-2.5 flex items-center justify-between">
-              <span className="text-slate-500 text-[11px]">Coordination:</span>
-              <strong className="text-slate-900 font-bold">{activePreset.coordinationNumber} nearest neighbors</strong>
+              <span className="text-[var(--color-ink-muted)] text-[11px]">Coordination:</span>
+              <strong className="text-[var(--color-ink-primary)] font-bold">{activePreset.coordinationNumber} nearest neighbors</strong>
             </div>
             <div className="p-2.5 flex items-center justify-between">
-              <span className="text-slate-500 text-[11px]">Atoms/Cell (Z):</span>
-              <strong className="text-slate-900 font-bold">{activePreset.atomsPerCell}</strong>
+              <span className="text-[var(--color-ink-muted)] text-[11px]">Atoms/Cell (Z):</span>
+              <strong className="text-[var(--color-ink-primary)] font-bold">{activePreset.atomsPerCell}</strong>
             </div>
             <div className="p-2.5 flex items-center justify-between">
-              <span className="text-slate-500 text-[11px]">Miller Cleavage:</span>
-              <strong className="text-slate-900 font-bold text-xs">{activePreset.millerIndices}</strong>
+              <span className="text-[var(--color-ink-muted)] text-[11px]">Miller Cleavage:</span>
+              <strong className="text-[var(--color-ink-primary)] font-bold text-xs">{activePreset.millerIndices}</strong>
             </div>
-            <div className="p-2.5 flex items-center justify-between bg-slate-50/50">
-              <span className="text-slate-500 text-[11px]">Examples:</span>
-              <strong className="text-slate-900 font-bold text-right truncate max-w-[150px]">{activePreset.formula}</strong>
+            <div className="p-2.5 flex items-center justify-between bg-[var(--color-surface-3)]/20">
+              <span className="text-[var(--color-ink-muted)] text-[11px]">Examples:</span>
+              <strong className="text-[var(--color-ink-primary)] font-bold text-right truncate max-w-[150px]">{activePreset.formula}</strong>
             </div>
           </div>
         </div>
 
         {/* Physics Note */}
-        <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 text-[11px] text-slate-600 leading-relaxed font-sans shadow-2xs">
-          <strong className="text-slate-900 font-semibold font-mono">Lattice Physics: </strong>
+        <div className="p-2.5 rounded-lg bg-[var(--color-surface-2)] border border-[var(--color-hairline)] text-[11px] text-[var(--color-ink-secondary)] leading-relaxed font-sans shadow-2xs">
+          <strong className="text-[var(--color-ink-primary)] font-semibold font-mono">Lattice Physics: </strong>
           {activePreset.description}
         </div>
       </div>
